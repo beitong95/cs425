@@ -20,6 +20,8 @@ if [ "$1" == "$copyPublicKey" ]; then
 		host='beitong2@'${IPAddress[$i]}
 		ssh-copy-id $host
 	done
+	host='beitong2@'$VM1IPAddress
+	ssh-copy-id $host
 else
 	for i in ${!IPAddress[@]};	
 	do

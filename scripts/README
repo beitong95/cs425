@@ -1,4 +1,5 @@
 for vm1
+0. if first time, run bash allVM.sh copyKey and bash allVM.sh cloneRepo.sh 
 1. code on vm1 
 2. push to github
 3. run bash allVM.sh pullRepo.sh
