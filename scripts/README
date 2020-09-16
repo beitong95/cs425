@@ -1,0 +1,6 @@
+for vm1
+1. code on vm1 
+2. push to github
+3. run bash allVM.sh pullRepo.sh
+4. run bash allVM.sh setUpMp0.sh
+5. run bash allVM.sh runMp0.sh

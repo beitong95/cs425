@@ -29,12 +29,13 @@ else
 		ssh $host 'bash -s' < $1
 		echo "done"
 	done
-	if [ $1 == "runMp0.sh" ] || [$1 == "setUpMp0.sh"]
+	if [ $1 == "runMp0.sh" ] || [ $1 == "setUpMp0.sh"]
 	then
 		host='beitong2@'$VM1IPAddress
 		echo $host
 		ssh $host 'bash -s' < $1
 		echo "done"
+	fi
 		
 		 
 fi 
