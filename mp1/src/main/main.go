@@ -50,7 +50,8 @@ func main() {
 	var wg sync.WaitGroup
 
 	//start membership udp server
-	c := make(chan int64)
+	//10 is enough for the channel buffer capacity
+	c := make(chan int, 10)
 
 	wg.Add(1)
 	go service.UDPServer(all2all, introducer, &wg, c)
