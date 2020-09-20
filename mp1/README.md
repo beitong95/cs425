@@ -1,33 +1,22 @@
-# Logly
-Your friendly neighborhood distributed logging microservice from _Covfefe! Inc_.
-
-## build logly on vm1
-```
-# Install Logly
-cd $HOME
-git clone https://github.com/beitong95/cs425.git
-cd cs425/mp0
-./bootstrap.sh
+## test print membership list in table format
+For first time usage, you need to add the new go path
+```console
+cd mp1/src/
+bash ./bootstrap.sh
 source ~/.bashrc
-go build -o logly main
 ```
 
-## run logly server one other machine
-cd $HOME
-git clone https://github.com/beitong95/cs425.git
-cd cs425/mp0
-./bootstrap.sh
-.log_service_wrapper.sh
-
-## Usage Examples
+```console
+cd mp1/src/helper/
+go test -v
 ```
-./logly --help
-CONFIG=config.json ./logly -server &> serverlog.log &
-CONFIG=config.json ./logly -client --expression="(A-Z)*" &> output.log
-```
+you can create your own test case in printTable_Test.go
 
-## Testing
-```sh
-go test ./...
-go vet ./... # Check for program correctness
+sample output
+```
+ID            HeartBeat     LocalTime
+------------- ------------- -------------
+1             1             1
+cs425         1.123         1.123
+mp1           1.123         1.123
 ```
