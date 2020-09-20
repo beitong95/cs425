@@ -1,4 +1,4 @@
-## test print membership list in table format
+## test print membership list in the table format & get local ip address
 For first time usage, you need to add the new go path
 ```console
 cd mp1/src/
@@ -10,13 +10,15 @@ source ~/.bashrc
 cd mp1/src/helper/
 go test -v
 ```
-you can create your own test case in printTable_Test.go
+you can create your own test case in printTable_Test.go and getIP_test.go
 
-sample output
+sample output can be found in mp1/src/helper/test_output
 ```
-ID            HeartBeat     LocalTime
-------------- ------------- -------------
-1             1             1
-cs425         1.123         1.123
-mp1           1.123         1.123
+------------------------------------------
+|ID       |HeartBeat   |LocalTime        |
+|---------|------------|-----------------|
+|1        |1           |1                |
+|cs425    |2           |3                |
+|mp1      |3           |1111111111111    |
+------------------------------------------
 ```
