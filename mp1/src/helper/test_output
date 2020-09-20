@@ -1,0 +1,22 @@
+=== RUN   Test_printMembershipListAsTable
+=== RUN   Test_printMembershipListAsTable/test_nil
+=== RUN   Test_printMembershipListAsTable/test_empty
+ID            HeartBeat     LocalTime     
+------------- ------------- ------------- 
+=== RUN   Test_printMembershipListAsTable/test_simple
+ID            HeartBeat     LocalTime     
+------------- ------------- ------------- 
+1             1             1             
+=== RUN   Test_printMembershipListAsTable/test_complex
+ID            HeartBeat     LocalTime     
+------------- ------------- ------------- 
+1             1             1             
+cs425         1.123         1.123         
+mp1           1.123         1.123         
+--- PASS: Test_printMembershipListAsTable (0.00s)
+    --- PASS: Test_printMembershipListAsTable/test_nil (0.00s)
+    --- PASS: Test_printMembershipListAsTable/test_empty (0.00s)
+    --- PASS: Test_printMembershipListAsTable/test_simple (0.00s)
+    --- PASS: Test_printMembershipListAsTable/test_complex (0.00s)
+PASS
+ok  	helper	0.002s
