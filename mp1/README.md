@@ -40,4 +40,7 @@ JOIN_GROUP = 3
 LEAVE_GROUP = 4  
 FAIL = 5  
 
+Please check test_output in mp1/src/main
+
+## use ticker in UDPServer 
 
