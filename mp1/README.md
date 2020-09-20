@@ -42,6 +42,9 @@ JOIN_GROUP = 3
 LEAVE_GROUP = 4  
 FAIL = NA  
 
+# add feature to check whether gossip period is too short
+Calculate the wait time between ticker blocking and ticker ticking to get the gossip process time(merge membership list, send data...) (currently I use time.sleep(1.2 second). If it is too short ( less than 5% of gossip time), the program will through an error.
+
 Please check test_output in mp1/src/main
 
 ## use ticker in UDPServer 
