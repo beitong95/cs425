@@ -41,9 +41,9 @@ func main() {
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
 	myID = "*" + myIP + "_" + fmt.Sprintf("%d", secs) + "*"
-	hearBeat := millis
+	heartBeat := millis
 	currentTime := millis
-	membershipList = append(membershipList, Membership{myID, hearBeat, currentTime})
+	membershipList = append(membershipList, Membership{myID, heartBeat, currentTime})
 	helper.PrintMembershipListAsTable(membershipList)
 
 	/*
