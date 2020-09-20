@@ -1,6 +1,7 @@
 package service
 
 import (
+	"io/ioutil"
 	"log"
 	. "structs"
 	"sync"
@@ -81,6 +82,7 @@ func parseCmds(cmds []int) []int {
 
 //UDPServer is the udp server thread function
 func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
+	log.SetOutput(ioutil.Discard)
 	defer wg.Done()
 	gossipPeriodMillisecond := 2000
 	//timer for gossip period
@@ -150,7 +152,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//control timers
 		//failure detect
 		//deseminate failure
-		//execute global commands set B 
+		//execute global commands set B
 		time.Sleep(1500 * time.Millisecond)
 		log.Println("Finish Gossip work")
 	}

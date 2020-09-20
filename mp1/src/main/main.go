@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"helper"
+	"io/ioutil"
 	"log"
 	"os"
 	"service"
@@ -20,12 +21,16 @@ func main() {
 	isStartWithAll2All := flag.Bool("all2all", false, "start with all 2 all at the beginning")
 	isIntroducer := flag.Bool("introducer", false, "start as an introducer")
 	isMuteCli := flag.Bool("mute", false, "mute the command line interaction")
+	isVerbose := flag.Bool("v", false, "print log")
 	configFilePtr := flag.String("config", "./config.json", "Location of Config File")
 	flag.Parse()
-
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCli
+	verbose := *isVerbose
+	if verbose {
+		log.SetOutput(ioutil.Discard)
+	}
 	//fmt.Println(all2all, introducer, mute)
 	os.Setenv("CONFIG", *configFilePtr)
 
