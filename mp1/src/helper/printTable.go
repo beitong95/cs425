@@ -1,74 +1,84 @@
 // author: Beitong Tian
 // time: 09/19/2020
-package printtable
+package helper
 
 import (
 	"errors"
 	"fmt"
-	"os"
 	"reflect"
 	"strings"
 	. "structs"
-	"text/tabwriter"
 )
 
-func findLongestAttribute(m Membership) int {
-	e := reflect.ValueOf(m)
-	tableWidth := e.NumField()
-	maxL := 0
-	for i := 0; i < tableWidth; i++ {
-		if len(e.Type().Field(i).Name) > maxL {
-			maxL = len(e.Type().Field(i).Name)
-		}
-	}
-	return maxL
-}
-
-func printMembershipListAsTable(membershipList []Membership) error {
+func PrintMembershipListAsTable(membershipList []Membership) error {
 	// handle edge cases
 	if membershipList == nil {
 		return errors.New("Passing nil to printMembershipListAsTable")
 	}
 
-	// initiallize print commands
-	printCommand1 := "" // header format
-	printCommand2 := "" // header separator format
-	printCommand3 := "" // real values format
-	maxL := 0
-
-	// create header format and find the max length of attribute name
 	e := reflect.ValueOf(Membership{})
 	tableWidth := e.NumField()
+	tableHeight := len(membershipList)
+	maxL := make([]int, tableWidth)
+
+	//get table header info
+	s1 := make([]interface{}, tableWidth)
 	for i := 0; i < tableWidth; i++ {
-		printCommand1 = printCommand1 + e.Type().Field(i).Name + "\t"
-		// find max length of attribute name
-		if l := len(e.Type().Field(i).Name); l > maxL {
-			maxL = l
-		}
+		attrName := e.Type().Field(i).Name
+		s1[i] = attrName
+		maxL[i] = len(attrName)
 	}
 
-	// create table obj w
-	w := new(tabwriter.Writer)
-	cellWidth := maxL + 5
-	w.Init(os.Stdout, cellWidth, 8, 0, ' ', 0)
-	defer w.Flush()
-
-	//print header, header separator and build the format for real values
-	fmt.Fprintln(w, printCommand1)
-	subPrintCommand2 := strings.Repeat("-", cellWidth-1) + "\t"
-	printCommand2 = strings.Repeat(subPrintCommand2, tableWidth)
-	fmt.Fprintln(w, printCommand2)
-	printCommand3 = strings.Repeat("%v\t", tableWidth)
-	printCommand3 = printCommand3 + "\n"
-
-	//print real values
-	for i := 0; i < len(membershipList); i++ {
+	// get table body info
+	s3 := make([][]interface{}, tableHeight)
+	for i := 0; i < tableHeight; i++ {
 		e := reflect.ValueOf(membershipList[i])
-		s := make([]interface{}, tableWidth)
-		for i := 0; i < tableWidth; i++ {
-			s[i] = e.Field(i).Interface()
+		s3[i] = make([]interface{}, tableWidth)
+		for j := 0; j < tableWidth; j++ {
+			s3[i][j] = e.Field(j).Interface()
+			str := fmt.Sprintln(s3[i][j])
+			if l := len(str); l > maxL[j] {
+				maxL[j] = l
+			}
 		}
-		fmt.Fprintf(w, printCommand3, s...)
 	}
+	//fmt.Println("max length ", maxL)
+
+	// get table border info
+	tableWidthByCharacter := 0
+	pad := 3
+	for i := 0; i < tableWidth; i++ {
+		tableWidthByCharacter += maxL[i]
+	}
+	tableWidthByCharacter += pad*tableWidth + (1*tableWidth + 1)
+
+	// create print format command
+	printCommand := ""
+	for i := 0; i < tableWidth; i++ {
+		printCommand = printCommand + "|%-" + fmt.Sprintf("%v", maxL[i]+3) + "v"
+	}
+	printCommand = printCommand + "|\n"
+	//fmt.Printf("%#v\n", printCommand)
+
+	// print border
+	border := strings.Repeat("-", tableWidthByCharacter)
+	fmt.Printf("%v\n", border)
+
+	// print header
+	fmt.Printf(printCommand, s1...)
+	s2 := make([]interface{}, tableWidth)
+	for i := 0; i < tableWidth; i++ {
+		s2[i] = strings.Repeat("-", maxL[i]+3)
+	}
+	fmt.Printf(printCommand, s2...)
+
+	// print body
+	for i := 0; i < tableHeight; i++ {
+		fmt.Printf(printCommand, s3[i]...)
+	}
+
+	// print border
+	fmt.Printf("%v\n", border)
+
 	return nil
 }
