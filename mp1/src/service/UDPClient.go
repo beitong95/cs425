@@ -1,5 +1,0 @@
-package UDPClient
-
-func UDPsend() {
-
-}
