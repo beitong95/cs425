@@ -46,19 +46,17 @@ func main() {
 	membershipList = append(membershipList, Membership{myID, heartBeat, currentTime})
 	helper.PrintMembershipListAsTable(membershipList)
 
-	/*
-		// actually the server and cml will forever loop until receiving a kill command
-		var wg sync.WaitGroup
+	// actually the server and cml will forever loop until receiving a kill command
+	var wg sync.WaitGroup
 
-		//start membership udp server
+	//start membership udp server
+	wg.Add(1)
+	go(service.UDPServer(isStartWithAll2All, isIntroducer, wg)
+
+	if mute == false {
 		wg.Add(1)
-		go(service.Server(isStartWithAll2All, isIntroducer, wg)
+		go(cml.Cml(wg))
+	}
 
-		if mute == false {
-			wg.Add(1)
-			go(cml.Cml(wg))
-		}
-
-		wg.Wait()
-	*/
+	wg.Wait()
 }
