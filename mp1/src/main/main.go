@@ -1,12 +1,15 @@
 package main
 
 import (
+	"cml"
 	"flag"
 	"fmt"
 	"helper"
 	"log"
 	"os"
+	"service"
 	. "structs"
+	"sync"
 	"time"
 )
 
@@ -26,9 +29,6 @@ func main() {
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCML
-	_ = all2all
-	_ = introducer
-	_ = mute
 	//fmt.Println(all2all, introducer, mute)
 	os.Setenv("CONFIG", *configFilePtr)
 
@@ -50,12 +50,14 @@ func main() {
 	var wg sync.WaitGroup
 
 	//start membership udp server
+	c := make(chan int64)
+
 	wg.Add(1)
-	go(service.UDPServer(isStartWithAll2All, isIntroducer, wg)
+	go service.UDPServer(all2all, introducer, &wg, c)
 
 	if mute == false {
 		wg.Add(1)
-		go(cml.Cml(wg))
+		go cml.Cml(&wg, c)
 	}
 
 	wg.Wait()
