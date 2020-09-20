@@ -26,13 +26,11 @@ func main() {
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCML
-	fmt.Println(all2all, introducer, mute)
+	_ = all2all
+	_ = introducer
+	_ = mute
+	//fmt.Println(all2all, introducer, mute)
 	os.Setenv("CONFIG", *configFilePtr)
-
-	if len(flag.Args()) != 0 {
-		fmt.Println(flag.Args())
-		log.Fatalf("Usage: mp1 [-all2all] [-introducer] [-config=config path]\n(default we assume config.json is located in the current folder)\n")
-	}
 
 	//create the first memeber(myself)
 	//ID: myIP + current time
