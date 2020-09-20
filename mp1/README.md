@@ -13,9 +13,10 @@ go test -v
 you can create your own test case in printTable_Test.go
 
 sample output
-
+```
 ID            HeartBeat     LocalTime
 ------------- ------------- -------------
 1             1             1
 cs425         1.123         1.123
 mp1           1.123         1.123
+```
