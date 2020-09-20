@@ -22,3 +22,22 @@ sample output can be found in mp1/src/helper/test_output
 |mp1      |3           |1111111111111    |
 ------------------------------------------
 ```
+
+## test channel between command line thread and UDPServer thread
+``` console
+cd mp1/src/main
+./main
+```
+some definitions of command  
+
+NA means command line thread can directly get achieve those features
+
+CHANGE_TO_ALL2ALL = 1  
+CHANGE_TO_GOSSIP = 2  
+LIST_MEMBERSHIPLIST = NA   
+PRINT_SELF_ID = NA  
+JOIN_GROUP = 3  
+LEAVE_GROUP = 4  
+FAIL = 5  
+
+
