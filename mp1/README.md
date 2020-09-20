@@ -32,7 +32,7 @@ some definitions of command
 
 NA means command line thread can directly get achieve those features
 
-All commands with number(which means they need to be processed in UDPserver) can be executed in the next gossip period. (No hard real time requirement)
+All commands which are needed to be processed in UDPserver can be executed in the next gossip period. (No hard real time requirement)
 
 CHANGE_TO_ALL2ALL = 1  
 CHANGE_TO_GOSSIP = 2  
