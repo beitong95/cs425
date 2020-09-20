@@ -1,4 +1,4 @@
-## test print membership in table format
+## test print membership list in table format
 For first time usage, you need to add the new go path
 ```console
 cd mp1/src/
