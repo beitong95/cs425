@@ -50,8 +50,15 @@ func main() {
 	MyID = "*" + MyIP + "_" + fmt.Sprintf("%d", secs) + "*"
 	heartBeat := millis
 	currentTime := millis
-	MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
-	helper.PrintMembershipListAsTable(MembershipList)
+	//MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
+	// change to map 09222020
+	MembershipList[MyID] = Membership{heartBeat, currentTime}
+
+	// test
+	fmt.Println("map based membershiplist", MembershipList)
+
+	fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
+	//helper.PrintMembershipListAsTable(MembershipList)
 
 	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup
