@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"service"
+	"strconv"
 	. "structs"
 	"sync"
 	"time"
@@ -23,12 +24,15 @@ func main() {
 	isMuteCli := flag.Bool("mute", false, "mute the command line interaction")
 	isVerbose := flag.Bool("v", false, "print log")
 	configFilePtr := flag.String("config", "./config.json", "Location of Config File")
+	testPort := flag.String("port", "1234", "Port used for Debug")
 	flag.Parse()
+	Port, _ = strconv.Atoi(*testPort)
+	//fmt.Printf("the port is %d\n", Port)
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCli
 	verbose := *isVerbose
-	if verbose {
+	if !verbose {
 		log.SetOutput(ioutil.Discard)
 	}
 	//fmt.Println(all2all, introducer, mute)
