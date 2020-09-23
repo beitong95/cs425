@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "export GOPATH=$HOME/cs425/mp1:$GOPATH" >> ~/.bashrc
+echo "export GOPATH=$HOME/cs425/Mp1:$GOPATH" >> ~/.bashrc
 source ~/.bashrc
 
 #a=`uname -n | sed -n 's/^.*g04-\(\S*\)\.cs.*$/\1/p'`
