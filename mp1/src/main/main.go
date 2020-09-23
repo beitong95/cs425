@@ -9,7 +9,6 @@ import (
 	"log"
 	"os"
 	"service"
-	"strconv"
 	. "structs"
 	"sync"
 	"time"
@@ -24,10 +23,10 @@ func main() {
 	isMuteCli := flag.Bool("mute", false, "mute the command line interaction")
 	isVerbose := flag.Bool("v", false, "print log")
 	configFilePtr := flag.String("config", "./config.json", "Location of Config File")
-	testPort := flag.String("port", "1234", "Port used for Debug")
+	MyPort = *flag.String("port", "1234", "Port used for Debug")
 	flag.Parse()
-	Port, _ = strconv.Atoi(*testPort)
-	//fmt.Printf("the port is %d\n", Port)
+	// MyPort, _ = strconv.Atoi(*testPort)
+	fmt.Printf("the port is %d\n", fmt.Sprint(MyPort))
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCli
@@ -46,16 +45,16 @@ func main() {
 		log.Fatalln("get local IP error")
 	}
 	millis := time.Now().UnixNano() / 1000000
-	secs := millis / 1000
-	MyID = "*" + MyIP + "_" + fmt.Sprintf("%d", secs) + "*"
+	// secs := millis / 1000
+	MyID = MyIP + ":" + MyPort
 	heartBeat := millis
 	currentTime := millis
 	//MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
 	// change to map 09222020
-	MembershipList[MyID] = Membership{heartBeat, currentTime}
+	MembershipList[MyID] = Membership{HeartBeat: heartBeat, LocalTime: currentTime}
 
 	// test
-	fmt.Println("map based membershiplist", MembershipList)
+	// fmt.Println("map based membershiplist", MembershipList)
 
 	fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
 	//helper.PrintMembershipListAsTable(MembershipList)

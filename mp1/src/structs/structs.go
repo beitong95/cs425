@@ -2,9 +2,8 @@ package structs
 
 //Membership  exported
 type Membership struct {
-	ID        string
-	HeartBeat int64
-	LocalTime int64
+	HeartBeat int64 `json:"heartbeat"`
+	LocalTime int64 `json:"localtime"`
 }
 
 const (
@@ -19,6 +18,7 @@ const (
 	FAIL_HEARTBEAT        = -1
 )
 
-var MembershipList []Membership
+var MembershipList = make(map[string]Membership)
 var MyIP string = ""
+var MyPort string = ""
 var MyID string = ""

@@ -1,8 +1,12 @@
 package service
 
 import (
+	"config"
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"net"
 	. "structs"
 	"sync"
 	"time"
@@ -14,7 +18,67 @@ var isJoin bool = false
 var B int = 1
 var preservedB int = 1
 
+func handleConnection(conn net.UDPConn) {
+	buf := make([]byte, 4096)
+	n, err := conn.Read(buf)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Println(string(buf) + " " + string(n) + " bytes read")
+	//merge buf and membershiplist
+}
+func listenUDP() {
+	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
+	fmt.Println("listen on port:" + MyPort)
+	if err != nil {
+		panic(err)
+		return
+	}
+	conn, err := net.ListenUDP("udp", udpAddr)
+	// defer conn.Close()
+	if err != nil {
+		panic(err)
+	}
+	for {
+		handleConnection(*conn)
+	}
+}
+func boardcastUDP() {
+	jsonString, err := json.Marshal(MembershipList)
+	if err != nil {
+		panic(err)
+	}
+	msg := string(jsonString)
+	for id := range MembershipList {
+		if MyID != id {
+			conn, err := net.Dial("udp", id)
+			if err != nil {
+				fmt.Println(err)
+			}
+			fmt.Fprintf(conn, msg)
+		}
+	}
+
+}
 func joinGroup() {
+	jsonString, err := json.Marshal(MembershipList)
+	if err != nil {
+		panic(err)
+	}
+	msg := string(jsonString)
+	introIP, err := config.IntroducerIPAddresses()
+	if err != nil {
+		panic(err)
+	}
+	introPort, err := config.Port()
+	if err != nil {
+		panic(err)
+	}
+	conn, err := net.Dial("udp", string(introIP[0])+":"+introPort)
+	if err != nil {
+		fmt.Println(err)
+	}
+	fmt.Fprintf(conn, msg)
 	log.Println("join group")
 }
 
@@ -90,6 +154,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
+	go listenUDP()
 	for {
 		// can go through here ever gossipPeriod
 		log.Println("waiting for next gossip period")
@@ -107,6 +172,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		log.Println("Start gossip period", gossipCounter)
 		// in every gossipPeriod, the first thing is to read commands from CLI
 		cmds := make([]int, 0)
+
 	forLoop:
 		for {
 			select {
@@ -149,6 +215,12 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		}
 		// TODO: Gossip logic
 		//merge membershiplist
+		jsonString, err := json.Marshal(MembershipList)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(jsonString))
+		boardcastUDP()
 		//control timers
 		//failure detect
 		//deseminate failure
