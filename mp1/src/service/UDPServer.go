@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
+	"strings"
 	. "structs"
 	"sync"
 	"time"
@@ -18,14 +19,36 @@ var isJoin bool = false
 var B int = 1
 var preservedB int = 1
 
+func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
+	for key, receivedMembership := range recievedMemberShipList {
+		if existedMembership, ok := MembershipList[key]; ok {
+			if existedMembership.HeartBeat < receivedMembership.HeartBeat {
+				MembershipList[key] = receivedMembership
+			}
+		} else {
+			MembershipList[key] = receivedMembership
+		}
+	}
+}
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println(err)
 	}
+	n, err = conn.Read(buf)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println(string(buf) + " " + string(n) + " bytes read")
 	//merge buf and membershiplist
+	recievedMemberShipList := make(map[string]Membership)
+	err = json.Unmarshal(buf[:n], &recievedMemberShipList)
+	if err != nil {
+		panic(err)
+	}
+	mergeMemberShipList(recievedMemberShipList)
+
 }
 func listenUDP() {
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
@@ -35,7 +58,7 @@ func listenUDP() {
 		return
 	}
 	conn, err := net.ListenUDP("udp", udpAddr)
-	// defer conn.Close()
+
 	if err != nil {
 		panic(err)
 	}
@@ -51,16 +74,18 @@ func boardcastUDP() {
 	msg := string(jsonString)
 	for id := range MembershipList {
 		if MyID != id {
-			conn, err := net.Dial("udp", id)
+			ip := strings.Split(id, "*")[0]
+			conn, err := net.Dial("udp", ip)
 			if err != nil {
 				fmt.Println(err)
 			}
-			fmt.Fprintf(conn, msg)
+			fmt.Fprintf(conn, msg+"\n")
 		}
 	}
 
 }
 func joinGroup() {
+	fmt.Println("joining group")
 	jsonString, err := json.Marshal(MembershipList)
 	if err != nil {
 		panic(err)
@@ -92,6 +117,7 @@ func piggybackCommand(cmd int) {
 
 func parseCmds(cmds []int) []int {
 	//gossip or all2all
+	fmt.Println(cmds)
 	if len(cmds) == 0 {
 		return make([]int, 0)
 	}
@@ -196,7 +222,8 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		log.Println("Parsed commands ", cmds)
 		//execute commands
 		if len(cmds) != 0 {
-			for cmd := range cmds {
+			for _, cmd := range cmds {
+				fmt.Println(cmd)
 				switch cmd {
 				//if change gossip to all2all or all2all to gossip
 				//change b, add command to membership list
@@ -221,6 +248,9 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		}
 		fmt.Println(string(jsonString))
 		boardcastUDP()
+		//update timer
+		t := time.Now().UnixNano() / 1000000
+		MembershipList[MyID] = Membership{t, t}
 		//control timers
 		//failure detect
 		//deseminate failure
