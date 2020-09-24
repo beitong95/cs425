@@ -3,6 +3,7 @@ package cli
 import (
 	"bufio"
 	"fmt"
+	"helper"
 	"os"
 	"strings"
 	. "structs"
@@ -55,7 +56,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		case "id":
 			fmt.Println("ID:", MyID)
 		case "list":
-			// helper.PrintMembershipListAsTable(MembershipList)
+			helper.PrintMembershipListAsTable(MembershipList)
 		case "kill":
 			os.Exit(1)
 		}

@@ -4,7 +4,6 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"net"
 	"strings"
@@ -40,7 +39,7 @@ func handleConnection(conn net.UDPConn) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(buf) + " " + string(n) + " bytes read")
+	fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 	//merge buf and membershiplist
 	recievedMemberShipList := make(map[string]Membership)
 	err = json.Unmarshal(buf[:n], &recievedMemberShipList)
@@ -91,6 +90,7 @@ func joinGroup() {
 		panic(err)
 	}
 	msg := string(jsonString)
+	fmt.Println(msg)
 	introIP, err := config.IntroducerIPAddresses()
 	if err != nil {
 		panic(err)
@@ -99,12 +99,13 @@ func joinGroup() {
 	if err != nil {
 		panic(err)
 	}
+	fmt.Println(string(introIP[0]) + ":" + introPort)
 	conn, err := net.Dial("udp", string(introIP[0])+":"+introPort)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Fprintf(conn, msg)
-	log.Println("join group")
+	fmt.Println("join group")
 }
 
 func leaveGroup() {
@@ -117,7 +118,7 @@ func piggybackCommand(cmd int) {
 
 func parseCmds(cmds []int) []int {
 	//gossip or all2all
-	fmt.Println(cmds)
+	//fmt.Println(cmds)
 	if len(cmds) == 0 {
 		return make([]int, 0)
 	}
@@ -172,7 +173,7 @@ func parseCmds(cmds []int) []int {
 
 //UDPServer is the udp server thread function
 func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
-	log.SetOutput(ioutil.Discard)
+	//log.SetOutput(ioutil.Discard)
 	defer wg.Done()
 	gossipPeriodMillisecond := 2000
 	//timer for gossip period
@@ -181,6 +182,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	cmd := 0
 	gossipCounter := 0
 	go listenUDP()
+	// main loop
 	for {
 		// can go through here ever gossipPeriod
 		log.Println("waiting for next gossip period")
@@ -198,7 +200,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		log.Println("Start gossip period", gossipCounter)
 		// in every gossipPeriod, the first thing is to read commands from CLI
 		cmds := make([]int, 0)
-
+		// read commands
 	forLoop:
 		for {
 			select {
@@ -242,11 +244,15 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		}
 		// TODO: Gossip logic
 		//merge membershiplist
+		/**
 		jsonString, err := json.Marshal(MembershipList)
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(jsonString))
+		//fmt.Println(string(jsonString))
+		**/
+
+		// helper.PrintMembershipListAsTable(MembershipList)
 		boardcastUDP()
 		//update timer
 		t := time.Now().UnixNano() / 1000000

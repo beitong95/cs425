@@ -57,8 +57,8 @@ func main() {
 	// test
 	// fmt.Println("map based membershiplist", MembershipList)
 
-	fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
-	//helper.PrintMembershipListAsTable(MembershipList)
+	//fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
+	helper.PrintMembershipListAsTable(MembershipList)
 
 	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup
