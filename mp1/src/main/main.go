@@ -22,9 +22,10 @@ func main() {
 	isIntroducer := flag.Bool("introducer", false, "start as an introducer")
 	isMuteCli := flag.Bool("mute", false, "mute the command line interaction")
 	isVerbose := flag.Bool("v", false, "print log")
-	configFilePtr := flag.String("config", "./config.json", "Location of Config File")
-	MyPort = *flag.String("port", "1234", "Port used for Debug")
+	configFilePtr := flag.String("config", "../../config.json", "Location of Config File")
+	MyPortPtr := flag.String("port", "1234", "Port used for Debug")
 	flag.Parse()
+	MyPort = *MyPortPtr
 	// MyPort, _ = strconv.Atoi(*testPort)
 	fmt.Printf("the port is %d\n", fmt.Sprint(MyPort))
 	all2all := *isStartWithAll2All
@@ -45,8 +46,8 @@ func main() {
 		log.Fatalln("get local IP error")
 	}
 	millis := time.Now().UnixNano() / 1000000
-	// secs := millis / 1000
-	MyID = MyIP + ":" + MyPort
+	secs := millis / 1000
+	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
 	heartBeat := millis
 	currentTime := millis
 	//MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
@@ -56,8 +57,8 @@ func main() {
 	// test
 	// fmt.Println("map based membershiplist", MembershipList)
 
-	fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
-	//helper.PrintMembershipListAsTable(MembershipList)
+	//fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
+	helper.PrintMembershipListAsTable(MembershipList)
 
 	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup

@@ -9,37 +9,25 @@ import (
 	"testing"
 )
 
-var nilMembership []Membership
-var emptyMembership = make([]Membership, 0)
-var simpleMembership []Membership = []Membership{{"1", 1, 1}}
-var complexMembership []Membership = []Membership{{"1", 1, 1},
-	{"cs425", 2, 3},
-	{"mp1", 3, 1111111111111},
-}
+var testMap1 map[string]Membership = make(map[string]Membership)
 
-func Test_PrintMembershipListAsTable(t *testing.T) {
-	// args' structure
+func TestPrintMembershipListAsTable(t *testing.T) {
+	testMap1["11111"] = Membership{1111, 1111}
 	type args struct {
-		membershipList []Membership
+		membershipList map[string]Membership
 	}
-	// test wrapper's struct
 	tests := []struct {
 		name    string
 		args    args
 		wantErr bool
 	}{
-		{"test nil", args{nilMembership}, true},
-		{"test empty", args{emptyMembership}, false},
-		{"test simple", args{simpleMembership}, false},
-		{"test complex", args{complexMembership}, false},
+		{"simpleTest1", args{testMap1}, false},
+		// TODO: Add test cases.
 	}
 	for _, tt := range tests {
-		// call test functions with test id (name) and our to be tested function
 		t.Run(tt.name, func(t *testing.T) {
-			err := PrintMembershipListAsTable(tt.args.membershipList)
-			// check nil input error
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Error actual = %v, but expected = %v\n", err, tt.wantErr)
+			if err := PrintMembershipListAsTable(tt.args.membershipList); (err != nil) != tt.wantErr {
+				t.Errorf("PrintMembershipListAsTable() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
