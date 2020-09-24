@@ -24,7 +24,20 @@ func main() {
 	isVerbose := flag.Bool("v", false, "print log")
 	configFilePtr := flag.String("config", "../../config.json", "Location of Config File")
 	MyPortPtr := flag.String("port", "1234", "Port used for Debug")
+	// parameters
+	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
+	flag.IntVar(&Tfail, "fail", 3000, "Fail Time")
+	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time")
+
 	flag.Parse()
+	//parameter
+	Ttimeout = Tfail - Tgossip
+	/**
+	fmt.Println(Tgossip)
+	fmt.Println(Tfail)
+	fmt.Println(Tclean)
+	fmt.Println(Ttimeout)
+	**/
 	MyPort = *MyPortPtr
 	// MyPort, _ = strconv.Atoi(*testPort)
 	fmt.Printf("the port is %d\n", fmt.Sprint(MyPort))
