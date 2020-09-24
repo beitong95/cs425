@@ -11,7 +11,7 @@ import (
 func memberShipList(recievedMemberShipList map[string]MemberShip) {
 	for key, receivedMembership := range recievedMemberShipList {
 		if existedMembership, ok := MembershipList[key]; ok {
-			if existedMembership.LocalTime < receivedMembership.LocalTime {
+			if existedMembership.HeartBeat < receivedMembership.HeartBeat {
 				MembershipList[key] = receivedMembership
 			}
 		} else {
