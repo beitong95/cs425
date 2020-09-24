@@ -15,8 +15,27 @@ import (
 var isJoin bool = false
 
 //Gossip parameters
-var B int = 1
-var preservedB int = 1
+// var B int = 2
+// var preservedB int = 1
+
+func selectGossipID() []string {
+	var num = len(Container)
+	var res = make([]string, B)
+	if num < 1 {
+		for key := range MembershipList {
+			Container = append(Container, key)
+		}
+	}
+	num = len(Container)
+	if num < B {
+		res = Container[0:num]
+		Container = Container[:0]
+	} else {
+		copy(res, Container[0:B])
+		Container = Container[B:num]
+	}
+	return res
+}
 
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	for key, receivedMembership := range recievedMemberShipList {
