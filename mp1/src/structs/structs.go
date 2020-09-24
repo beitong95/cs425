@@ -22,3 +22,14 @@ var MembershipList = make(map[string]Membership)
 var MyIP string = ""
 var MyPort string = ""
 var MyID string = ""
+
+// ms
+var Tgossip int
+var Tfail int
+var Tclean int
+
+// Ttimeout - Tgossip
+var Ttimeout int
+
+var B int
+var Container []string
