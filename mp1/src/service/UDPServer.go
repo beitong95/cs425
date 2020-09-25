@@ -17,13 +17,25 @@ var isJoin bool = false
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
-
+func selectFailedID() {
+	for id, member := range MembershipList {
+		if id != MyID {
+			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
+			if diff > 10000 {
+				fmt.Println(id + "might failed")
+				fmt.Println("timeout: " + fmt.Sprint(diff))
+			}
+		}
+	}
+}
 func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
 	if num < 1 {
 		for key := range MembershipList {
-			Container = append(Container, key)
+			if key != MyID {
+				Container = append(Container, key)
+			}
 		}
 	}
 	num = len(Container)
@@ -89,16 +101,25 @@ func boardcastUDP() {
 	if err != nil {
 		panic(err)
 	}
+	idList := selectGossipID()
 	msg := string(jsonString)
-	for id := range MembershipList {
-		if MyID != id {
-			ip := strings.Split(id, "*")[0]
-			conn, err := net.Dial("udp", ip)
-			if err != nil {
-				fmt.Println(err)
-			}
-			fmt.Fprintf(conn, msg+"\n")
+	// for id := range MembershipList {
+	// 	if MyID != id {
+	// 		ip := strings.Split(id, "*")[0]
+	// 		conn, err := net.Dial("udp", ip)
+	// 		if err != nil {
+	// 			fmt.Println(err)
+	// 		}
+	// 		fmt.Fprintf(conn, msg+"\n")
+	// 	}
+	// }
+	for _, id := range idList {
+		ip := strings.Split(id, "*")[0]
+		conn, err := net.Dial("udp", ip)
+		if err != nil {
+			fmt.Println(err)
 		}
+		fmt.Fprintf(conn, msg+"\n")
 	}
 
 }
@@ -123,7 +144,9 @@ func joinGroup() {
 	if err != nil {
 		fmt.Println(err)
 	}
-	fmt.Fprintf(conn, msg)
+	fmt.Fprintf(conn, msg+"\n")
+	fmt.Fprintf(conn, msg+"\n")
+	fmt.Fprintf(conn, msg+"\n")
 	fmt.Println("join group")
 }
 
@@ -252,7 +275,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 					B = len(MembershipList)
 					piggybackCommand(CHANGE_TO_ALL2ALL)
 				case CHANGE_TO_GOSSIP:
-					B = preservedB
+					// B = preservedB
 					piggybackCommand(CHANGE_TO_GOSSIP)
 				case JOIN_GROUP:
 					joinGroup()
@@ -273,6 +296,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 
 		// helper.PrintMembershipListAsTable(MembershipList)
 		boardcastUDP()
+		selectFailedID()
 		//update timer
 		t := time.Now().UnixNano() / 1000000
 		MembershipList[MyID] = Membership{t, t}
@@ -280,7 +304,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//failure detect
 		//deseminate failure
 		//execute global commands set B
-		time.Sleep(1500 * time.Millisecond)
+		time.Sleep(time.Duration(Tgossip) * time.Millisecond)
 		log.Println("Finish Gossip work")
 	}
 }

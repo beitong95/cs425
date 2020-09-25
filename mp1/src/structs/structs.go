@@ -24,12 +24,12 @@ var MyPort string = ""
 var MyID string = ""
 
 // ms
-var Tgossip int
-var Tfail int
-var Tclean int
+var Tgossip int = 1500
+var Tfail int = 3000
+var Tclean int = 3000
 
 // Ttimeout - Tgossip
 var Ttimeout int
 
-var B int
+var B int = 3
 var Container []string
