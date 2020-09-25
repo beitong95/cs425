@@ -24,7 +24,7 @@ var MyPort string = ""
 var MyID string = ""
 
 // ms
-var Tgossip int = 1500
+var Tgossip int = 1000
 var Tfail int = 3000
 var Tclean int = 3000
 

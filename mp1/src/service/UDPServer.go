@@ -13,30 +13,35 @@ import (
 )
 
 var isJoin bool = false
+var mt sync.Mutex
 
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
 func selectFailedID() {
+	mt.Lock()
 	for id, member := range MembershipList {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
-			if diff > 10000 {
+			if diff > 6000 {
 				fmt.Println(id + "might failed")
 				fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
 		}
 	}
+	mt.Unlock()
 }
 func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
 	if num < 1 {
+		mt.Lock()
 		for key := range MembershipList {
 			if key != MyID {
 				Container = append(Container, key)
 			}
 		}
+		mt.Unlock()
 	}
 	num = len(Container)
 	if num < B {
@@ -50,7 +55,9 @@ func selectGossipID() []string {
 }
 
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
+
 	for key, receivedMembership := range recievedMemberShipList {
+		mt.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
 			if existedMembership.HeartBeat < receivedMembership.HeartBeat {
 				MembershipList[key] = receivedMembership
@@ -58,7 +65,9 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		} else {
 			MembershipList[key] = receivedMembership
 		}
+		mt.Unlock()
 	}
+
 }
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
@@ -97,7 +106,9 @@ func listenUDP() {
 	}
 }
 func boardcastUDP() {
+	mt.Lock()
 	jsonString, err := json.Marshal(MembershipList)
+	mt.Unlock()
 	if err != nil {
 		panic(err)
 	}
@@ -123,9 +134,20 @@ func boardcastUDP() {
 	}
 
 }
+func updateSelfHeartBeat() {
+	for {
+		t := time.Now().UnixNano() / 1000000
+		mt.Lock()
+		MembershipList[MyID] = Membership{t, t}
+		mt.Unlock()
+		time.Sleep(500 * time.Millisecond)
+	}
+}
 func joinGroup() {
 	fmt.Println("joining group")
+	mt.Lock()
 	jsonString, err := json.Marshal(MembershipList)
+	mt.Unlock()
 	if err != nil {
 		panic(err)
 	}
@@ -272,7 +294,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 				//if change gossip to all2all or all2all to gossip
 				//change b, add command to membership list
 				case CHANGE_TO_ALL2ALL:
-					B = len(MembershipList)
+					// B = len(MembershipList)
 					piggybackCommand(CHANGE_TO_ALL2ALL)
 				case CHANGE_TO_GOSSIP:
 					// B = preservedB
@@ -295,11 +317,13 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		**/
 
 		// helper.PrintMembershipListAsTable(MembershipList)
+		t := time.Now().UnixNano() / 1000000
+		mt.Lock()
+		MembershipList[MyID] = Membership{t, t}
+		mt.Unlock()
 		boardcastUDP()
 		selectFailedID()
 		//update timer
-		t := time.Now().UnixNano() / 1000000
-		MembershipList[MyID] = Membership{t, t}
 		//control timers
 		//failure detect
 		//deseminate failure
