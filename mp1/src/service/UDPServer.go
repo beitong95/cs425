@@ -4,6 +4,7 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
+	"helper"
 	"log"
 	"net"
 	"strings"
@@ -113,6 +114,7 @@ func boardcastUDP() {
 		panic(err)
 	}
 	idList := selectGossipID()
+	fmt.Println("idList: ", idList, "len: ", len(idList))
 	msg := string(jsonString)
 	// for id := range MembershipList {
 	// 	if MyID != id {
@@ -131,6 +133,7 @@ func boardcastUDP() {
 			fmt.Println(err)
 		}
 		fmt.Fprintf(conn, msg+"\n")
+		fmt.Println(msg)
 	}
 
 }
@@ -140,7 +143,6 @@ func updateSelfHeartBeat() {
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, t}
 		MT.Unlock()
-		time.Sleep(500 * time.Millisecond)
 	}
 }
 func joinGroup() {
@@ -239,15 +241,16 @@ func parseCmds(cmds []int) []int {
 func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
 	//log.SetOutput(ioutil.Discard)
 	defer wg.Done()
-	gossipPeriodMillisecond := 2000
+	//gossipPeriodMillisecond := 2000
 	//timer for gossip period
-	ticker := time.NewTicker(time.Duration(gossipPeriodMillisecond) * time.Millisecond)
+	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
 	go listenUDP()
 	// main loop
 	for {
+		helper.PrintMembershipListAsTable(MembershipList)
 		// can go through here ever gossipPeriod
 		log.Println("waiting for next gossip period")
 		t1 := time.Now()
@@ -256,7 +259,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		log.Println("wait time:", diff)
-		if float32(diff/time.Millisecond) < float32(float32(gossipPeriodMillisecond)*0.05) {
+		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
 			log.Fatalln("gossip period time too short")
 		}
 		gossipCounter = gossipCounter + 1
@@ -318,6 +321,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 
 		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
+		fmt.Println(t)
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, t}
 		MT.Unlock()
@@ -328,7 +332,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//failure detect
 		//deseminate failure
 		//execute global commands set B
-		time.Sleep(time.Duration(Tgossip) * time.Millisecond)
+		//time.Sleep(time.Duration(Tgossip) * time.Millisecond)
 		log.Println("Finish Gossip work")
 	}
 }
