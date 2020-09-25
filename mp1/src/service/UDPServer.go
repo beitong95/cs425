@@ -13,13 +13,13 @@ import (
 )
 
 var isJoin bool = false
-var mt sync.Mutex
+var MT sync.Mutex
 
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
 func selectFailedID() {
-	mt.Lock()
+	MT.Lock()
 	for id, member := range MembershipList {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
@@ -29,19 +29,19 @@ func selectFailedID() {
 			}
 		}
 	}
-	mt.Unlock()
+	MT.Unlock()
 }
 func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
 	if num < 1 {
-		mt.Lock()
+		MT.Lock()
 		for key := range MembershipList {
 			if key != MyID {
 				Container = append(Container, key)
 			}
 		}
-		mt.Unlock()
+		MT.Unlock()
 	}
 	num = len(Container)
 	if num < B {
@@ -57,7 +57,7 @@ func selectGossipID() []string {
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 
 	for key, receivedMembership := range recievedMemberShipList {
-		mt.Lock()
+		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
 			if existedMembership.HeartBeat < receivedMembership.HeartBeat {
 				MembershipList[key] = receivedMembership
@@ -65,7 +65,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		} else {
 			MembershipList[key] = receivedMembership
 		}
-		mt.Unlock()
+		MT.Unlock()
 	}
 
 }
@@ -79,7 +79,7 @@ func handleConnection(conn net.UDPConn) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
+	// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 	//merge buf and membershiplist
 	recievedMemberShipList := make(map[string]Membership)
 	err = json.Unmarshal(buf[:n], &recievedMemberShipList)
@@ -106,9 +106,9 @@ func listenUDP() {
 	}
 }
 func boardcastUDP() {
-	mt.Lock()
+	MT.Lock()
 	jsonString, err := json.Marshal(MembershipList)
-	mt.Unlock()
+	MT.Unlock()
 	if err != nil {
 		panic(err)
 	}
@@ -137,17 +137,17 @@ func boardcastUDP() {
 func updateSelfHeartBeat() {
 	for {
 		t := time.Now().UnixNano() / 1000000
-		mt.Lock()
+		MT.Lock()
 		MembershipList[MyID] = Membership{t, t}
-		mt.Unlock()
+		MT.Unlock()
 		time.Sleep(500 * time.Millisecond)
 	}
 }
 func joinGroup() {
 	fmt.Println("joining group")
-	mt.Lock()
+	MT.Lock()
 	jsonString, err := json.Marshal(MembershipList)
-	mt.Unlock()
+	MT.Unlock()
 	if err != nil {
 		panic(err)
 	}
@@ -318,9 +318,9 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 
 		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
-		mt.Lock()
+		MT.Lock()
 		MembershipList[MyID] = Membership{t, t}
-		mt.Unlock()
+		MT.Unlock()
 		boardcastUDP()
 		selectFailedID()
 		//update timer

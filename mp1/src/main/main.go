@@ -66,12 +66,15 @@ func main() {
 	//MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
 	// change to map 09222020
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, LocalTime: currentTime}
+	// MembershipList["test"] = Membership{111, 111} //test table
 
 	// test
 	// fmt.Println("map based membershiplist", MembershipList)
 
 	//fmt.Println("cannot print table now, TODO PrintMembershipListAsTableFromMap")
+	service.MT.Lock()
 	helper.PrintMembershipListAsTable(MembershipList)
+	service.MT.Unlock()
 
 	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup

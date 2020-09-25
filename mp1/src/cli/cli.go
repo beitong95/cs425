@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"helper"
 	"os"
+	"service"
 	"strings"
 	. "structs"
 	"sync"
@@ -56,7 +57,9 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		case "id":
 			fmt.Println("ID:", MyID)
 		case "list":
+			service.MT.Lock()
 			helper.PrintMembershipListAsTable(MembershipList)
+			service.MT.Unlock()
 		case "kill":
 			os.Exit(1)
 		}
