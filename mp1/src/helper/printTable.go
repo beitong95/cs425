@@ -128,6 +128,7 @@ func PrintMembershipListAsTable(membershipList map[string]Membership) error {
 				maxL[j] = l
 			}
 		}
+		i++
 	}
 	//fmt.Println("max length ", maxL)
 
