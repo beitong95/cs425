@@ -13,6 +13,7 @@ var testMap1 map[string]Membership = make(map[string]Membership)
 
 func TestPrintMembershipListAsTable(t *testing.T) {
 	testMap1["11111"] = Membership{1111, 1111}
+	testMap1["11112"] = Membership{1111, 1111}
 	type args struct {
 		membershipList map[string]Membership
 	}
