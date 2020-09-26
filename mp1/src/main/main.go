@@ -62,10 +62,10 @@ func main() {
 	secs := millis / 1000
 	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
 	heartBeat := millis
-	currentTime := millis
+	//currentTime := millis
 	//MembershipList = append(MembershipList, Membership{MyID, heartBeat, currentTime})
 	// change to map 09222020
-	MembershipList[MyID] = Membership{HeartBeat: heartBeat, LocalTime: currentTime}
+	MembershipList[MyID] = Membership{HeartBeat: heartBeat, LocalTime: -1}
 	// MembershipList["test"] = Membership{111, 111} //test table
 
 	// test

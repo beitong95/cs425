@@ -1,6 +1,6 @@
 {
     "IntroducerIPAddresses": [
-        "127.0.0.1"
+        "172.22.156.12"
     ],
     "Port" : "1234"
 }

@@ -24,9 +24,10 @@ func selectFailedID() {
 	for id, member := range MembershipList {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
-			if diff > 6000 {
-				fmt.Println(id + "might failed")
-				fmt.Println("timeout: " + fmt.Sprint(diff))
+			if diff > int64(Ttimeout) && MembershipList[id].LocalTime == -1 {
+				//fmt.Println(id + "might failed")
+				MembershipList[id] = Membership{-1, diff}
+				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
 		}
 	}
@@ -60,10 +61,11 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
-			if existedMembership.HeartBeat < receivedMembership.HeartBeat {
+			if existedMembership.HeartBeat < receivedMembership.HeartBeat && receivedMembership.HeartBeat != -1 {
 				MembershipList[key] = receivedMembership
+				fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
-		} else {
+		} else if receivedMembership.HeartBeat != -1 {
 			MembershipList[key] = receivedMembership
 		}
 		MT.Unlock()
@@ -75,10 +77,6 @@ func handleConnection(conn net.UDPConn) {
 	n, err := conn.Read(buf)
 	if err != nil {
 		fmt.Println(err)
-	}
-	n, err = conn.Read(buf)
-	if err != nil {
-		panic(err)
 	}
 	// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 	//merge buf and membershiplist
@@ -323,7 +321,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		t := time.Now().UnixNano() / 1000000
 		fmt.Println(t)
 		MT.Lock()
-		MembershipList[MyID] = Membership{t, t}
+		MembershipList[MyID] = Membership{t, -1}
 		MT.Unlock()
 		boardcastUDP()
 		selectFailedID()
