@@ -143,7 +143,7 @@ func sendMsgToID(id string, msg string) {
 	}
 	fmt.Fprintf(conn, msg+"\n")
 }
-func boardcastUDP() {
+func broadcastUDP() {
 	//fmt.Println("idList: ", idList, "len: ", len(idList))
 	// for id := range MembershipList {
 	// 	if MyID != id {
@@ -386,7 +386,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		MembershipList[MyID] = Membership{t, -1}
 		UpdateGUI <- "Ping"
 		MT.Unlock()
-		boardcastUDP()
+		broadcastUDP()
 		selectFailedID()
 		//update timer
 		//control timers
