@@ -7,7 +7,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
-	"tui"
+	"github.com/marcusolsson/tui-go"
 )
 
 func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI) {

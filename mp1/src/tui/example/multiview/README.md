@@ -1,3 +1,0 @@
-# multiview
-
-![Screenshot](screenshot.png)

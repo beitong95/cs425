@@ -1,3 +1,0 @@
-# color
-
-![Screenshot](screenshot.png)

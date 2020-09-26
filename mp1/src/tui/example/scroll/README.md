@@ -1,3 +1,0 @@
-# scroll
-
-![Screenshot](screenshot.png)
