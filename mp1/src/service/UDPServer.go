@@ -24,7 +24,7 @@ func selectFailedID() {
 	for id, member := range MembershipList {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
-			if diff > int64(Ttimeout) && MembershipList[id].LocalTime == -1 {
+			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
 				//fmt.Println("timeout: " + fmt.Sprint(diff))
@@ -61,11 +61,11 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
-			if existedMembership.HeartBeat < receivedMembership.HeartBeat && receivedMembership.HeartBeat != -1 {
+			if existedMembership.HeartBeat < receivedMembership.HeartBeat && existedMembership.HeartBeat != -1 {
 				MembershipList[key] = receivedMembership
-				fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
+				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
-		} else if receivedMembership.HeartBeat != -1 {
+		} else if existedMembership.HeartBeat != -1 {
 			MembershipList[key] = receivedMembership
 		}
 		MT.Unlock()
@@ -112,7 +112,7 @@ func boardcastUDP() {
 		panic(err)
 	}
 	idList := selectGossipID()
-	fmt.Println("idList: ", idList, "len: ", len(idList))
+	//fmt.Println("idList: ", idList, "len: ", len(idList))
 	msg := string(jsonString)
 	// for id := range MembershipList {
 	// 	if MyID != id {
@@ -131,7 +131,7 @@ func boardcastUDP() {
 			fmt.Println(err)
 		}
 		fmt.Fprintf(conn, msg+"\n")
-		fmt.Println(msg)
+		//fmt.Println(msg)
 	}
 
 }
@@ -152,7 +152,7 @@ func joinGroup() {
 		panic(err)
 	}
 	msg := string(jsonString)
-	fmt.Println(msg)
+	//fmt.Println(msg)
 	introIP, err := config.IntroducerIPAddresses()
 	if err != nil {
 		panic(err)
@@ -167,9 +167,8 @@ func joinGroup() {
 		fmt.Println(err)
 	}
 	fmt.Fprintf(conn, msg+"\n")
-	fmt.Fprintf(conn, msg+"\n")
-	fmt.Fprintf(conn, msg+"\n")
 	fmt.Println("join group")
+	isJoin = true
 }
 
 func leaveGroup() {
@@ -239,7 +238,6 @@ func parseCmds(cmds []int) []int {
 func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
 	//log.SetOutput(ioutil.Discard)
 	defer wg.Done()
-	//gossipPeriodMillisecond := 2000
 	//timer for gossip period
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
@@ -319,7 +317,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 
 		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
-		fmt.Println(t)
+		//fmt.Println(t)
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
 		MT.Unlock()

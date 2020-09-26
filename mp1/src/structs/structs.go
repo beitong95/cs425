@@ -2,8 +2,8 @@ package structs
 
 //Membership  exported
 type Membership struct {
-	HeartBeat int64 `json:"heartbeat"`
-	LocalTime int64 `json:"localtime"`
+	HeartBeat  int64 `json:"heartbeat"`
+	FailedTime int64 `json:"failedtime"`
 }
 
 const (
