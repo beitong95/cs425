@@ -35,7 +35,8 @@ func main() {
 	Ttimeout = Tfail - Tgossip
 	MyPort = *myPortPtr
 	//fmt.Printf("Using Port: %s\n", MyPort)
-	isStartWithAll2All := *isStartWithAll2AllPtr
+	IsAll2All = *isStartWithAll2AllPtr
+	IsGossip = !(IsAll2All)
 	isIntroducer := *isIntroducerPtr
 	isMuteCli := *isMuteCliPtr
 	isVerbose := *isVerbosePtr
@@ -74,7 +75,7 @@ func main() {
 	c := make(chan int, 10)
 
 	wg.Add(1)
-	go service.UDPServer(isStartWithAll2All, isIntroducer, &wg, c)
+	go service.UDPServer(IsAll2All, isIntroducer, &wg, c)
 
 	if isMuteCli == false {
 		wg.Add(1)

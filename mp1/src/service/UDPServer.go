@@ -17,6 +17,13 @@ var isJoin bool = false
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
+func deleteIDAfterTcleanup(id string) {
+	time.Sleep(time.Duration(Tclean) * time.Millisecond)
+	MT.Lock()
+	delete(MembershipList, id)
+	FailedNodes[id] = 1
+	MT.Unlock()
+}
 func selectFailedID() {
 	MT.Lock()
 	for id, member := range MembershipList {
@@ -25,6 +32,7 @@ func selectFailedID() {
 			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
+				go deleteIDAfterTcleanup(id)
 				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
 		}
@@ -64,7 +72,11 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
 		} else {
-			MembershipList[key] = receivedMembership
+			if _, ok := FailedNodes[key]; ok {
+				//refuse accept the membership
+			} else {
+				MembershipList[key] = receivedMembership
+			}
 		}
 		MT.Unlock()
 	}
@@ -77,14 +89,20 @@ func handleConnection(conn net.UDPConn) {
 	if err != nil {
 		fmt.Println(err)
 	}
-	// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
-	//merge buf and membershiplist
-	recievedMemberShipList := make(map[string]Membership)
-	err = json.Unmarshal(buf[:n], &recievedMemberShipList)
-	if err != nil {
-		panic(err)
+	msgString := string(buf)
+	if msgString[:8] == "Command:" {
+		command := strings.Split(msgString, ":")[1]
+		fmt.Println(fmt.Sprint(int(command[0])))
+	} else {
+		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
+		//merge buf and membershiplist
+		recievedMemberShipList := make(map[string]Membership)
+		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
+		if err != nil {
+			panic(err)
+		}
+		mergeMemberShipList(recievedMemberShipList)
 	}
-	mergeMemberShipList(recievedMemberShipList)
 
 }
 func listenUDP() {
@@ -103,16 +121,16 @@ func listenUDP() {
 		handleConnection(*conn)
 	}
 }
-func boardcastUDP() {
-	MT.Lock()
-	jsonString, err := json.Marshal(MembershipList)
-	MT.Unlock()
+func sendMsgToID(id string, msg string) {
+	ip := strings.Split(id, "*")[0]
+	conn, err := net.Dial("udp", ip)
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
-	idList := selectGossipID()
+	fmt.Fprintf(conn, msg+"\n")
+}
+func boardcastUDP() {
 	//fmt.Println("idList: ", idList, "len: ", len(idList))
-	msg := string(jsonString)
 	// for id := range MembershipList {
 	// 	if MyID != id {
 	// 		ip := strings.Split(id, "*")[0]
@@ -123,14 +141,34 @@ func boardcastUDP() {
 	// 		fmt.Fprintf(conn, msg+"\n")
 	// 	}
 	// }
-	for _, id := range idList {
-		ip := strings.Split(id, "*")[0]
-		conn, err := net.Dial("udp", ip)
+	if IsAll2All {
+		selfNode := make(map[string]Membership)
+		MT.Lock()
+		selfNode[MyID] = MembershipList[MyID]
+		MT.Unlock()
+		jsonString, err := json.Marshal(selfNode)
 		if err != nil {
-			fmt.Println(err)
+			panic(err)
 		}
-		fmt.Fprintf(conn, msg+"\n")
-		//fmt.Println(msg)
+		msg := string(jsonString)
+		MT.Lock()
+		for id, _ := range MembershipList {
+			sendMsgToID(id, msg)
+		}
+		MT.Unlock()
+	} else if IsGossip {
+		MT.Lock()
+		jsonString, err := json.Marshal(MembershipList)
+		MT.Unlock()
+		if err != nil {
+			panic(err)
+		}
+		msg := string(jsonString)
+		idList := selectGossipID()
+		for _, id := range idList {
+			sendMsgToID(id, msg)
+			//fmt.Println(msg)
+		}
 	}
 
 }
@@ -175,7 +213,20 @@ func leaveGroup() {
 }
 
 func piggybackCommand(cmd int) {
-	log.Println("Sending cmd:", cmd)
+	if cmd == CHANGE_TO_ALL2ALL {
+		IsAll2All = true
+		IsGossip = false
+	} else if cmd == CHANGE_TO_GOSSIP {
+		IsGossip = true
+		IsAll2All = false
+	}
+	msg := "Command:" + string(cmd)
+	MT.Lock()
+	for id := range MembershipList {
+		sendMsgToID(id, msg)
+	}
+	MT.Unlock()
+
 }
 
 func parseCmds(cmds []int) []int {
