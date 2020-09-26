@@ -25,6 +25,20 @@ func selectFailedID() {
 			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
+				if currentFailTime1, ok := broadcastAll[id]; ok {
+					if currentFailTime_1 < diff {
+						broadcastAll[id] = diff
+					}
+				} else {
+					broadcastAll[id] = diff
+				}
+				if currentFailTime2, ok := firstDetect[id]; ok {
+					if currentFailTime_2 > diff {
+						firstDetect[id] = diff
+					}
+				} else {
+					firstDetect[id] = diff
+				}
 				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
 		}

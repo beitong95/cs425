@@ -38,3 +38,6 @@ var Container []string
 
 var MT sync.Mutex
 var UpdateGUI chan string = make(chan string)
+
+var broadcastAll = make(map[string]int)
+var firstDetect = make(map[string]int)
