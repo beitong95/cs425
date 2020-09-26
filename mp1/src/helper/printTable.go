@@ -187,6 +187,7 @@ func PrintMembershipListAsTableInGUI(membershipList map[string]Membership) (stri
 	// 1 is ID
 	tableWidth := membershipAttributeCount + 1
 	//	fmt.Println(tableWidth)
+	MT.Lock()
 	tableHeight := len(membershipList)
 	//	fmt.Println(tableHeight)
 	maxL := make([]int, tableWidth)
@@ -203,7 +204,7 @@ func PrintMembershipListAsTableInGUI(membershipList map[string]Membership) (stri
 	}
 
 	// get table body info
-	MT.Lock()
+
 	s3 := make([][]interface{}, tableHeight)
 	i := 0
 	for k, _ := range membershipList {
