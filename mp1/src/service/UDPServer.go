@@ -106,6 +106,7 @@ func handleConnection(conn net.UDPConn) {
 	msgString := string(buf)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
+		C <- int(command[0]) + 8
 		fmt.Println(fmt.Sprint(int(command[0])))
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
@@ -316,6 +317,16 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		t1 := time.Now()
 		//no wait means our gossip period is too short for gossip process
 		<-ticker.C
+		if CurrentProtocol != IsGossip {
+			if IsGossip == true {
+				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
+				CurrentProtocol = true
+			}	else {
+				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
+				CurrentProtocol = false
+			}
+				
+		}
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		log.Println("wait time:", diff)
@@ -366,6 +377,12 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 					joinGroup()
 				case LEAVE_GROUP:
 					leaveGroup()
+				case RECEIVE_CHANGE_TO_ALL2ALL:
+					IsAll2All = true
+					IsGossip = false
+				case RECEIVE_CHANGE_TO_GOSSIP:
+					IsAll2All = false
+					IsGossip = true
 				}
 			}
 		}
