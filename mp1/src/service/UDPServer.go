@@ -17,6 +17,13 @@ var isJoin bool = false
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
+func countBandwidth() {
+	for {
+		time.Sleep(1 * time.second)
+		Bandwidth = 0
+	}
+}
+
 func deleteIDAfterTcleanup(id string) {
 	time.Sleep(time.Duration(Tclean) * time.Millisecond)
 	MT.Lock()
@@ -100,6 +107,9 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
+	MT2.Lock()
+	Bandwidth += n
+	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -308,6 +318,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
+	go countBandwidth()
 	go listenUDP()
 	// main loop
 	for {
@@ -321,11 +332,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			if IsGossip == true {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
 				CurrentProtocol = true
-			}	else {
+			} else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
 				CurrentProtocol = false
 			}
-				
+
 		}
 		t2 := time.Now()
 		diff := t2.Sub(t1)
