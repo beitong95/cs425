@@ -17,6 +17,13 @@ var isJoin bool = false
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
+func countBandwidth() {
+	for {
+		time.Sleep(1 * time.second)
+		Bandwidth = 0
+	}
+}
+
 func deleteIDAfterTcleanup(id string) {
 	time.Sleep(time.Duration(Tclean) * time.Millisecond)
 	MT.Lock()
@@ -33,19 +40,19 @@ func selectFailedID() {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
 				go deleteIDAfterTcleanup(id)
-				if currentFailTime1, ok := broadcastAll[id]; ok {
-					if currentFailTime_1 < diff {
-						broadcastAll[id] = diff
+				if currentFailTime1, ok := BroadcastAll[id]; ok {
+					if currentFailTime1 < diff {
+						BroadcastAll[id] = diff
 					}
 				} else {
-					broadcastAll[id] = diff
+					BroadcastAll[id] = diff
 				}
-				if currentFailTime2, ok := firstDetect[id]; ok {
-					if currentFailTime_2 > diff {
-						firstDetect[id] = diff
+				if currentFailTime2, ok := FirstDetect[id]; ok {
+					if currentFailTime2 > diff {
+						FirstDetect[id] = diff
 					}
 				} else {
-					firstDetect[id] = diff
+					FirstDetect[id] = diff
 				}
 				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
@@ -100,12 +107,16 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
+	MT2.Lock()
+	Bandwidth += n
+	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
 	}
 	msgString := string(buf)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
+		C <- int(command[0]) + 8
 		fmt.Println(fmt.Sprint(int(command[0])))
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
@@ -307,6 +318,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
+	go countBandwidth()
 	go listenUDP()
 	// main loop
 	for {
@@ -316,6 +328,16 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		t1 := time.Now()
 		//no wait means our gossip period is too short for gossip process
 		<-ticker.C
+		if CurrentProtocol != IsGossip {
+			if IsGossip == true {
+				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
+				CurrentProtocol = true
+			} else {
+				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
+				CurrentProtocol = false
+			}
+
+		}
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		log.Println("wait time:", diff)
@@ -366,6 +388,12 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 					joinGroup()
 				case LEAVE_GROUP:
 					leaveGroup()
+				case RECEIVE_CHANGE_TO_ALL2ALL:
+					IsAll2All = true
+					IsGossip = false
+				case RECEIVE_CHANGE_TO_GOSSIP:
+					IsAll2All = false
+					IsGossip = true
 				}
 			}
 		}

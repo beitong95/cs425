@@ -12,6 +12,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"math"
 )
 
 // my membership list
@@ -33,6 +34,7 @@ func main() {
 	// parse and save flags
 	flag.Parse()
 	Ttimeout = Tfail - Tgossip
+	Tall2all = int(math.Log(float64(VMMaxCount))* float64(Tgossip))
 	MyPort = *myPortPtr
 	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
@@ -72,14 +74,13 @@ func main() {
 
 	//start membership udp server
 	//10 is enough for the channel buffer capacity
-	c := make(chan int, 10)
 
 	wg.Add(1)
-	go service.UDPServer(IsAll2All, isIntroducer, &wg, c)
+	go service.UDPServer(IsAll2All, isIntroducer, &wg, C)
 
 	if isMuteCli == false {
 		wg.Add(1)
-		go cli.Cli(&wg, c)
+		go cli.Cli(&wg, C)
 	}
 
 	wg.Wait()
