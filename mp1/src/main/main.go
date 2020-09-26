@@ -39,8 +39,7 @@ func main() {
 	fmt.Println(Ttimeout)
 	**/
 	MyPort = *MyPortPtr
-	// MyPort, _ = strconv.Atoi(*testPort)
-	fmt.Printf("the port is %d\n", fmt.Sprint(MyPort))
+	fmt.Printf("Using Port: %s\n", MyPort)
 	all2all := *isStartWithAll2All
 	introducer := *isIntroducer
 	mute := *isMuteCli
