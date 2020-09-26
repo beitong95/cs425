@@ -1,5 +1,7 @@
 package structs
 
+import "sync"
+
 //Membership  exported
 type Membership struct {
 	HeartBeat  int64 `json:"heartbeat"`
@@ -31,5 +33,8 @@ var Tclean int
 // Ttimeout - Tgossip
 var Ttimeout int
 
-var B int = 2
+var B int = 3
 var Container []string
+
+var MT sync.Mutex
+var UpdateGUI chan string = make(chan string)

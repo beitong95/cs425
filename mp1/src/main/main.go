@@ -27,7 +27,7 @@ func main() {
 	myPortPtr := flag.String("port", "1234", "Port used for Debug on one machine")
 	// parameters
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
-	flag.IntVar(&Tfail, "fail", 3000, "Fail Time")
+	flag.IntVar(&Tfail, "fail", 5000, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time")
 
 	// parse and save flags
@@ -60,11 +60,12 @@ func main() {
 
 	// test
 	// fmt.Println("map based membershiplist", MembershipList)
-
+	/**
+	i add the lock inside the print function
 	service.MT.Lock()
 	helper.PrintMembershipListAsTable(MembershipList)
 	service.MT.Unlock()
-
+	**/
 	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup
 

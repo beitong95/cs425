@@ -4,7 +4,6 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
-	"helper"
 	"log"
 	"net"
 	"strings"
@@ -14,7 +13,6 @@ import (
 )
 
 var isJoin bool = false
-var MT sync.Mutex
 
 //Gossip parameters
 // var B int = 2
@@ -65,11 +63,12 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 				MembershipList[key] = receivedMembership
 				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
-		} else if existedMembership.HeartBeat != -1 {
+		} else {
 			MembershipList[key] = receivedMembership
 		}
 		MT.Unlock()
 	}
+	UpdateGUI <- "Ping"
 
 }
 func handleConnection(conn net.UDPConn) {
@@ -90,7 +89,7 @@ func handleConnection(conn net.UDPConn) {
 }
 func listenUDP() {
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
-	fmt.Println("listen on port:" + MyPort)
+	//fmt.Println("listen on port:" + MyPort)
 	if err != nil {
 		panic(err)
 		return
@@ -144,7 +143,7 @@ func updateSelfHeartBeat() {
 	}
 }
 func joinGroup() {
-	fmt.Println("joining group")
+	//fmt.Println("joining group")
 	MT.Lock()
 	jsonString, err := json.Marshal(MembershipList)
 	MT.Unlock()
@@ -161,13 +160,13 @@ func joinGroup() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(introIP[0]) + ":" + introPort)
+	//fmt.Println(string(introIP[0]) + ":" + introPort)
 	conn, err := net.Dial("udp", string(introIP[0])+":"+introPort)
 	if err != nil {
 		fmt.Println(err)
 	}
 	fmt.Fprintf(conn, msg+"\n")
-	fmt.Println("join group")
+	//fmt.Println("join group")
 	isJoin = true
 }
 
@@ -246,7 +245,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	go listenUDP()
 	// main loop
 	for {
-		helper.PrintMembershipListAsTable(MembershipList)
+		//helper.PrintMembershipListAsTable(MembershipList)
 		// can go through here ever gossipPeriod
 		log.Println("waiting for next gossip period")
 		t1 := time.Now()
@@ -288,7 +287,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//execute commands
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
-				fmt.Println(cmd)
+				//fmt.Println(cmd)
 				switch cmd {
 				//if change gossip to all2all or all2all to gossip
 				//change b, add command to membership list
@@ -320,6 +319,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//fmt.Println(t)
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
+		UpdateGUI <- "Ping"
 		MT.Unlock()
 		boardcastUDP()
 		selectFailedID()
