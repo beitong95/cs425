@@ -40,5 +40,5 @@ var MT sync.Mutex //lock for global variable MembershipList
 var UpdateGUI chan string = make(chan string)
 var IsAll2All bool
 var IsGossip bool
-var broadcastAll = make(map[string]int)
-var firstDetect = make(map[string]int)
+var BroadcastAll = make(map[string]int64)
+var FirstDetect = make(map[string]int64)

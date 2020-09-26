@@ -33,19 +33,19 @@ func selectFailedID() {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
 				go deleteIDAfterTcleanup(id)
-				if currentFailTime1, ok := broadcastAll[id]; ok {
-					if currentFailTime_1 < diff {
-						broadcastAll[id] = diff
+				if currentFailTime1, ok := BroadcastAll[id]; ok {
+					if currentFailTime1 < diff {
+						BroadcastAll[id] = diff
 					}
 				} else {
-					broadcastAll[id] = diff
+					BroadcastAll[id] = diff
 				}
-				if currentFailTime2, ok := firstDetect[id]; ok {
-					if currentFailTime_2 > diff {
-						firstDetect[id] = diff
+				if currentFailTime2, ok := FirstDetect[id]; ok {
+					if currentFailTime2 > diff {
+						FirstDetect[id] = diff
 					}
 				} else {
-					firstDetect[id] = diff
+					FirstDetect[id] = diff
 				}
 				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
