@@ -196,6 +196,7 @@ func handleConnection(conn net.UDPConn) {
 
 }
 func listenUDP() {
+	
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
 	//fmt.Println("listen on port:" + MyPort)
 	if err != nil {
@@ -208,6 +209,9 @@ func listenUDP() {
 		panic(err)
 	}
 	for {
+		if !isJoin{
+		 continue
+		}
 		handleConnection(*conn)
 	}
 }
@@ -231,6 +235,9 @@ func broadcastUDP() {
 	// 		fmt.Fprintf(conn, msg+"\n")
 	// 	}
 	// }
+	if !isJoin{
+		return
+	}
 	if IsAll2All {
 		selfNode := make(map[string]Membership)
 		MT.Lock()
@@ -298,6 +305,7 @@ func joinGroup() {
 }
 func leaveGroup() {
 	MT.Lock()
+	isJoin = false
 	MembershipList[MyID] = Membership{-2, 0}
 	LeaveNodes[MyID] = 1
 	jsonString, err := json.Marshal(MembershipList)
