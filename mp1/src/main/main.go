@@ -81,6 +81,9 @@ func main() {
 	if isMuteCli == false {
 		wg.Add(1)
 		go cli.Cli(&wg, C)
+	} else {
+		wg.Add(1)
+		go cli.CliSimple(&wg, C)
 	}
 
 	wg.Wait()
