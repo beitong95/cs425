@@ -21,7 +21,7 @@ func countBandwidth() {
 	for {
 		time.Sleep(1 * time.Second)
 		MT2.Lock()
-//		fmt.Println("Current Bandwidth: ", Bandwidth)
+		//		fmt.Println("Current Bandwidth: ", Bandwidth)
 		Bandwidth = 0
 		MT2.Unlock()
 	}
@@ -120,9 +120,12 @@ func handleConnection(conn net.UDPConn) {
 	msgString := string(buf)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
-//		fmt.Println(int(command[0]))
+		//		fmt.Println(int(command[0]))
 		C <- int(command[0]) + 8
 		//fmt.Println(fmt.Sprint(int(command[0])))
+	} else if msgString[:6] == "Leave:" {
+		deleteID := msgString.Split(msgString, ":")
+		deleteIDAfterTcleanup(deleteID)
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
@@ -241,7 +244,13 @@ func joinGroup() {
 }
 
 func leaveGroup() {
-	log.Println("leave group")
+	MT.Lock()
+	for id := range MembershipList {
+		if id != MyID {
+			sendMsgToID(id, "Leave:"+MyID)
+		}
+	}
+	MT.Unlock()
 }
 
 func piggybackCommand(cmd int) {
@@ -339,11 +348,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			if IsGossip == true {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
 				CurrentProtocol = true
-                		ProtocolChangeACK <- "Gossip"
-			}	else {
+				ProtocolChangeACK <- "Gossip"
+			} else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
 				CurrentProtocol = false
-                		ProtocolChangeACK <- "All2All"
+				ProtocolChangeACK <- "All2All"
 			}
 
 		}
