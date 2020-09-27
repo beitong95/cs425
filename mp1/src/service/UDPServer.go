@@ -120,6 +120,7 @@ func handleConnection(conn net.UDPConn) {
 	msgString := string(buf)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
+//		fmt.Println(int(command[0]))
 		C <- int(command[0]) + 8
 		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else {
@@ -377,7 +378,8 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		log.Println("Doing Gossip work with commands", cmds)
 		//we should process cmds in sequence, and there are some rules
 		//for example, if join and leave are in the same cmd sequence, we should only execute leave
-		cmds = parseCmds(cmds)
+		//cmds = parseCmds(cmds)
+		//fmt.Println(cmds)
 		log.Println("Parsed commands ", cmds)
 		//execute commands
 		if len(cmds) != 0 {
