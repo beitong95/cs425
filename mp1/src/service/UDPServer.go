@@ -117,7 +117,7 @@ func handleConnection(conn net.UDPConn) {
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
 		C <- int(command[0]) + 8
-		fmt.Println(fmt.Sprint(int(command[0])))
+		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
@@ -332,9 +332,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			if IsGossip == true {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
 				CurrentProtocol = true
-			} else {
+                		ProtocolChangeACK <- "Gossip"
+			}	else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
 				CurrentProtocol = false
+                		ProtocolChangeACK <- "All2All"
 			}
 
 		}
