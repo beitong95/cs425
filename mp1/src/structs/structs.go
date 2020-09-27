@@ -46,6 +46,7 @@ var MT sync.Mutex //lock for global variable MembershipList
 var UpdateGUI chan string = make(chan string)
 var IsAll2All bool
 var IsGossip bool
+var IsJoin bool = false
 
 // 0 all2all 1 gossip
 var CurrentProtocol bool

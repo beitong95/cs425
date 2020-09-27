@@ -12,8 +12,7 @@ import (
 	"time"
 )
 
-var isJoin bool = false
-
+//var isJoin bool = false
 //Gossip parameters
 // var B int = 2
 // var preservedB int = 1
@@ -38,7 +37,7 @@ func selectFailedID() {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
 			_, ok := LeaveNodes[id]
-			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok{
+			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
 				FailedNodes[id] = 1
@@ -69,11 +68,11 @@ func selectGossipID() []string {
 	if num < 1 {
 		MT.Lock()
 		for key := range MembershipList {
-			_,okLeave := LeaveNodes[key]
-			_,okFail := FailedNodes[key] 
+			_, okLeave := LeaveNodes[key]
+			_, okFail := FailedNodes[key]
 
 			if key != MyID && !okLeave && !okFail {
-//			if key != MyID{
+				//			if key != MyID{
 				Container = append(Container, key)
 			}
 		}
@@ -92,7 +91,7 @@ func selectGossipID() []string {
 
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	//MT.Lock()
-	for key, _:= range recievedMemberShipList {
+	for key, _ := range recievedMemberShipList {
 		if key == MyOldID {
 			return
 		}
@@ -103,30 +102,30 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
 			if receivedMembership.HeartBeat == -2 {
-				if _,ok := LeaveNodes[key]; !ok {
+				if _, ok := LeaveNodes[key]; !ok {
 					MembershipList[key] = receivedMembership
 					LeaveNodes[key] = 1
 					//build one row message
 					// possible BUG
-					tempMembershipList := map[string]Membership{key:MembershipList[key]}
+					tempMembershipList := map[string]Membership{key: MembershipList[key]}
 					jsonString, err := json.Marshal(tempMembershipList)
 					if err != nil {
 						panic(err)
 					}
 					msg := string(jsonString)
 					for id := range MembershipList {
-						if id != MyID && LeaveNodes[id] != 1 && FailedNodes[id] != 1{
+						if id != MyID && LeaveNodes[id] != 1 && FailedNodes[id] != 1 {
 							sendMsgToID(id, msg)
 						}
 					}
-				
+
 					go deleteIDAfterTcleanup(key)
 				} else {
-					// we know it left, do nothing	
+					// we know it left, do nothing
 				}
-			} else if existedMembership.HeartBeat < receivedMembership.HeartBeat { 
-				_,okLeave := LeaveNodes[key]
-				_,okFail := FailedNodes[key] 
+			} else if existedMembership.HeartBeat < receivedMembership.HeartBeat {
+				_, okLeave := LeaveNodes[key]
+				_, okFail := FailedNodes[key]
 				if !okLeave && !okFail {
 					MembershipList[key] = receivedMembership
 				}
@@ -136,7 +135,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 			if _, ok := FailedNodes[key]; ok {
 				//refuse accept failed node
 			} else if _, ok := LeaveNodes[key]; ok {
-				// refuse accept leaved node	
+				// refuse accept leaved node
 			} else {
 				MembershipList[key] = receivedMembership
 			}
@@ -196,7 +195,7 @@ func handleConnection(conn net.UDPConn) {
 
 }
 func listenUDP() {
-	
+
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
 	//fmt.Println("listen on port:" + MyPort)
 	if err != nil {
@@ -209,8 +208,8 @@ func listenUDP() {
 		panic(err)
 	}
 	for {
-		if !isJoin{
-		 continue
+		if !IsJoin {
+			continue
 		}
 		handleConnection(*conn)
 	}
@@ -235,7 +234,7 @@ func broadcastUDP() {
 	// 		fmt.Fprintf(conn, msg+"\n")
 	// 	}
 	// }
-	if !isJoin{
+	if !IsJoin {
 		return
 	}
 	if IsAll2All {
@@ -301,11 +300,11 @@ func joinGroup() {
 	id := string(introIP[0]) + ":" + introPort
 	sendMsgToID(id, msg)
 	//fmt.Println("join group")
-	isJoin = true
+	IsJoin = true
 }
 func leaveGroup() {
 	MT.Lock()
-	isJoin = false
+	IsJoin = false
 	MembershipList[MyID] = Membership{-2, 0}
 	LeaveNodes[MyID] = 1
 	jsonString, err := json.Marshal(MembershipList)
@@ -314,8 +313,8 @@ func leaveGroup() {
 	}
 	msg := string(jsonString)
 	for id := range MembershipList {
-		_, okFail := FailedNodes[id] 
-		if id != MyID && !okFail{
+		_, okFail := FailedNodes[id]
+		if id != MyID && !okFail {
 			sendMsgToID(id, msg)
 		}
 	}
@@ -379,20 +378,20 @@ func parseCmds(cmds []int) []int {
 	if gossipOrAll2All != -1 {
 		res = append(res, gossipOrAll2All)
 	}
-	if joinGroupIndex > leaveGroupIndex && isJoin == false {
+	if joinGroupIndex > leaveGroupIndex && IsJoin == false {
 		res = append(res, JOIN_GROUP)
 		return res
-	} else if joinGroupIndex > leaveGroupIndex && isJoin == true {
+	} else if joinGroupIndex > leaveGroupIndex && IsJoin == true {
 		log.Println("cannot join group twice")
 		if leaveGroupIndex != -1 {
 			res = append(res, LEAVE_GROUP)
 			return res
 		}
 		return res
-	} else if joinGroupIndex < leaveGroupIndex && isJoin == true {
+	} else if joinGroupIndex < leaveGroupIndex && IsJoin == true {
 		res = append(res, LEAVE_GROUP)
 		return res
-	} else if joinGroupIndex < leaveGroupIndex && isJoin == false {
+	} else if joinGroupIndex < leaveGroupIndex && IsJoin == false {
 		log.Println("cannot leave group before join")
 		if joinGroupIndex != -1 {
 			res = append(res, JOIN_GROUP)

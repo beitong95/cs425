@@ -2,17 +2,18 @@ package main
 
 import (
 	"cli"
+	"config"
 	"flag"
 	"fmt"
 	"helper"
 	"io/ioutil"
 	"log"
+	"math"
 	"os"
 	"service"
 	. "structs"
 	"sync"
 	"time"
-	"math"
 )
 
 // my membership list
@@ -34,7 +35,7 @@ func main() {
 	// parse and save flags
 	flag.Parse()
 	Ttimeout = Tfail - Tgossip
-	Tall2all = int(math.Log(float64(VMMaxCount))* float64(Tgossip))
+	Tall2all = int(math.Log(float64(VMMaxCount)) * float64(Tgossip))
 	MyPort = *myPortPtr
 	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
@@ -53,6 +54,19 @@ func main() {
 	MyIP, err = helper.GetLocalIP()
 	if err != nil {
 		log.Fatalln("get local IP error")
+	}
+	introIP, err := config.IntroducerIPAddresses()
+	if err != nil {
+		panic(err)
+	}
+	introPort, err := config.Port()
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("myip: ", MyIP, "introip: ", introIP[0], "myport: ", MyPort, "introport: ", introPort)
+	if MyIP == introIP[0] && MyPort == introPort {
+		IsJoin = true
+		fmt.Println("IsJoin: ", IsJoin)
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
