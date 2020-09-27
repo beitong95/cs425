@@ -124,23 +124,23 @@ func handleConnection(conn net.UDPConn) {
 		C <- int(command[0]) + 8
 		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else if msgString[:6] == "Leave:" {
-		deleteID := msgString.Split(msgString, ":")
+		deleteID := strings.Split(msgString, ":")[1]
 		deleteIDAfterTcleanup(deleteID)
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)
 
-//fix bug
+		//fix bug
 
 		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
 		if err != nil {
 			panic(err)
 		}
 		if len(recievedMemberShipList) == 1 {
-		// this sender must be a new memeber
-		// because he/she sends it to me
-		// then i must be the introducer
+			// this sender must be a new memeber
+			// because he/she sends it to me
+			// then i must be the introducer
 			MT.Lock()
 			jsonString, err := json.Marshal(MembershipList)
 			MT.Unlock()
@@ -148,10 +148,10 @@ func handleConnection(conn net.UDPConn) {
 				panic(err)
 			}
 			msg := string(jsonString)
-			for key,_ := range recievedMemberShipList {
+			for key, _ := range recievedMemberShipList {
 				sendMsgToID(key, msg)
-			}			
-		} 
+			}
+		}
 		mergeMemberShipList(recievedMemberShipList)
 	}
 
@@ -252,11 +252,8 @@ func joinGroup() {
 		panic(err)
 	}
 	//fmt.Println(string(introIP[0]) + ":" + introPort)
-	conn, err := net.Dial("udp", string(introIP[0])+":"+introPort)
-	if err != nil {
-		fmt.Println(err)
-	}
-	fmt.Fprintf(conn, msg+"\n")
+	id := string(introIP[0]) + ":" + introPort
+	sendMsgToID(id, msg)
 	//fmt.Println("join group")
 	isJoin = true
 }
