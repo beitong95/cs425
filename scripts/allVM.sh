@@ -22,8 +22,8 @@ if [ "$1" == "alias" ]; then
 		echo "alias vm$count='ssh -p 22 beitong2@${IPAddress[$i]}'" >> ~/.bashrc
 		count=$((count+1))
 	done
-	echo "alias runmp1=cd ~/cs425/mp1/src/main;go run main.go" >> ~/.bashrc
-	echo "alias debugmp1=cd ~/cs425/mp1/src/main;go run main.go -mute" >> ~/.bashrc
+	echo "alias runmp1='cd ~/cs425/mp1/src/main;go run main.go'" >> ~/.bashrc
+	echo "alias debugmp1='cd ~/cs425/mp1/src/main;go run main.go -mute'" >> ~/.bashrc
 	source ~/.bashrc
 fi 
 
