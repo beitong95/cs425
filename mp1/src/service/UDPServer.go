@@ -129,6 +129,11 @@ func handleConnection(conn net.UDPConn) {
 		recievedMemberShipList := make(map[string]Membership)
 
 //fix bug
+
+		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
+		if err != nil {
+			panic(err)
+		}
 		if len(recievedMemberShipList) == 1 {
 		// this sender must be a new memeber
 		// because he/she sends it to me
@@ -144,11 +149,6 @@ func handleConnection(conn net.UDPConn) {
 				sendMsgToID(key, msg)
 			}			
 		} 
-
-		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
-		if err != nil {
-			panic(err)
-		}
 		mergeMemberShipList(recievedMemberShipList)
 	}
 
