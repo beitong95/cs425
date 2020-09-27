@@ -104,7 +104,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		}
 		MT.Unlock()
 	}
-	UpdateGUI <- "Ping"
+	//UpdateGUI <- "Ping"
 
 }
 func handleConnection(conn net.UDPConn) {
@@ -446,7 +446,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//fmt.Println(t)
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
-		UpdateGUI <- "Ping"
+		//UpdateGUI <- "Ping"
 		MT.Unlock()
 		broadcastUDP()
 		selectFailedID()

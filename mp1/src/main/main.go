@@ -28,7 +28,7 @@ func main() {
 	myPortPtr := flag.String("port", "1234", "Port used for Debug on one machine")
 	// parameters
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
-	flag.IntVar(&Tfail, "fail", 5000, "Fail Time")
+	flag.IntVar(&Tfail, "fail", 4800, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time")
 
 	// parse and save flags
