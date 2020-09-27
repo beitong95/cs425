@@ -20,8 +20,8 @@ var isJoin bool = false
 func countBandwidth() {
 	for {
 		time.Sleep(1 * time.Second)
-		fmt.Println("Current Bandwidth: ", Bandwidth)
 		MT2.Lock()
+//		fmt.Println("Current Bandwidth: ", Bandwidth)
 		Bandwidth = 0
 		MT2.Unlock()
 	}
@@ -182,7 +182,9 @@ func broadcastUDP() {
 		msg := string(jsonString)
 		MT.Lock()
 		for id, _ := range MembershipList {
-			sendMsgToID(id, msg)
+			if id != MyID {
+				sendMsgToID(id, msg)
+			}
 		}
 		MT.Unlock()
 	} else if IsGossip {
