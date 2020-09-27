@@ -23,6 +23,20 @@ func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI) {
 	}
 }
 
+func updateProtocolChangeACK(history *tui.Box, ui tui.UI) {
+	for {
+		msg := <-ProtocolChangeACK
+		ui.Update(func() {
+            history.Append(tui.NewHBox(
+                tui.NewLabel(time.Now().Format("15:04")),
+                tui.NewPadder(1, 0, tui.NewLabel("")),
+                tui.NewLabel("Change to " + msg),
+                tui.NewSpacer(),
+            ))
+		})
+	}
+}
+
 func getHelp() string {
 	return `help    -> help inFormation
 			all2all -> change multicast to all2all
@@ -193,5 +207,6 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	})
 	go ui.Run()
 	go updateMembershipListInGUI(membershipBoxLabel, ui)
+    go updateProtocolChangeACK(history, ui)
 	<-done
 }

@@ -53,3 +53,4 @@ var C chan int = make(chan int, 10)
 
 var Bandwidth int
 var MT2 sync.Mutex
+var ProtocolChangeACK chan string = make(chan string)

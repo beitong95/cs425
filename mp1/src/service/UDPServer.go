@@ -19,8 +19,11 @@ var isJoin bool = false
 // var preservedB int = 1
 func countBandwidth() {
 	for {
-		time.Sleep(1 * time.second)
+		time.Sleep(1 * time.Second)
+		fmt.Println("Current Bandwidth: ", Bandwidth)
+		MT2.Lock()
 		Bandwidth = 0
+		MT2.Unlock()
 	}
 }
 
@@ -109,6 +112,7 @@ func handleConnection(conn net.UDPConn) {
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
+	//fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
@@ -117,7 +121,7 @@ func handleConnection(conn net.UDPConn) {
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
 		C <- int(command[0]) + 8
-		fmt.Println(fmt.Sprint(int(command[0])))
+		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
@@ -332,9 +336,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			if IsGossip == true {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
 				CurrentProtocol = true
-			} else {
+                		ProtocolChangeACK <- "Gossip"
+			}	else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
 				CurrentProtocol = false
+                		ProtocolChangeACK <- "All2All"
 			}
 
 		}
