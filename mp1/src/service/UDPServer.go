@@ -68,7 +68,10 @@ func selectGossipID() []string {
 	if num < 1 {
 		MT.Lock()
 		for key := range MembershipList {
-			if key != MyID && FailedNodes[key] != 1 && LeaveNodes[key] != 1 {
+			_,okLeave := LeaveNodes[key]
+			_,okFail := FailedNodes[key] 
+
+			if key != MyID && !okLeave && !okFail {
 				Container = append(Container, key)
 			}
 		}
