@@ -72,6 +72,7 @@ func selectGossipID() []string {
 			_,okFail := FailedNodes[key] 
 
 			if key != MyID && !okLeave && !okFail {
+//			if key != MyID{
 				Container = append(Container, key)
 			}
 		}
@@ -118,7 +119,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 			} else if existedMembership.HeartBeat < receivedMembership.HeartBeat { 
 				_,okLeave := LeaveNodes[key]
 				_,okFail := FailedNodes[key] 
-				if okLeave || okFail {
+				if !okLeave && !okFail {
 					MembershipList[key] = receivedMembership
 				}
 				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
