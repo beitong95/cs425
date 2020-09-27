@@ -13,6 +13,17 @@ IPAddress=(
 )
 VM1IPAddress="172.22.156.12"
 copyPublicKey="copyKey"
+
+if [ "$1" == "alias" ]; then
+	count=2
+	for i in ${!IPAddress[@]};	
+	do
+			
+		echo "alias vm$count='ssh -p 22 beitong2@${IPAddress[$i]}'" >> ~/.bashrc
+		count=$((count+1))
+	done
+fi 
+
 if [ "$1" == "$copyPublicKey" ]; then
 	for i in ${!IPAddress[@]};	
 	do
