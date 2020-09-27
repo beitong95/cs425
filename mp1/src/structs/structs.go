@@ -40,6 +40,7 @@ var Tall2all int
 var B int = 3
 var Container []string
 var FailedNodes map[string]int = make(map[string]int)
+var LeaveNodes map[string]int = make(map[string]int)
 var MT sync.Mutex //lock for global variable MembershipList
 var UpdateGUI chan string = make(chan string)
 var IsAll2All bool

@@ -26,12 +26,10 @@ func countBandwidth() {
 		MT2.Unlock()
 	}
 }
-
 func deleteIDAfterTcleanup(id string) {
 	time.Sleep(time.Duration(Tclean) * time.Millisecond)
 	MT.Lock()
 	delete(MembershipList, id)
-	FailedNodes[id] = 1
 	MT.Unlock()
 }
 func selectFailedID() {
@@ -42,6 +40,7 @@ func selectFailedID() {
 			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 {
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
+				FailedNodes[id] = 1
 				go deleteIDAfterTcleanup(id)
 				if currentFailTime1, ok := BroadcastAll[id]; ok {
 					if currentFailTime1 < diff {
@@ -69,7 +68,7 @@ func selectGossipID() []string {
 	if num < 1 {
 		MT.Lock()
 		for key := range MembershipList {
-			if key != MyID {
+			if key != MyID && FailedNodes[key] != 1 && LeaveNodes[key] != 1 {
 				Container = append(Container, key)
 			}
 		}
@@ -91,13 +90,41 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
-			if (existedMembership.HeartBeat < receivedMembership.HeartBeat && existedMembership.HeartBeat != -1 && existedMembership.HeartBeat != -2) || receivedMembership.HeartBeat == -2 {
-				MembershipList[key] = receivedMembership
+			if receivedMembership.HeartBeat == -2 {
+				if _,ok := LeaveNodes[key]; !ok {
+					MembershipList[key] = receivedMembership
+					LeaveNodes[key] = 1
+					//build one row message
+					// possible BUG
+					tempMembershipList := map[string]Membership{key:MembershipList[key]}
+					jsonString, err := json.Marshal(tempMembershipList)
+					if err != nil {
+						panic(err)
+					}
+					msg := string(jsonString)
+					for id := range MembershipList {
+						if id != MyID && LeaveNodes[id] != 1 && FailedNodes[id] != 1{
+							sendMsgToID(id, msg)
+						}
+					}
+				
+					go deleteIDAfterTcleanup(key)
+				} else {
+					// we know it left, do nothing	
+				}
+			} else if existedMembership.HeartBeat < receivedMembership.HeartBeat { 
+				_,okLeave := LeaveNodes[key]
+				_,okFail := FailedNodes[key] 
+				if okLeave || okFail {
+					MembershipList[key] = receivedMembership
+				}
 				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
 		} else {
 			if _, ok := FailedNodes[key]; ok {
-				//refuse accept the membership
+				//refuse accept failed node
+			} else if _, ok := LeaveNodes[key]; ok {
+				// refuse accept leaved node	
 			} else {
 				MembershipList[key] = receivedMembership
 			}
@@ -257,33 +284,29 @@ func joinGroup() {
 	//fmt.Println("join group")
 	isJoin = true
 }
-func reinitializeID() {
-	time.Sleep(12 * time.Second)
-	millis := time.Now().UnixNano() / 1000000
-	secs := millis / 1000
-	heartBeat := millis
-	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
-	MT.Lock()
-	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
-	FailedNodes = make(map[string]int)
-	MT.Unlock()
-}
 func leaveGroup() {
 	MT.Lock()
 	MembershipList[MyID] = Membership{-2, 0}
-	FailedNodes[MyID] = 1
+	LeaveNodes[MyID] = 1
 	jsonString, err := json.Marshal(MembershipList)
 	if err != nil {
 		panic(err)
 	}
 	msg := string(jsonString)
 	for id := range MembershipList {
-		if id != MyID {
+		if id != MyID && FailedNodes[id] != 1{
 			sendMsgToID(id, msg)
 		}
 	}
+	millis := time.Now().UnixNano() / 1000000
+	secs := millis / 1000
+	heartBeat := millis
+	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
+	MembershipList = make(map[string]Membership)
+	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
+	FailedNodes = make(map[string]int)
+	LeaveNodes = make(map[string]int)
 	MT.Unlock()
-	go reinitializeID()
 }
 
 func piggybackCommand(cmd int) {
