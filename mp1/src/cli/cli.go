@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 	"github.com/marcusolsson/tui-go"
+	"fmt"
 )
 
 func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI) {
@@ -19,6 +20,15 @@ func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI) {
 		}
 		ui.Update(func() {
 			membershipBoxLabel.SetText(s)
+		})
+	}
+}
+
+func updateBandwidth(bandwidthBoxLabel *tui.Label, ui tui.UI, ticker *time.Ticker) {
+	for {
+		<-ticker.C
+		ui.Update(func() {
+			bandwidthBoxLabel.SetText(fmt.Sprintf("%v",Bandwidth))
 		})
 	}
 }
@@ -192,7 +202,16 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	}
 	membershipBoxLabel.SetText(s)
 
-	root := tui.NewVBox(membershipBox, shell)
+	//  bandwidth
+	bandwidthBoxLabel := tui.NewLabel("")
+	bandwidthBoxLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+
+	bandwidthBox := tui.NewVBox(bandwidthBoxLabel)
+	bandwidthBox.SetTitle("BandWidth on Current Machine")
+	bandwidthBox.SetBorder(true)
+	bandwidthBoxLabel.SetText(fmt.Sprintf("%v",Bandwidth))
+
+	root := tui.NewVBox(membershipBox, bandwidthBox, shell)
 
 	var er error
 	ui, er = tui.New(root)
@@ -207,6 +226,8 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	})
 	go ui.Run()
 	go updateMembershipListInGUI(membershipBoxLabel, ui)
-    go updateProtocolChangeACK(history, ui)
+    	go updateProtocolChangeACK(history, ui)
+	ticker := time.NewTicker(time.Duration(1000) * time.Millisecond)
+	go updateBandwidth(bandwidthBoxLabel, ui, ticker)
 	<-done
 }
