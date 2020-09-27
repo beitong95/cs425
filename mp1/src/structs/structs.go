@@ -57,4 +57,4 @@ var C chan int = make(chan int, 10)
 var Bandwidth int
 var MT2 sync.Mutex
 var ProtocolChangeACK chan string = make(chan string)
-var LossRate = 1 //1 5 10 15 20 five points
+var LossRate = 5 //1 5 10 15 20 five points
