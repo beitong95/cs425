@@ -19,8 +19,11 @@ var isJoin bool = false
 // var preservedB int = 1
 func countBandwidth() {
 	for {
-		time.Sleep(1 * time.second)
+		time.Sleep(1 * time.Second)
+		fmt.Println("Current Bandwidth: ", Bandwidth)
+		MT2.Lock()
 		Bandwidth = 0
+		MT2.Unlock()
 	}
 }
 
@@ -109,6 +112,7 @@ func handleConnection(conn net.UDPConn) {
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
+	//fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
