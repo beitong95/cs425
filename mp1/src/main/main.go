@@ -63,10 +63,10 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("myip: ", MyIP, "introip: ", introIP[0], "myport: ", MyPort, "introport: ", introPort)
+	// fmt.Println("myip: ", MyIP, "introip: ", introIP[0], "myport: ", MyPort, "introport: ", introPort)
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsJoin = true
-		fmt.Println("IsJoin: ", IsJoin)
+		// fmt.Println("IsJoin: ", IsJoin)
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
