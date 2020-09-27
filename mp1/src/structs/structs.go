@@ -50,7 +50,6 @@ var CurrentProtocol bool
 var BroadcastAll = make(map[string]int64)
 var FirstDetect = make(map[string]int64)
 var C chan int = make(chan int, 10)
-<<<<<<< Updated upstream
 
 var Bandwidth int
 var MT2 sync.Mutex
