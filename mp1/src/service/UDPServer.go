@@ -37,7 +37,8 @@ func selectFailedID() {
 	for id, member := range MembershipList {
 		if id != MyID {
 			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
-			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 {
+			_, ok := LeaveNodes[id]
+			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok{
 				//fmt.Println(id + "might failed")
 				MembershipList[id] = Membership{-1, diff}
 				FailedNodes[id] = 1
@@ -90,6 +91,13 @@ func selectGossipID() []string {
 }
 
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
+	//MT.Lock()
+	for key, _:= range recievedMemberShipList {
+		if key == MyOldID {
+			return
+		}
+	}
+	//MT.Unlock()
 
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
@@ -298,13 +306,15 @@ func leaveGroup() {
 	}
 	msg := string(jsonString)
 	for id := range MembershipList {
-		if id != MyID && FailedNodes[id] != 1{
+		_, okFail := FailedNodes[id] 
+		if id != MyID && !okFail{
 			sendMsgToID(id, msg)
 		}
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
 	heartBeat := millis
+	MyOldID = MyID
 	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
 	MembershipList = make(map[string]Membership)
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}

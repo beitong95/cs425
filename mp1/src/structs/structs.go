@@ -26,6 +26,7 @@ var MembershipList = make(map[string]Membership)
 var MyIP string = ""
 var MyPort string = ""
 var MyID string = ""
+var MyOldID string = ""
 
 // ms
 var Tgossip int
