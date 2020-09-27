@@ -91,7 +91,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
-			if existedMembership.HeartBeat < receivedMembership.HeartBeat && existedMembership.HeartBeat != -1 {
+			if (existedMembership.HeartBeat < receivedMembership.HeartBeat && existedMembership.HeartBeat != -1 && existedMembership.HeartBeat != -2) || receivedMembership.HeartBeat == -2 {
 				MembershipList[key] = receivedMembership
 				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
@@ -257,15 +257,33 @@ func joinGroup() {
 	//fmt.Println("join group")
 	isJoin = true
 }
-
+func reinitializeID() {
+	time.Sleep(12 * time.Second)
+	millis := time.Now().UnixNano() / 1000000
+	secs := millis / 1000
+	heartBeat := millis
+	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
+	MT.Lock()
+	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
+	FailedNodes = make(map[string]int)
+	MT.Unlock()
+}
 func leaveGroup() {
 	MT.Lock()
+	MembershipList[MyID] = Membership{-2, 0}
+	FailedNodes[MyID] = 1
+	jsonString, err := json.Marshal(MembershipList)
+	if err != nil {
+		panic(err)
+	}
+	msg := string(jsonString)
 	for id := range MembershipList {
 		if id != MyID {
-			sendMsgToID(id, "Leave:"+MyID)
+			sendMsgToID(id, msg)
 		}
 	}
 	MT.Unlock()
+	go reinitializeID()
 }
 
 func piggybackCommand(cmd int) {
@@ -444,6 +462,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
 		//fmt.Println(t)
+		//if not leave
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
 		//UpdateGUI <- "Ping"
