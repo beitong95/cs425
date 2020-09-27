@@ -130,10 +130,28 @@ func handleConnection(conn net.UDPConn) {
 		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)
+
+//fix bug
+
 		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
 		if err != nil {
 			panic(err)
 		}
+		if len(recievedMemberShipList) == 1 {
+		// this sender must be a new memeber
+		// because he/she sends it to me
+		// then i must be the introducer
+			MT.Lock()
+			jsonString, err := json.Marshal(MembershipList)
+			MT.Unlock()
+			if err != nil {
+				panic(err)
+			}
+			msg := string(jsonString)
+			for key,_ := range recievedMemberShipList {
+				sendMsgToID(key, msg)
+			}			
+		} 
 		mergeMemberShipList(recievedMemberShipList)
 	}
 
