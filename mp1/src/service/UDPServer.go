@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net"
 	"strings"
 	. "structs"
@@ -215,6 +216,10 @@ func listenUDP() {
 	}
 }
 func sendMsgToID(id string, msg string) {
+	//simulate for loss rate
+	if rand.Intn(100) < LossRate {
+		return
+	}
 	ip := strings.Split(id, "*")[0]
 	conn, err := net.Dial("udp", ip)
 	if err != nil {
