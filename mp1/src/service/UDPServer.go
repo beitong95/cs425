@@ -67,6 +67,7 @@ func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
 	if num < 1 {
+		rand.Seed(time.Now().Unix())
 		MT.Lock()
 		for key := range MembershipList {
 			_, okLeave := LeaveNodes[key]
@@ -78,6 +79,8 @@ func selectGossipID() []string {
 			}
 		}
 		MT.Unlock()
+		//fmt.Println(Container)
+		rand.Shuffle(len(Container), func(i, j int) { Container[i], Container[j] = Container[j], Container[i] })
 	}
 	num = len(Container)
 	if num < B {
