@@ -31,6 +31,7 @@ func main() {
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
 	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time")
+	flag.IntVar(&LossRate, "loss", 1, "message loss rate")
 
 	// parse and save flags
 	flag.Parse()
