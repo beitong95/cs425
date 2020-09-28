@@ -79,9 +79,9 @@ func selectGossipID() []string {
 			}
 		}
 		MT.Unlock()
-		fmt.Println(Containr)
+		fmt.Println(Container)
 		rand.Shuffle(len(Container), func(i, j int) { Container[i], Container[j] = Container[j], Container[i] })
-		fmt.Println(Containr)
+		fmt.Println(Container)
 	}
 	num = len(Container)
 	if num < B {
