@@ -32,36 +32,41 @@ func deleteIDAfterTcleanup(id string) {
 	delete(MembershipList, id)
 	MT.Unlock()
 }
-func selectFailedID() {
-	MT.Lock()
-	for id, member := range MembershipList {
-		if id != MyID {
-			diff := time.Now().UnixNano()/1000000 - member.HeartBeat
-			_, ok := LeaveNodes[id]
-			if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
-				//fmt.Println(id + "might failed")
-				MembershipList[id] = Membership{-1, diff}
-				FailedNodes[id] = 1
-				go deleteIDAfterTcleanup(id)
-				if currentFailTime1, ok := BroadcastAll[id]; ok {
-					if currentFailTime1 < diff {
+
+func selectFailedID(ticker *time.Ticker) {
+	for {
+		<-ticker.C
+		MT.Lock()
+		for id, member := range MembershipList {
+			if id != MyID {
+				diff := time.Now().UnixNano()/1000000 - member.HeartBeat
+				_, ok := LeaveNodes[id]
+				if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
+					//fmt.Println(id + "might failed")
+					MembershipList[id] = Membership{-1, diff}
+					FailedNodes[id] = 1
+					go deleteIDAfterTcleanup(id)
+					if currentFailTime1, ok := BroadcastAll[id]; ok {
+						if currentFailTime1 < diff {
+							BroadcastAll[id] = diff
+						}
+					} else {
 						BroadcastAll[id] = diff
 					}
-				} else {
-					BroadcastAll[id] = diff
-				}
-				if currentFailTime2, ok := FirstDetect[id]; ok {
-					if currentFailTime2 > diff {
+					if currentFailTime2, ok := FirstDetect[id]; ok {
+						if currentFailTime2 > diff {
+							FirstDetect[id] = diff
+						}
+					} else {
 						FirstDetect[id] = diff
 					}
-				} else {
-					FirstDetect[id] = diff
+					//fmt.Println("timeout: " + fmt.Sprint(diff))
 				}
-				//fmt.Println("timeout: " + fmt.Sprint(diff))
 			}
 		}
+		MT.Unlock()
+	
 	}
-	MT.Unlock()
 }
 func selectGossipID() []string {
 	var num = len(Container)
@@ -416,12 +421,14 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	defer wg.Done()
 	//timer for gossip period
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
+	tickerDetectFail := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
 	go countBandwidth()
 	go listenUDP()
 	// main loop
+	go selectFailedID(tickerDetectFail)
 	for {
 		//helper.PrintMembershipListAsTable(MembershipList)
 		// can go through here ever gossipPeriod
@@ -520,7 +527,6 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//UpdateGUI <- "Ping"
 		MT.Unlock()
 		broadcastUDP()
-		selectFailedID()
 		//update timer
 		//control timers
 		//failure detect
