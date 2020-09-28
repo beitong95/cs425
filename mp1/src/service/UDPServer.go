@@ -159,12 +159,13 @@ func handleConnection(conn net.UDPConn) {
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
-	//fmt.Println(Bandwidth)
+	fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
 	}
 	msgString := string(buf)
+	fmt.Println(msgString)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
 		//		fmt.Println(int(command[0]))
