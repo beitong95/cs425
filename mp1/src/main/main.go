@@ -42,6 +42,7 @@ func main() {
 	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
 	IsGossip = !(IsAll2All)
+	CurrentProtocol = IsAll2All
 	isIntroducer := *isIntroducerPtr
 	isMuteCli := *isMuteCliPtr
 	isVerbose := *isVerbosePtr
