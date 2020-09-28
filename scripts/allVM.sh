@@ -24,7 +24,7 @@ if [ "$1" == "alias" ]; then
 	done
 	echo "alias runmp1='cd ~/cs425/mp1/src/main;go run main.go'" >> ~/.bashrc
 	echo "alias debugmp1='cd ~/cs425/mp1/src/main;go run main.go -mute'" >> ~/.bashrc
-	source ~/.bashrc
+	source /home/beitong2/.bashrc
 fi 
 
 if [ "$1" == "$copyPublicKey" ]; then

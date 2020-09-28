@@ -35,7 +35,8 @@ func main() {
 	// parse and save flags
 	flag.Parse()
 	Ttimeout = Tfail - Tgossip
-	Tall2all = int(math.Log(float64(VMMaxCount)) * float64(Tgossip))
+	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
+	fmt.Println(Tall2all)
 	MyPort = *myPortPtr
 	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
