@@ -159,17 +159,17 @@ func handleConnection(conn net.UDPConn) {
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
-	fmt.Println(Bandwidth)
+	//fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
 	}
 	msgString := string(buf)
-	fmt.Println(msgString)
+	//fmt.Println(msgString)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
 		//		fmt.Println(int(command[0]))
-		C <- int(command[0]) + 8
+		C1 <- int(command[0]) + 8
 		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else if msgString[:6] == "Leave:" {
 		deleteID := strings.Split(msgString, ":")[1]
@@ -433,9 +433,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	for {
 		//helper.PrintMembershipListAsTable(MembershipList)
 		// can go through here ever gossipPeriod
+		//fmt.Println("1")
 		log.Println("waiting for next gossip period")
 		t1 := time.Now()
 		//no wait means our gossip period is too short for gossip process
+		//fmt.Println(t1)
 		<-ticker.C
 		if CurrentProtocol != IsGossip {
 			if IsGossip == true {

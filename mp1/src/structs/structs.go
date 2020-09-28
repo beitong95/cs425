@@ -52,7 +52,7 @@ var IsJoin bool = false
 var CurrentProtocol bool
 var BroadcastAll = make(map[string]int64)
 var FirstDetect = make(map[string]int64)
-var C chan int = make(chan int, 10)
+var C1 chan int = make(chan int, 10)
 
 var Bandwidth int
 var MT2 sync.Mutex

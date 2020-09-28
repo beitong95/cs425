@@ -37,7 +37,7 @@ func main() {
 	flag.Parse()
 	Ttimeout = Tfail - Tgossip
 	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
-	fmt.Println(Tall2all)
+	//fmt.Println(Tall2all)
 	MyPort = *myPortPtr
 	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
@@ -92,14 +92,14 @@ func main() {
 	//10 is enough for the channel buffer capacity
 
 	wg.Add(1)
-	go service.UDPServer(IsAll2All, isIntroducer, &wg, C)
+	go service.UDPServer(IsAll2All, isIntroducer, &wg, C1)
 
 	if isMuteCli == false {
 		wg.Add(1)
-		go cli.Cli(&wg, C)
+		go cli.Cli(&wg, C1)
 	} else {
 		wg.Add(1)
-		go cli.CliSimple(&wg, C)
+		go cli.CliSimple(&wg, C1)
 	}
 
 	wg.Wait()
