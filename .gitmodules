@@ -1,0 +1,24 @@
+[submodule "src/github.com/gdamore/tcell"]
+	path = src/github.com/gdamore/tcell
+	url = https://github.com/gdamore/tcell.git
+[submodule "src/github.com/lucasb-eyer/go-colorful"]
+	path = src/github.com/lucasb-eyer/go-colorful
+	url = https://github.com/lucasb-eyer/go-colorful.git
+[submodule "src/github.com/marcusolsson/tui-go"]
+	path = src/github.com/marcusolsson/tui-go
+	url = https://github.com/marcusolsson/tui-go.git
+[submodule "src/github.com/mattn/go-runewidth"]
+	path = src/github.com/mattn/go-runewidth
+	url = https://github.com/mattn/go-runewidth.git
+[submodule "src/github.com/mitchellh/go-wordwrap"]
+	path = src/github.com/mitchellh/go-wordwrap
+	url = https://github.com/mitchellh/go-wordwrap.git
+[submodule "src/github.com/gdamore/encoding"]
+	path = src/github.com/gdamore/encoding
+	url = https://github.com/gdamore/encoding.git
+[submodule "src/golang.org/x/sys"]
+	path = src/golang.org/x/sys
+	url = https://github.com/golang/sys.git
+[submodule "src/golang.org/x/text"]
+	path = src/golang.org/x/text
+	url = https://github.com/golang/text.git
