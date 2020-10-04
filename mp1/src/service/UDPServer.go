@@ -360,7 +360,7 @@ func piggybackCommand(cmd int) {
 	MT.Unlock()
 
 }
-
+/**
 func parseCmds(cmds []int) []int {
 	//gossip or all2all
 	//fmt.Println(cmds)
@@ -415,42 +415,31 @@ func parseCmds(cmds []int) []int {
 	}
 	return res
 }
+**/
 
 //UDPServer is the udp server thread function
 func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
-	//log.SetOutput(ioutil.Discard)
 	defer wg.Done()
-	//timer for gossip period
+	//ticker for gossip and all2all period; ClogN * gossip = all2all 
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
+	//ticker for fail detect period; gossip = all2all 
 	tickerDetectFail := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
+	// bandwidth thread
 	go countBandwidth()
+	// udp handler thread
 	go listenUDP()
-	// main loop
+	// fail detector thread
 	go selectFailedID(tickerDetectFail)
+	// main loop
 	for {
-		//helper.PrintMembershipListAsTable(MembershipList)
-		// can go through here ever gossipPeriod
-		//fmt.Println("1")
 		log.Println("waiting for next gossip period")
 		t1 := time.Now()
-		//no wait means our gossip period is too short for gossip process
-		//fmt.Println(t1)
 		<-ticker.C
-		if CurrentProtocol != IsGossip {
-			if IsGossip == true {
-				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
-				CurrentProtocol = true
-				ProtocolChangeACK <- "Gossip"
-			} else {
-				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
-				CurrentProtocol = false
-				ProtocolChangeACK <- "All2All"
-			}
-
-		}
+		// here a new gossip period starts
+		// step0: check if gossip period is long enough to run the code in each gossip period? 
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		log.Println("wait time:", diff)
@@ -458,11 +447,34 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			log.Fatalln("gossip period time too short")
 		}
 		gossipCounter = gossipCounter + 1
-		log.Println("----------------------------------------------")
 		log.Println("Start gossip period", gossipCounter)
-		// in every gossipPeriod, the first thing is to read commands from CLI
+		// step 1: change to other protocol if needed
+
+		if CurrentProtocol != IsGossip {
+			if IsGossip == true {
+				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
+				CurrentProtocol = true
+				select {
+					// for simple cli this is a channel with no receiver
+				case ProtocolChangeACK <- "Gossip":
+					log.Println("Send Gossip")
+				default:
+					log.Println("No message")
+				}
+			} else {
+				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
+				CurrentProtocol = false
+				select {
+				case ProtocolChangeACK <- "All2All":
+					log.Println("Send All2All")
+				default:
+					log.Println("No message")
+				}
+			}
+		}
+		log.Println("step1")
+		// step2: read commands
 		cmds := make([]int, 0)
-		// read commands
 	forLoop:
 		for {
 			select {
@@ -480,23 +492,20 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 			}
 		}
 		log.Println("Doing Gossip work with commands", cmds)
-		//we should process cmds in sequence, and there are some rules
-		//for example, if join and leave are in the same cmd sequence, we should only execute leave
+
 		//cmds = parseCmds(cmds)
-		//fmt.Println(cmds)
-		log.Println("Parsed commands ", cmds)
-		//execute commands
+		//log.Println("Parsed commands ", cmds)
+
+		log.Println("step2")
+		// step3: execute commands 
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
-				//fmt.Println(cmd)
 				switch cmd {
-				//if change gossip to all2all or all2all to gossip
-				//change b, add command to membership list
 				case CHANGE_TO_ALL2ALL:
-					// B = len(MembershipList)
+					// actually we just broadcast it
 					piggybackCommand(CHANGE_TO_ALL2ALL)
 				case CHANGE_TO_GOSSIP:
-					// B = preservedB
+					// actually we just broadcast it
 					piggybackCommand(CHANGE_TO_GOSSIP)
 				case JOIN_GROUP:
 					joinGroup()
@@ -511,31 +520,15 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 				}
 			}
 		}
-		// TODO: Gossip logic
-		//merge membershiplist
-		/**
-		jsonString, err := json.Marshal(MembershipList)
-		if err != nil {
-			panic(err)
-		}
-		//fmt.Println(string(jsonString))
-		**/
+		log.Println("step3")
 
-		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
-		//fmt.Println(t)
 		//if not leave
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
-		//UpdateGUI <- "Ping"
 		MT.Unlock()
+		// actually the name should be multicast
 		broadcastUDP()
-		//update timer
-		//control timers
-		//failure detect
-		//deseminate failure
-		//execute global commands set B
-		//time.Sleep(time.Duration(Tgossip) * time.Millisecond)
 		log.Println("Finish Gossip work")
 	}
 }
