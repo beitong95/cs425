@@ -26,7 +26,7 @@ echo "Current VMNUMBER: "
 env | grep VMNUMBER
 
 echo "Get submodules"
-cd $Home/cs425
+cd $HOME/cs425
 git submodule update --init --recursive
 #name='vm'$a'.test.log'
 #cp src/finder/machine.test.log $name
