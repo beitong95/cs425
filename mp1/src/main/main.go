@@ -34,6 +34,7 @@ var logger = log.New()
 //TODO: add log helper functions in the helper package
 //TODO: add log in UDPServer.go
 //TODO: Debug bandwidth
+//TODO: test MP0 and MP1 together
 
 func init_logger(isAppendLog bool, logLevel string) {
 	/** some possible settings
