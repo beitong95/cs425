@@ -1,11 +1,27 @@
 package structs
 
-import "sync"
+import (
+	"sync"
+	log "github.com/sirupsen/logrus"
+)
 
 //Membership struct 
 type Membership struct {
 	HeartBeat  int64 `json:"heartbeat"`
 	FailedTime int64 `json:"failedtime"`
+}
+
+var IPtoVM map[string] int = map[string]int{
+	    "172.22.156.12": 1,
+        "172.22.158.12": 2,
+        "172.22.94.12": 3,
+        "172.22.156.13": 4,
+        "172.22.158.13": 5,
+        "172.22.94.13": 6,
+        "172.22.156.14": 7,
+        "172.22.158.14": 8,
+        "172.22.94.14": 9,
+        "172.22.156.15": 10,
 }
 
 const (
@@ -21,12 +37,16 @@ const (
 	RECEIVE_CHANGE_TO_ALL2ALL = 9
 	RECEIVE_CHANGE_TO_GOSSIP  = 10
 )
+// logger 
+var Logger = log.New()
+
 // variables for membershiplist
 var MembershipList = make(map[string]Membership)
 var MyIP string = ""
 var MyPort string = ""
 var MyID string = ""
 var MyOldID string = ""
+var MyVM string = ""
 
 // gossip parameter Unit:ms
 var Tgossip int

@@ -10,6 +10,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"helper"
 )
 
 //var isJoin bool = false
@@ -42,6 +43,7 @@ func selectFailedID(ticker *time.Ticker) {
 				_, ok := LeaveNodes[id]
 				if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
 					//fmt.Println(id + "might failed")
+					helper.LogFail(Logger, MyVM, id, MembershipList[id].HeartBeat, diff)
 					MembershipList[id] = Membership{-1, diff}
 					FailedNodes[id] = 1
 					go deleteIDAfterTcleanup(id)

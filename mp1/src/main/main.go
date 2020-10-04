@@ -16,27 +16,26 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var logger = log.New()
 /**
-	logger.Fatal: Program cannot execute anymore
-	logger.Error: Program can continue but the final result might be wrong
-	logger.Warning: Node Fail, Node Leave, Node Join
+	Logger.Fatal: Program cannot execute anymore
+	Logger.Error: Program can continue but the final result might be wrong
+	Logger.Warning: Node Fail, Node Leave, Node Join
 	Warning Fields:
 		Reason: Fail, Join, Leave, ChangeProtocol 
 		Detail:
-			Fail: xxID fail; Detect Time;
-			Leave: xxID leave;
-			Join: xxID join;
-			ChangeProtocol: change to xx protocol;
-	logger.Info: Basic info logger, like MyID, Introducer IP. We can also log when a go routine starts
-	logger.Debug: Detailed info like the value of a counter or something
+			Fail: check helper/logHelper.go
+			Leave: check helper/logHelper.go
+			Join: check helper/logHelper.go
+			ChangeProtocol: check helper/logHelper.go
+	Logger.Info: Basic info Logger, like MyID, Introducer IP. We can also log when a go routine starts
+	Logger.Debug: Detailed info like the value of a counter or something
 **/
 //TODO: add log helper functions in the helper package
 //TODO: add log in UDPServer.go
 //TODO: Debug bandwidth
 //TODO: test MP0 and MP1 together
 
-func init_logger(isAppendLog bool, logLevel string) {
+func init_Logger(isAppendLog bool, logLevel string) {
 	/** some possible settings
 	// Log as JSON instead of the default ASCII formatter.
 	log.SetFormatter(&log.JSONFormatter{})
@@ -48,19 +47,20 @@ func init_logger(isAppendLog bool, logLevel string) {
 	**/
 	switch logLevel {
 	case "info":
-		logger.SetLevel(log.InfoLevel)
+		Logger.SetLevel(log.InfoLevel)
 	case "warning":
 		fmt.Println("warning")
-		logger.SetLevel(log.WarnLevel)
+		Logger.SetLevel(log.WarnLevel)
 	//Dont print log; redirect the log to /dev/null
 	case "mute":
-		logger.Out = ioutil.Discard
+		Logger.Out = ioutil.Discard
 		return
 	default:
-		logger.SetLevel(log.DebugLevel)
+		Logger.SetLevel(log.DebugLevel)
 	} 
 	homeDir := os.Getenv("HOME")
 	vmNumber := os.Getenv("VMNUMBER")
+	MyVM = vmNumber
 	logFileDir := homeDir + "/cs425/mp1/log/"
 	if _, err := os.Stat(logFileDir); os.IsNotExist(err) {
 		os.Mkdir(logFileDir, 0755)
@@ -69,18 +69,18 @@ func init_logger(isAppendLog bool, logLevel string) {
 	if isAppendLog == true {
 		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 		if err != nil {
-			logger.Info("Failed to log to file " + logFileName + ", using default stderr")
+			Logger.Info("Failed to log to file " + logFileName + ", using default stderr")
 		} else {
-			logger.Out = file
+			Logger.Out = file
 		}
 	} else {
 		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_RDWR, 0666)
 		if err != nil {
-			logger.Info("Failed to log to file " + logFileName + ", using default stderr")
+			Logger.Info("Failed to log to file " + logFileName + ", using default stderr")
 		} else {
 			file.Truncate(0)
 			file.Seek(0,0)
-			logger.Out = file
+			Logger.Out = file
 		}
 	}
 }
@@ -104,10 +104,10 @@ func main() {
 	//Parse and save flags
 	flag.Parse()
 
-	//step1 setup logger
+	//step1 setup Logger
 	isAppendLog := *isAppendLogPtr
 	logLevel := *logLevelPtr
-	init_logger(isAppendLog, logLevel)
+	init_Logger(isAppendLog, logLevel)
 
 	//step2 setup all flags and parameters
 	Ttimeout = Tfail - Tgossip
@@ -128,14 +128,14 @@ func main() {
 	var err error
 	MyIP, err = helper.GetLocalIP()
 	if err != nil {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"helper",
 			"function":	"helper.GetLocalIP",
 			"error": err,
 			"data": "",
 		}).Fatal("Cannot get local IP address.")
 	} else {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"helper",
 			"function":	"helper.GetLocalIP",
 			"res": MyIP,
@@ -143,14 +143,14 @@ func main() {
 	}
 	introIP, err := config.IntroducerIPAddresses()
 	if err != nil {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"config",
 			"function":	"config.IntroducerIPAddresses",
 			"error": err,
 			"data": "",
 		}).Fatal("Cannot get Introducer IP address.")
 	} else {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"config",
 			"function":	"config.IntroducerIPAddresses",
 			"res": introIP,
@@ -158,14 +158,14 @@ func main() {
 	}
 	introPort, err := config.Port()
 	if err != nil {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"config",
 			"function":	"config.Port",
 			"error": err,
 			"data": "",
 		}).Fatal("Cannot get Introducer Port.")
 	} else {
-		logger.WithFields(log.Fields{
+		Logger.WithFields(log.Fields{
 			"package":	"config",
 			"function":	"config.Port",
 			"res": introPort,
@@ -179,7 +179,7 @@ func main() {
 	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
-	logger.WithFields(log.Fields{
+	Logger.WithFields(log.Fields{
 		"ID": MyID,
 		"HeartBeat": heartBeat,
 	}).Info("Create Local Membership Record.")
@@ -191,21 +191,21 @@ func main() {
 	//CLI <-> C1 <-> UDPServer
 	wg.Add(1)
 	go service.UDPServer(IsAll2All, isIntroducer, &wg, C1)
-	logger.Info("Start UDPServer go routine")
+	Logger.Info("Start UDPServer go routine")
 
 	//Start CLI
 	if isMuteCli == false {
 		if isSimpleCli == false {
 			wg.Add(1)
 			go cli.Cli(&wg, C1)
-			logger.Info("Start Cli go routine")
+			Logger.Info("Start Cli go routine")
 		} else {
 			wg.Add(1)
 			go cli.CliSimple(&wg, C1)
-			logger.Info("Start CliSimple go routine")
+			Logger.Info("Start CliSimple go routine")
 		}
 	}
 	//Wait for UDPServer and CliSimple to return
-	logger.Info("Main thread waits for other threads return")
+	Logger.Info("Main thread waits for other threads return")
 	wg.Wait()
 }
