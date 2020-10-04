@@ -66,9 +66,8 @@ var BroadcastAll = make(map[string]int64)
 var FirstDetect = make(map[string]int64)
 
 // 0 all2all 1 gossip
-var CurrentProtocol bool
-var IsAll2All bool
-var IsGossip bool
+var CurrentProtocol string
+var NextProtocol string
 var IsJoin bool = false
 
 // statistics

@@ -113,6 +113,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		if existedMembership, ok := MembershipList[key]; ok {
 			if receivedMembership.HeartBeat == -2 {
 				if _, ok := LeaveNodes[key]; !ok {
+					helper.LogLeaver(Logger, MyVM, key)
 					MembershipList[key] = receivedMembership
 					LeaveNodes[key] = 1
 					//build one row message
@@ -147,6 +148,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 			} else if _, ok := LeaveNodes[key]; ok {
 				// refuse accept leaved node
 			} else {
+				helper.LogJoiner(Logger, MyVM, key)
 				MembershipList[key] = receivedMembership
 			}
 		}
@@ -252,7 +254,7 @@ func broadcastUDP() {
 	if !IsJoin {
 		return
 	}
-	if IsAll2All {
+	if CurrentProtocol == "All2All" {
 		selfNode := make(map[string]Membership)
 		MT.Lock()
 		selfNode[MyID] = MembershipList[MyID]
@@ -269,7 +271,7 @@ func broadcastUDP() {
 			}
 		}
 		MT.Unlock()
-	} else if IsGossip {
+	} else if CurrentProtocol == "Gossip" {
 		MT.Lock()
 		jsonString, err := json.Marshal(MembershipList)
 		MT.Unlock()
@@ -314,12 +316,14 @@ func joinGroup() {
 	//fmt.Println(string(introIP[0]) + ":" + introPort)
 	id := string(introIP[0]) + ":" + introPort
 	sendMsgToID(id, msg)
+	helper.LogSelfJoin(Logger, MyVM, MyID)
 	//fmt.Println("join group")
 	IsJoin = true
 }
 func leaveGroup() {
 	MT.Lock()
 	IsJoin = false
+	helper.LogSelfLeave(Logger, MyVM, MyID)
 	MembershipList[MyID] = Membership{-2, 0}
 	LeaveNodes[MyID] = 1
 	jsonString, err := json.Marshal(MembershipList)
@@ -347,11 +351,9 @@ func leaveGroup() {
 
 func piggybackCommand(cmd int) {
 	if cmd == CHANGE_TO_ALL2ALL {
-		IsAll2All = true
-		IsGossip = false
+		NextProtocol = "All2All"
 	} else if cmd == CHANGE_TO_GOSSIP {
-		IsGossip = true
-		IsAll2All = false
+		NextProtocol = "Gossip"
 	}
 	msg := "Command:" + string(cmd)
 	MT.Lock()
@@ -419,7 +421,7 @@ func parseCmds(cmds []int) []int {
 **/
 
 //UDPServer is the udp server thread function
-func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
+func UDPServer(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
 	//ticker for gossip and all2all period; ClogN * gossip = all2all 
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
@@ -451,25 +453,24 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		//log.Println("Start gossip period", gossipCounter)
 		// step 1: change to other protocol if needed
 
-		if CurrentProtocol != IsGossip {
-			if IsGossip == true {
+		if CurrentProtocol != NextProtocol{
+			helper.LogChangeProtocol(Logger, MyVM, MyID, CurrentProtocol, NextProtocol)
+			if NextProtocol == "Gossip" {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
-				CurrentProtocol = true
+				CurrentProtocol = "Gossip"
 				select {
 					// for simple cli this is a channel with no receiver
 				case ProtocolChangeACK <- "Gossip":
-					//log.Println("Send Gossip")
+					Logger.Debug("Send Gossip to CLI")
 				default:
-					//log.Println("No message")
 				}
 			} else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
-				CurrentProtocol = false
+				CurrentProtocol = "All2All"
 				select {
 				case ProtocolChangeACK <- "All2All":
-					//log.Println("Send All2All")
+					Logger.Debug("Send All2All to CLI")
 				default:
-					//log.Println("No message")
 				}
 			}
 		}
@@ -513,11 +514,11 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 				case LEAVE_GROUP:
 					leaveGroup()
 				case RECEIVE_CHANGE_TO_ALL2ALL:
-					IsAll2All = true
-					IsGossip = false
+					NextProtocol = "All2All"
+					helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
 				case RECEIVE_CHANGE_TO_GOSSIP:
-					IsAll2All = false
-					IsGossip = true
+					NextProtocol = "Gossip"
+					helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
 				}
 			}
 		}

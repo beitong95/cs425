@@ -30,7 +30,6 @@ import (
 	Logger.Info: Basic info Logger, like MyID, Introducer IP. We can also log when a go routine starts
 	Logger.Debug: Detailed info like the value of a counter or something
 **/
-//TODO: add log helper functions in the helper package
 //TODO: add log in UDPServer.go
 //TODO: Debug bandwidth
 //TODO: test MP0 and MP1 together
@@ -88,8 +87,6 @@ func init_Logger(isAppendLog bool, logLevel string) {
 func main() {
 	//Define Flags
 	isStartWithAll2AllPtr := flag.Bool("all2all", false, "start with all 2 all at the beginning")
-	//Currently we dont use isIntroducer Flag
-	isIntroducerPtr := flag.Bool("introducer", false, "start as an introducer")
 	isMuteCliPtr := flag.Bool("muteCli", false, "mute the command line interaction")
 	isSimpleCliPtr := flag.Bool("simpleCli", false, "use simple cli")
 	isAppendLogPtr := flag.Bool("append", false, "append log rather than start a new log")
@@ -114,10 +111,14 @@ func main() {
 	//Ceil C*logN*Tgossip ;C = 1
 	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
 	MyPort = *myPortPtr
-	IsAll2All = *isStartWithAll2AllPtr
-	IsGossip = !(IsAll2All)
-	CurrentProtocol = IsAll2All
-	isIntroducer := *isIntroducerPtr
+	isAll2All := *isStartWithAll2AllPtr
+	if isAll2All == true {
+		CurrentProtocol = "All2All"
+		NextProtocol = "All2All"
+	} else {
+		CurrentProtocol = "Gossip"
+		NextProtocol = "Gossip"
+	}
 	isMuteCli := *isMuteCliPtr
 	isSimpleCli := *isSimpleCliPtr
 	//Setup config file env variable
@@ -190,7 +191,7 @@ func main() {
 	//C1 is the channel for CLI command 
 	//CLI <-> C1 <-> UDPServer
 	wg.Add(1)
-	go service.UDPServer(IsAll2All, isIntroducer, &wg, C1)
+	go service.UDPServer(&wg, C1)
 	Logger.Info("Start UDPServer go routine")
 
 	//Start CLI
