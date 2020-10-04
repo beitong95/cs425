@@ -5,3 +5,4 @@ for vm1
 3. run bash allVM.sh pullRepo.sh
 4. run bash allVM.sh setUpMp0.sh
 5. run bash allVM.sh runMp0.sh
+TODO: explain scripts
