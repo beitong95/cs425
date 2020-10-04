@@ -48,10 +48,5 @@ source bootstrapMP1.sh
 ```
 
 ## if you find the dependency is not complete
-```bash
-(1) Your git version is low. You need to manully clone submodules
-    cd /home/beitong2/cs425/scripts
-    source bootstrapLocal.sh
-```
- 
+please contact beitong2@illinois.edu
 
