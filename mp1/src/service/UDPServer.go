@@ -352,13 +352,17 @@ func leaveGroup() {
 func piggybackCommand(cmd int) {
 	if cmd == CHANGE_TO_ALL2ALL {
 		NextProtocol = "All2All"
+		helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
 	} else if cmd == CHANGE_TO_GOSSIP {
 		NextProtocol = "Gossip"
+		helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
 	}
 	msg := "Command:" + string(cmd)
 	MT.Lock()
 	for id := range MembershipList {
-		sendMsgToID(id, msg)
+		if id != MyID {
+			sendMsgToID(id, msg)
+		}
 	}
 	MT.Unlock()
 
