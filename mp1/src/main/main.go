@@ -60,7 +60,11 @@ func init_logger(isAppendLog bool, logLevel string) {
 	} 
 	homeDir := os.Getenv("HOME")
 	vmNumber := os.Getenv("VMNUMBER")
-	logFileName := homeDir + "/cs425/mp1/log/" + vmNumber + "_MP1.log"
+	logFileDir := homeDir + "/cs425/mp1/log/"
+	if _, err := os.Stat(logFileDir); os.IsNotExist(err) {
+		os.Mkdir(logFileDir, 0755)
+	}
+	logFileName := logFileDir + vmNumber + "_MP1.log"
 	if isAppendLog == true {
 		file, err := os.OpenFile(logFileName, os.O_CREATE|os.O_RDWR|os.O_APPEND, 0666)
 		if err != nil {
