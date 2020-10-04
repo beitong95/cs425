@@ -227,7 +227,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	go ui.Run()
 	tickerMembershipList := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	go updateMembershipListInGUI(membershipBoxLabel, ui, tickerMembershipList)
-    	go updateProtocolChangeACK(history, ui)
+    go updateProtocolChangeACK(history, ui)
 	ticker := time.NewTicker(time.Duration(1000) * time.Millisecond)
 	go updateBandwidth(bandwidthBoxLabel, ui, ticker)
 	<-done

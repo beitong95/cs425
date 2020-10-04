@@ -16,42 +16,42 @@ import (
 	"time"
 )
 
-// my membership list
-
 func main() {
-	// flags
+	//Define Flags
 	isStartWithAll2AllPtr := flag.Bool("all2all", false, "start with all 2 all at the beginning")
-	// actually we dont need that, we config introducer in config.json
+	//Currently we dont use isIntroducer Flag
 	isIntroducerPtr := flag.Bool("introducer", false, "start as an introducer")
 	isMuteCliPtr := flag.Bool("mute", false, "mute the command line interaction")
+	isSimpleCliPtr := flag.Bool("simpleCli", false, "use simple cli")
 	isVerbosePtr := flag.Bool("v", false, "print log")
 	configFilePtr := flag.String("config", "../../config.json", "Location of Config File")
 	myPortPtr := flag.String("port", "1234", "Port used for Debug on one machine")
-	// parameters
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
 	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time")
-	flag.IntVar(&LossRate, "loss", 1, "message loss rate")
+	flag.IntVar(&LossRate, "loss", 1, "message loss rate 1-100")
 
-	// parse and save flags
+	//Parse and save flags
 	flag.Parse()
 	Ttimeout = Tfail - Tgossip
+	//Ceil C*logN*Tgossip C = 1
 	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
-	//fmt.Println(Tall2all)
 	MyPort = *myPortPtr
-	//fmt.Printf("Using Port: %s\n", MyPort)
 	IsAll2All = *isStartWithAll2AllPtr
 	IsGossip = !(IsAll2All)
 	CurrentProtocol = IsAll2All
 	isIntroducer := *isIntroducerPtr
 	isMuteCli := *isMuteCliPtr
+	isSimpleCli := *isSimpleCliPtr
 	isVerbose := *isVerbosePtr
+	//Dont print log; redirect the log to /dev/null
 	if !isVerbose {
 		log.SetOutput(ioutil.Discard)
 	}
+	//Setup config file env variable
 	os.Setenv("CONFIG", *configFilePtr)
 
-	//create the first memeber
+	//Create the first memeber in the membership list
 	//ID: myIP:myPort:currentTime(Unix s)
 	var err error
 	MyIP, err = helper.GetLocalIP()
@@ -66,42 +66,33 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	// fmt.Println("myip: ", MyIP, "introip: ", introIP[0], "myport: ", MyPort, "introport: ", introPort)
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsJoin = true
-		// fmt.Println("IsJoin: ", IsJoin)
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
 	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
-	// MembershipList["test"] = Membership{111, 111} //test table
 
-	// test
-	// fmt.Println("map based membershiplist", MembershipList)
-	/**
-	i add the lock inside the print function
-	service.MT.Lock()
-	helper.PrintMembershipListAsTable(MembershipList)
-	service.MT.Unlock()
-	**/
-	// actually the server and cli will forever loop until receiving a kill command
 	var wg sync.WaitGroup
 
-	//start membership udp server
-	//10 is enough for the channel buffer capacity
-
+	//Start UDPServer thread
+	//C1 is the channel for CLI command 
+	//CLI <-> C1 <-> UDPServer
 	wg.Add(1)
 	go service.UDPServer(IsAll2All, isIntroducer, &wg, C1)
 
+	//Start CLI
 	if isMuteCli == false {
-		wg.Add(1)
-		go cli.Cli(&wg, C1)
-	} else {
-		wg.Add(1)
-		go cli.CliSimple(&wg, C1)
+		if isSimpleCli == false {
+			wg.Add(1)
+			go cli.Cli(&wg, C1)
+		} else {
+			wg.Add(1)
+			go cli.CliSimple(&wg, C1)
+		}
 	}
-
+	//Wait for UDPServer and CliSimple to return
 	wg.Wait()
 }
