@@ -1,7 +1,7 @@
 ## Structure
 ```
 .
-├── bootstrapMP1.sh (bootstrap script: change go path to mp1)
+├── bootstrapMP1.sh (bootstrap script: change go path to mp1; add VM number to environment variables; setup alias; get submodules)
 ├── config.json (config file)
 ├── instruction (cs425 mp1 pdf)
 ├── README.md
