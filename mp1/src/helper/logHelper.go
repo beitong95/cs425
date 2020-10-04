@@ -4,6 +4,7 @@ import (
 	log "github.com/sirupsen/logrus"
 	. "structs"
 	"strings"
+	"fmt"
 )
 
 func convertIDtoVM(ID string) string{
