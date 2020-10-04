@@ -22,3 +22,6 @@
 [submodule "src/golang.org/x/text"]
 	path = src/golang.org/x/text
 	url = https://github.com/golang/text.git
+[submodule "src/github.com/sirupsen/logrus"]
+	path = src/github.com/sirupsen/logrus
+	url = https://github.com/sirupsen/logrus.git

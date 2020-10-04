@@ -4,7 +4,6 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
-	"log"
 	"math/rand"
 	"net"
 	"strings"
@@ -435,19 +434,19 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 	go selectFailedID(tickerDetectFail)
 	// main loop
 	for {
-		log.Println("waiting for next gossip period")
+		//log.Println("waiting for next gossip period")
 		t1 := time.Now()
 		<-ticker.C
 		// here a new gossip period starts
 		// step0: check if gossip period is long enough to run the code in each gossip period? 
 		t2 := time.Now()
 		diff := t2.Sub(t1)
-		log.Println("wait time:", diff)
+		//log.Println("wait time:", diff)
 		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
-			log.Fatalln("gossip period time too short")
+			//log.Fatalln("gossip period time too short")
 		}
 		gossipCounter = gossipCounter + 1
-		log.Println("Start gossip period", gossipCounter)
+		//log.Println("Start gossip period", gossipCounter)
 		// step 1: change to other protocol if needed
 
 		if CurrentProtocol != IsGossip {
@@ -457,46 +456,46 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 				select {
 					// for simple cli this is a channel with no receiver
 				case ProtocolChangeACK <- "Gossip":
-					log.Println("Send Gossip")
+					//log.Println("Send Gossip")
 				default:
-					log.Println("No message")
+					//log.Println("No message")
 				}
 			} else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
 				CurrentProtocol = false
 				select {
 				case ProtocolChangeACK <- "All2All":
-					log.Println("Send All2All")
+					//log.Println("Send All2All")
 				default:
-					log.Println("No message")
+					//log.Println("No message")
 				}
 			}
 		}
-		log.Println("step1")
+		//log.Println("step1")
 		// step2: read commands
 		cmds := make([]int, 0)
 	forLoop:
 		for {
 			select {
 			case cmd = <-c:
-				log.Printf("UDPServer receives cmd from CLI in %d gossip period: %d\n", gossipCounter, cmd)
+				//log.Printf("UDPServer receives cmd from CLI in %d gossip period: %d\n", gossipCounter, cmd)
 				cmds = append(cmds, cmd)
 			default:
 				if len(cmds) == 0 {
-					log.Println("No command from CLI. Do nothing")
+					//log.Println("No command from CLI. Do nothing")
 				} else {
-					log.Println("No more commands.")
-					log.Println("Commands received:", cmds)
+					//log.Println("No more commands.")
+					//log.Println("Commands received:", cmds)
 				}
 				break forLoop
 			}
 		}
-		log.Println("Doing Gossip work with commands", cmds)
+		//log.Println("Doing Gossip work with commands", cmds)
 
 		//cmds = parseCmds(cmds)
 		//log.Println("Parsed commands ", cmds)
 
-		log.Println("step2")
+		//log.Println("step2")
 		// step3: execute commands 
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
@@ -520,7 +519,7 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 				}
 			}
 		}
-		log.Println("step3")
+		//log.Println("step3")
 
 		t := time.Now().UnixNano() / 1000000
 		//if not leave
@@ -529,6 +528,6 @@ func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int
 		MT.Unlock()
 		// actually the name should be multicast
 		broadcastUDP()
-		log.Println("Finish Gossip work")
+		//log.Println("Finish Gossip work")
 	}
 }
