@@ -7,7 +7,7 @@ import (
 )
 
 func convertIDtoVM(ID string) int {
-	ip := strings.Split(ID, "*")[0]
+	ip := strings.Split(ID, ":")[0]
 	vmNumber := IPtoVM[ip]
 	return vmNumber
 }
