@@ -6,10 +6,10 @@ import (
 	"strings"
 )
 
-func convertIDtoVM(ID string) int {
+func convertIDtoVM(ID string) string{
 	ip := strings.Split(ID, ":")[0]
 	vmNumber := IPtoVM[ip]
-	return vmNumber
+	return "vm" + fmt.Sprintf("%02d",vmNumber)
 }
 
 // how to grep
