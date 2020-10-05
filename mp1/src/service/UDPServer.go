@@ -158,7 +158,7 @@ func handleConnection(conn net.UDPConn) {
 	Bandwidth += n
 	MT2.Unlock()
 	if err != nil {
-		fmt.Println(err)
+		Logger.Fatal(err)
 	}
 	msgString := string(buf)
 	if msgString[:8] == "Command:" {
@@ -172,7 +172,7 @@ func handleConnection(conn net.UDPConn) {
 		recievedMemberShipList := make(map[string]Membership)
 		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
 		if err != nil {
-			panic(err)
+			Logger.Fatal(err)
 		}
 		if len(recievedMemberShipList) == 1 {
 			// this sender must be a new memeber
@@ -182,7 +182,7 @@ func handleConnection(conn net.UDPConn) {
 			jsonString, err := json.Marshal(MembershipList)
 			MT.Unlock()
 			if err != nil {
-				panic(err)
+				Logger.Fatal(err)
 			}
 			msg := string(jsonString)
 			for key, _ := range recievedMemberShipList {
@@ -242,7 +242,10 @@ func broadcastUDP() {
 		msg := string(jsonString)
 		MT.Lock()
 		for id, _ := range MembershipList {
-			if id != MyID {
+			_, okLeave := LeaveNodes[id]
+			_, okFail := FailedNodes[id]
+			// dont send to myself, leave nodes and fail nodes
+			if id != MyID && !okLeave && !okFail {
 				sendMsgToID(id, msg)
 			}
 		}
@@ -256,6 +259,7 @@ func broadcastUDP() {
 		}
 		msg := string(jsonString)
 		idList := selectGossipID()
+		// dont send to myself, leave nodes and fail nodes
 		for _, id := range idList {
 			sendMsgToID(id, msg)
 		}
