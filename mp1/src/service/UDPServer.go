@@ -120,7 +120,10 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 					}
 					msg := string(jsonString)
 					for id := range MembershipList {
-						if id != MyID && LeaveNodes[id] != 1 && FailedNodes[id] != 1 {
+						_, okLeave := LeaveNodes[id]
+						_, okFail := FailedNodes[id]
+						// dont send to myself, leave nodes and fail nodes
+						if id != MyID && !okLeave && !okFail {
 							sendMsgToID(id, msg)
 						}
 					}
@@ -246,6 +249,7 @@ func broadcastUDP() {
 			_, okFail := FailedNodes[id]
 			// dont send to myself, leave nodes and fail nodes
 			if id != MyID && !okLeave && !okFail {
+				Logger.Info("All2All: " + helper.ConvertIDtoVM(id))
 				sendMsgToID(id, msg)
 			}
 		}
@@ -261,6 +265,7 @@ func broadcastUDP() {
 		idList := selectGossipID()
 		// dont send to myself, leave nodes and fail nodes
 		for _, id := range idList {
+			Logger.Info("Gossip: " + helper.ConvertIDtoVM(id))
 			sendMsgToID(id, msg)
 		}
 	}
@@ -310,7 +315,8 @@ func leaveGroup() {
 	msg := string(jsonString)
 	for id := range MembershipList {
 		_, okFail := FailedNodes[id]
-		if id != MyID && !okFail {
+		_, okLeave := LeaveNodes[id]
+		if id != MyID && !okFail && !okLeave{
 			sendMsgToID(id, msg)
 		}
 	}
@@ -337,7 +343,10 @@ func piggybackCommand(cmd int) {
 	msg := "Command:" + string(cmd)
 	MT.Lock()
 	for id := range MembershipList {
-		if id != MyID {
+		_, okLeave := LeaveNodes[id]
+		_, okFail := FailedNodes[id]
+		// dont send to myself, leave nodes and fail nodes
+		if id != MyID && !okLeave && !okFail {
 			sendMsgToID(id, msg)
 		}
 	}

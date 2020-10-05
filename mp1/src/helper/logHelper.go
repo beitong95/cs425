@@ -7,7 +7,7 @@ import (
 	"fmt"
 )
 
-func convertIDtoVM(ID string) string{
+func ConvertIDtoVM(ID string) string{
 	ip := strings.Split(ID, ":")[0]
 	vmNumber := IPtoVM[ip]
 	return "vm" + fmt.Sprintf("%02d",vmNumber)
@@ -25,7 +25,7 @@ func LogFail(logger *log.Logger, VM string, ID string, heartbeat int64, detectTi
 		"reason":	"fail",
 		"current_vm": VM,
 		"fail_id": ID,
-		"fail_vm": convertIDtoVM(ID),
+		"fail_vm": ConvertIDtoVM(ID),
 		"last_heartbeat": heartbeat,
 		"detect_time": detectTime,
 	}).Warn("Detect Node Fail")
@@ -36,7 +36,7 @@ func LogLeaver(logger *log.Logger, VM string, ID string) {
 		"reason":	"leave",
 		"current_vm": VM,
 		"leave_id": ID,
-		"leave_vm": convertIDtoVM(ID),
+		"leave_vm": ConvertIDtoVM(ID),
 	}).Warn("Detect Node Leave")
 }
 
@@ -53,7 +53,7 @@ func LogJoiner(logger *log.Logger, VM string, ID string) {
 		"reason":	"join",
 		"current_vm": VM,
 		"join_id": ID,
-		"join_vm": convertIDtoVM(ID),
+		"join_vm": ConvertIDtoVM(ID),
 	}).Warn("Detect Node Join")
 }
 
