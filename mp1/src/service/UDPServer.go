@@ -472,9 +472,9 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 				cmds = append(cmds, cmd)
 			default:
 				if len(cmds) == 0 {
-					Logger.Info("No command from CLI. Do nothing")
+					Logger.Debug("No command from CLI. Do nothing")
 				} else {
-					Logger.Info("No more commands.")
+					Logger.Debug("No more commands.")
 					Logger.Info("Commands received:", cmds)
 				}
 				break forLoop
