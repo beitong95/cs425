@@ -31,7 +31,7 @@ import (
 	Logger.Debug: Detailed info like the value of a counter or something
 **/
 //TODO: add more log in UDPServer.go
-//TODO: Debug bandwidth
+//TODO: Debug bandwidth; current bandwidth is just the payload size
 //TODO: test MP0 and MP1 together
 
 func init_Logger(isAppendLog bool, logLevel string) {
