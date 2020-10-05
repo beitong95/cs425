@@ -11,7 +11,7 @@ import (
 	"fmt"
 )
 
-func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI, ticker2 *time.Ticker) {
+func updateMembershipListInGUI(membershipBoxLabel *tui.Label, membershipBox *tui.Box, ui tui.UI, ticker2 *time.Ticker) {
 	for {
 		<-ticker2.C
 		s, err := helper.PrintMembershipListAsTableInGUI(MembershipList)
@@ -20,6 +20,7 @@ func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI, ticker2
 		}
 		ui.Update(func() {
 			membershipBoxLabel.SetText(s)
+			membershipBox.SetTitle("MembershipList on " + MyID)
 		})
 	}
 }
@@ -226,7 +227,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	})
 	go ui.Run()
 	tickerMembershipList := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
-	go updateMembershipListInGUI(membershipBoxLabel, ui, tickerMembershipList)
+	go updateMembershipListInGUI(membershipBoxLabel, membershipBox, ui, tickerMembershipList)
     go updateProtocolChangeACK(history, ui)
 	ticker := time.NewTicker(time.Duration(1000) * time.Millisecond)
 	go updateBandwidth(bandwidthBoxLabel, ui, ticker)
