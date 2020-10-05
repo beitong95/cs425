@@ -67,7 +67,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
 	done := make(chan string)
 	var ui tui.UI
-	commands := []string{"help", "all2all", "gossip", "leave", "join", "id", "list", "kill"}
+	commands := []string{"help", "all2all", "gossip", "leave", "join", "id", "list", "para","kill"}
 
 	//set up gui
 	// set shell history
