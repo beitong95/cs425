@@ -250,7 +250,7 @@ func broadcastUDP() {
 			_, okFail := FailedNodes[id]
 			// dont send to myself, leave nodes and fail nodes
 			if id != MyID && !okLeave && !okFail {
-				Logger.Info("All2All: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
+				//Logger.Info("All2All: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
 				sendMsgToID(id, msg)
 			}
 		}
@@ -266,7 +266,7 @@ func broadcastUDP() {
 		idList := selectGossipID()
 		// dont send to myself, leave nodes and fail nodes
 		for _, id := range idList {
-			Logger.Info("Gossip: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
+			//Logger.Info("Gossip: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
 			sendMsgToID(id, msg)
 		}
 	}
