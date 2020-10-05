@@ -30,7 +30,7 @@ import (
 	Logger.Info: Basic info Logger, like MyID, Introducer IP. We can also log when a go routine starts
 	Logger.Debug: Detailed info like the value of a counter or something
 **/
-//TODO: add log in UDPServer.go
+//TODO: add more log in UDPServer.go
 //TODO: Debug bandwidth
 //TODO: test MP0 and MP1 together
 
@@ -96,7 +96,7 @@ func main() {
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
 	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time; Remove the record from the membershiplist")
-	flag.IntVar(&LossRate, "loss", 1, "message loss rate 1-100")
+	flag.IntVar(&LossRate, "loss", 0, "message loss rate 1-100")
 
 	//Parse and save flags
 	flag.Parse()

@@ -13,19 +13,17 @@ import (
 	"helper"
 )
 
-//var isJoin bool = false
-//Gossip parameters
-// var B int = 2
-// var preservedB int = 1
+// bandwidth function
 func countBandwidth() {
 	for {
 		time.Sleep(1 * time.Second)
 		MT2.Lock()
-		//		fmt.Println("Current Bandwidth: ", Bandwidth)
 		Bandwidth = 0
 		MT2.Unlock()
 	}
 }
+
+// cleanup function
 func deleteIDAfterTcleanup(id string) {
 	time.Sleep(time.Duration(Tclean) * time.Millisecond)
 	MT.Lock()
@@ -33,6 +31,7 @@ func deleteIDAfterTcleanup(id string) {
 	MT.Unlock()
 }
 
+// fail detector
 func selectFailedID(ticker *time.Ticker) {
 	for {
 		<-ticker.C
@@ -61,7 +60,6 @@ func selectFailedID(ticker *time.Ticker) {
 					} else {
 						FirstDetect[id] = diff
 					}
-					//fmt.Println("timeout: " + fmt.Sprint(diff))
 				}
 			}
 		}
@@ -69,6 +67,8 @@ func selectFailedID(ticker *time.Ticker) {
 	
 	}
 }
+
+// gossip round robin function
 func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
@@ -80,12 +80,10 @@ func selectGossipID() []string {
 			_, okFail := FailedNodes[key]
 
 			if key != MyID && !okLeave && !okFail {
-				//			if key != MyID{
 				Container = append(Container, key)
 			}
 		}
 		MT.Unlock()
-		//fmt.Println(Container)
 		rand.Shuffle(len(Container), func(i, j int) { Container[i], Container[j] = Container[j], Container[i] })
 	}
 	num = len(Container)
@@ -99,15 +97,13 @@ func selectGossipID() []string {
 	return res
 }
 
+// merge membership list after receiving new membership list
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
-	//MT.Lock()
 	for key, _ := range recievedMemberShipList {
 		if key == MyOldID {
 			return
 		}
 	}
-	//MT.Unlock()
-
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
@@ -117,7 +113,6 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 					MembershipList[key] = receivedMembership
 					LeaveNodes[key] = 1
 					//build one row message
-					// possible BUG
 					tempMembershipList := map[string]Membership{key: MembershipList[key]}
 					jsonString, err := json.Marshal(tempMembershipList)
 					if err != nil {
@@ -140,7 +135,6 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 				if !okLeave && !okFail {
 					MembershipList[key] = receivedMembership
 				}
-				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
 		} else {
 			if _, ok := FailedNodes[key]; ok {
@@ -154,36 +148,28 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 		}
 		MT.Unlock()
 	}
-	//UpdateGUI <- "Ping"
-
 }
+
+// handle UDP connection
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
-	//fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
 		fmt.Println(err)
 	}
 	msgString := string(buf)
-	//fmt.Println(msgString)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
-		//		fmt.Println(int(command[0]))
 		C1 <- int(command[0]) + 8
-		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else if msgString[:6] == "Leave:" {
 		deleteID := strings.Split(msgString, ":")[1]
 		deleteIDAfterTcleanup(deleteID)
 	} else {
-		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)
-
-		//fix bug
-
 		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
 		if err != nil {
 			panic(err)
@@ -205,18 +191,16 @@ func handleConnection(conn net.UDPConn) {
 		}
 		mergeMemberShipList(recievedMemberShipList)
 	}
-
 }
+
 func listenUDP() {
 
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
-	//fmt.Println("listen on port:" + MyPort)
 	if err != nil {
 		panic(err)
 		return
 	}
 	conn, err := net.ListenUDP("udp", udpAddr)
-
 	if err != nil {
 		panic(err)
 	}
@@ -227,6 +211,7 @@ func listenUDP() {
 		handleConnection(*conn)
 	}
 }
+
 func sendMsgToID(id string, msg string) {
 	//simulate for loss rate
 	if rand.Intn(100) < LossRate {
@@ -239,18 +224,9 @@ func sendMsgToID(id string, msg string) {
 	}
 	fmt.Fprintf(conn, msg+"\n")
 }
+
+// the name should be multicast UDP
 func broadcastUDP() {
-	//fmt.Println("idList: ", idList, "len: ", len(idList))
-	// for id := range MembershipList {
-	// 	if MyID != id {
-	// 		ip := strings.Split(id, "*")[0]
-	// 		conn, err := net.Dial("udp", ip)
-	// 		if err != nil {
-	// 			fmt.Println(err)
-	// 		}
-	// 		fmt.Fprintf(conn, msg+"\n")
-	// 	}
-	// }
 	if !IsJoin {
 		return
 	}
@@ -282,11 +258,10 @@ func broadcastUDP() {
 		idList := selectGossipID()
 		for _, id := range idList {
 			sendMsgToID(id, msg)
-			//fmt.Println(msg)
 		}
 	}
-
 }
+
 func updateSelfHeartBeat() {
 	for {
 		t := time.Now().UnixNano() / 1000000
@@ -295,8 +270,8 @@ func updateSelfHeartBeat() {
 		MT.Unlock()
 	}
 }
+
 func joinGroup() {
-	//fmt.Println("joining group")
 	MT.Lock()
 	jsonString, err := json.Marshal(MembershipList)
 	MT.Unlock()
@@ -304,7 +279,6 @@ func joinGroup() {
 		panic(err)
 	}
 	msg := string(jsonString)
-	//fmt.Println(msg)
 	introIP, err := config.IntroducerIPAddresses()
 	if err != nil {
 		panic(err)
@@ -313,13 +287,12 @@ func joinGroup() {
 	if err != nil {
 		panic(err)
 	}
-	//fmt.Println(string(introIP[0]) + ":" + introPort)
 	id := string(introIP[0]) + ":" + introPort
 	sendMsgToID(id, msg)
 	helper.LogSelfJoin(Logger, MyVM, MyID)
-	//fmt.Println("join group")
 	IsJoin = true
 }
+
 func leaveGroup() {
 	MT.Lock()
 	IsJoin = false
@@ -442,21 +415,19 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 	go selectFailedID(tickerDetectFail)
 	// main loop
 	for {
-		//log.Println("waiting for next gossip period")
 		t1 := time.Now()
 		<-ticker.C
 		// here a new gossip period starts
+
 		// step0: check if gossip period is long enough to run the code in each gossip period? 
 		t2 := time.Now()
 		diff := t2.Sub(t1)
-		//log.Println("wait time:", diff)
 		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
-			//log.Fatalln("gossip period time too short")
+			Logger.Fatal("gossip period time too short")
 		}
 		gossipCounter = gossipCounter + 1
-		//log.Println("Start gossip period", gossipCounter)
-		// step 1: change to other protocol if needed
 
+		// step 1: change to other protocol if needed
 		if CurrentProtocol != NextProtocol{
 			helper.LogChangeProtocol(Logger, MyVM, MyID, CurrentProtocol, NextProtocol)
 			if NextProtocol == "Gossip" {
@@ -478,31 +449,25 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 				}
 			}
 		}
-		//log.Println("step1")
+
 		// step2: read commands
 		cmds := make([]int, 0)
 	forLoop:
 		for {
 			select {
 			case cmd = <-c:
-				//log.Printf("UDPServer receives cmd from CLI in %d gossip period: %d\n", gossipCounter, cmd)
 				cmds = append(cmds, cmd)
 			default:
 				if len(cmds) == 0 {
-					//log.Println("No command from CLI. Do nothing")
+					Logger.Info("No command from CLI. Do nothing")
 				} else {
-					//log.Println("No more commands.")
-					//log.Println("Commands received:", cmds)
+					Logger.Info("No more commands.")
+					Logger.Info("Commands received:", cmds)
 				}
 				break forLoop
 			}
 		}
-		//log.Println("Doing Gossip work with commands", cmds)
 
-		//cmds = parseCmds(cmds)
-		//log.Println("Parsed commands ", cmds)
-
-		//log.Println("step2")
 		// step3: execute commands 
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
@@ -526,15 +491,12 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 				}
 			}
 		}
-		//log.Println("step3")
 
 		t := time.Now().UnixNano() / 1000000
 		//if not leave
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
 		MT.Unlock()
-		// actually the name should be multicast
 		broadcastUDP()
-		//log.Println("Finish Gossip work")
 	}
 }
