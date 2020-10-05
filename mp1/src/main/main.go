@@ -143,6 +143,7 @@ func main() {
 		}).Info("Local IP address.")
 	}
 	introIP, err := config.IntroducerIPAddresses()
+	IntroIP = introIP[0]
 	if err != nil {
 		Logger.WithFields(log.Fields{
 			"package":	"config",

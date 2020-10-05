@@ -47,6 +47,7 @@ var MyPort string = ""
 var MyID string = ""
 var MyOldID string = ""
 var MyVM string = ""
+var IntroIP string = ""
 
 // gossip parameter Unit:ms
 var Tgossip int

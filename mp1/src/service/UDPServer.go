@@ -177,19 +177,20 @@ func handleConnection(conn net.UDPConn) {
 		if err != nil {
 			Logger.Fatal(err)
 		}
-		if len(recievedMemberShipList) == 1 {
-			// this sender must be a new memeber
-			// because he/she sends it to me
-			// then i must be the introducer
-			MT.Lock()
-			jsonString, err := json.Marshal(MembershipList)
-			MT.Unlock()
-			if err != nil {
-				Logger.Fatal(err)
-			}
-			msg := string(jsonString)
+		//introducer handle new joiner
+		if len(recievedMemberShipList) == 1 && MyIP == IntroIP {
 			for key, _ := range recievedMemberShipList {
-				sendMsgToID(key, msg)
+				// if it is not in introducer membershiplist
+				if _,ok := MembershipList[key]; !ok {
+					MT.Lock()
+					jsonString, err := json.Marshal(MembershipList)
+					MT.Unlock()
+					if err != nil {
+						Logger.Fatal(err)
+					}
+					msg := string(jsonString)
+					sendMsgToID(key, msg)
+				}
 			}
 		}
 		mergeMemberShipList(recievedMemberShipList)
