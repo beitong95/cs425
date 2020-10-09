@@ -37,7 +37,7 @@ const (
 	RECEIVE_CHANGE_TO_ALL2ALL = 9
 	RECEIVE_CHANGE_TO_GOSSIP  = 10
 )
-// logger 
+
 var Logger = log.New()
 
 // variables for membershiplist
