@@ -9,6 +9,7 @@ import (
 	_ "fmt"
 	"networking"
 	"constant"
+	"strings"
 )
 
 
@@ -16,6 +17,17 @@ type Vm2fileMap map[string] []string
 
 type File2VmMap map[string] []string
 
+var MessageQueue []string
+
+var MQ Mutex
+
+var MW Mutex
+
+var MR Mutex
+
+var ReadCounter int = 0
+
+var WriteCounter int = 0
 
 type ClientMembershipList map[string] int64
 
@@ -23,6 +35,63 @@ var (
 	clientMembershipList ClientMembershipList
 	muxClientMembershipList sync.Mutex
 )
+func enqueue(cmd string, queue []string){
+	append(queue,cmd)
+}
+
+func dequeue(queue []string) string{
+	if len(queue) == 0 {
+		return nil
+	}
+	if len(queue) == 1 {
+		queue = []
+		return queue[0]
+	}
+	queue = queue[1:]
+	return queue[0]
+}
+// when master receives (get put delete store ls) => (read write), handle read write concurrency problem.
+func handleMessage() {
+	for {
+		//mutex
+		MQ.Lock()
+		cmd = dequeue(MessageQueue)
+		MQ.Unlock()
+		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
+			//handle write, wait for reads (count acks)
+			MW.Lock()
+			WriteCounter++
+			MW.Unlock()
+			for ReadCounter != 0 && WriteCounter != 0 {
+			}
+			handleCmd(cmd)
+		} else {
+			//handle read
+			MR.Lock()
+			ReadCounter++
+			MR.Unlock()
+			for WriteCounter != 0 {
+			}
+			handleCmd(cmd)
+		}
+	}
+}
+
+func handleCmd(cmd string) {
+	//TODO: this version is just for test
+	fmt.Println(cmd)
+	//simulate handle cmd
+	time.Sleep(2)
+	if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
+		MW.Lock()
+		WriteCounter--
+		MW.Unlock()
+	} else {
+		MR.Lock()
+		ReadCounter--
+		MR.Unlock()
+	}
+}
 
 func readUDPMessageClient2Master(message []byte) error {
 	remoteMessage, err := networking.DecodeUDPMessageClient2Master(message)
