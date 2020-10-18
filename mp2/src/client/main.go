@@ -20,6 +20,7 @@ var (
 	isConnected bool
 	muxMasterMembershipList sync.Mutex
 	client2MasterMessageUDP constant.UDPMessageClient2Master
+	isKickout bool
 )
 
 func readUDPMessageMaster2Client(message []byte) error {
@@ -43,16 +44,23 @@ func readUDPMessageMaster2Client(message []byte) error {
 		cli.Write2Shell("Successfully connect to master")
 		logger.LogSimpleInfo("Successfully connect to master")			
 	} else if remoteMessage.MessageType == "KICKOUT" {
-		isConnected = false
 		cli.Write2Shell("You are kicked out because of inactive")
 		logger.LogSimpleInfo("You are kicked out because of inactive")	
+		cli.Write2Shell("Rejoin Y/N")
+		constant.IsKickout = true
+		cmd := <-constant.KickoutRejoinCmd
+		if cmd == "true" {
+			constant.IsKickout = false
+			isConnected = false
+		} else {
+		}
 	} 
 	return nil
 }
 
 func detectMasterFail() {
 	for {
-		if isConnected == true {
+		if isConnected == true && constant.IsKickout == false {
 			muxMasterMembershipList.Lock()
 			diff := time.Now().UnixNano()/1000000 - masterMembershipList.Heartbeat
 			muxMasterMembershipList.Unlock()
@@ -144,12 +152,14 @@ func deleteFile(filename string, masterIP string) {
 
 func Run(cliLevel string) {
 	// initialize
+	constant.KickoutRejoinCmd = make(chan string)
 	masterMembershipList = MasterMembershipList{}
 	masterMembershipList.Heartbeat = 0
 	clientIP, _ := networking.GetLocalIP()
 	logger.LogSimpleInfo(clientIP)
 	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP, "connect"}
 	isConnected = false
+	constant.IsKickout = false
 	// try to connect to master, 
 	go networking.UDPlisten(constant.UDPportMaster2Client, readUDPMessageMaster2Client)
 	go connectMaster()

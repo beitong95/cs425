@@ -6,9 +6,9 @@ import (
 	"time"
 	"logger"
 	"cli"
-	_ "fmt"
 	"networking"
 	"constant"
+	_ "fmt"
 )
 
 
@@ -18,6 +18,7 @@ type File2VmMap map[string] []string
 
 
 type ClientMembershipList map[string] int64
+// map [client ip] last active time
 
 var (
 	clientMembershipList ClientMembershipList
