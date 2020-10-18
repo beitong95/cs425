@@ -8,3 +8,5 @@ const MasterIP string = "172.22.156.12"
 const KickoutInactiveClientPeriod = 60000 
 const CheckInactiveClientPeriod = 20000 
 const MasterSendHeartbeat2ClientPeriod = 1500
+var KickoutRejoinCmd chan string
+var IsKickout bool
