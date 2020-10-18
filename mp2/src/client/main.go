@@ -11,12 +11,12 @@ import (
 	"logger"
 )
 
-type MasterMembershipList struct {
+type masterMembershipList struct {
 	Heartbeat int64
 }
 
 var (
-	masterMembershipList MasterMembershipList 
+	_masterMembershipList masterMembershipList 
 	isConnected bool
 	muxMasterMembershipList sync.Mutex
 	client2MasterMessageUDP constant.UDPMessageClient2Master
@@ -32,8 +32,8 @@ func readUDPMessageMaster2Client(message []byte) error {
 
 	muxMasterMembershipList.Lock()
 	newHeartbeat := remoteMessage.Heartbeat
-	if newHeartbeat > masterMembershipList.Heartbeat {
-		masterMembershipList.Heartbeat = newHeartbeat
+	if newHeartbeat > _masterMembershipList.Heartbeat {
+		_masterMembershipList.Heartbeat = newHeartbeat
 	}
 	muxMasterMembershipList.Unlock()
 
@@ -62,7 +62,7 @@ func detectMasterFail() {
 	for {
 		if isConnected == true && constant.IsKickout == false {
 			muxMasterMembershipList.Lock()
-			diff := time.Now().UnixNano()/1000000 - masterMembershipList.Heartbeat
+			diff := time.Now().UnixNano()/1000000 - _masterMembershipList.Heartbeat
 			muxMasterMembershipList.Unlock()
 			
 			if diff > constant.MasterTimeout {
@@ -153,8 +153,8 @@ func deleteFile(filename string, masterIP string) {
 func Run(cliLevel string) {
 	// initialize
 	constant.KickoutRejoinCmd = make(chan string)
-	masterMembershipList = MasterMembershipList{}
-	masterMembershipList.Heartbeat = 0
+	_masterMembershipList = masterMembershipList{}
+	_masterMembershipList.Heartbeat = 0
 	clientIP, _ := networking.GetLocalIP()
 	logger.LogSimpleInfo(clientIP)
 	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP, "connect"}

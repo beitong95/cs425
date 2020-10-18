@@ -12,16 +12,16 @@ import (
 )
 
 
-type Vm2fileMap map[string] []string
+type vm2fileMap map[string] []string
 
-type File2VmMap map[string] []string
+type file2VmMap map[string] []string
 
 
-type ClientMembershipList map[string] int64
+type clientMembershipList map[string] int64
 // map [client ip] last active time
 
 var (
-	clientMembershipList ClientMembershipList
+	_clientMembershipList clientMembershipList
 	muxClientMembershipList sync.Mutex
 )
 
@@ -35,10 +35,10 @@ func readUDPMessageClient2Master(message []byte) error {
 		clientIP := remoteMessage.IP
 		logger.LogSimpleInfo("receive connect from " + clientIP)
 		cli.Write2Shell("receive connect from " + clientIP)
-		if _, ok := clientMembershipList[clientIP]; ok {
-			clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
+		if _, ok := _clientMembershipList[clientIP]; ok {
+			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
 		} else {
-			clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
+			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
 		}
 		muxClientMembershipList.Unlock()
 		// send ack back
@@ -56,7 +56,7 @@ func detectClientInactive() {
 	for {
 		muxClientMembershipList.Lock()
 		currentTime := time.Now().UnixNano()/1000000
-		for i,v := range clientMembershipList {
+		for i,v := range _clientMembershipList {
 			// kick out 1min inactive client (actual time 1min20s)
 			if  currentTime - v > constant.KickoutInactiveClientPeriod  {
 				// send kick out and delete
@@ -64,7 +64,7 @@ func detectClientInactive() {
 				cli.Write2Shell("send kickout to "+ i)
 				message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{0, "KICKOUT"})
 				networking.UDPsend(i, constant.UDPportMaster2Client, message)
-				delete(clientMembershipList, i)
+				delete(_clientMembershipList, i)
 			}
 		}
 		muxClientMembershipList.Unlock()
@@ -77,7 +77,7 @@ func sendHeartbeat2Clients() {
 	for {
 		heartbeat := time.Now().UnixNano()/1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "HEARTBEAT"})
-		for i,_ := range clientMembershipList {
+		for i,_ := range _clientMembershipList {
 			logger.LogSimpleInfo("send heartbeat to " + i)
 			cli.Write2Shell("send heartbeat to "+ i)
 			networking.UDPsend(i, constant.UDPportMaster2Client, message)
@@ -89,7 +89,7 @@ func sendHeartbeat2Clients() {
 }
 
 func Run(cliLevel string) {
-	clientMembershipList = ClientMembershipList{}
+	_clientMembershipList = clientMembershipList{}
 	go networking.UDPlisten(constant.UDPportClient2Master, readUDPMessageClient2Master)
 	go detectClientInactive()
 	go sendHeartbeat2Clients()
