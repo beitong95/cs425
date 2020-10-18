@@ -20,9 +20,9 @@ func CliDataNode() {
 		}
 		switch cmd {
 		case "help":
-			write2Shell(getHelp())
+			Write2Shell(getHelp())
 		case "store":
-			write2Shell("TODO")
+			Write2Shell("TODO")
 		case "exit":
 			time.Sleep(time.Duration(500) * time.Millisecond)
 			ui.Quit()
@@ -43,5 +43,6 @@ func CliDataNode() {
 		os.Exit(1)
 	})
 	go ui.Run()
+	go autoUpdateShell()
 	<-done
 }

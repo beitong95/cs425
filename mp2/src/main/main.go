@@ -31,7 +31,7 @@ func main() {
 	flag.Parse()
 
 	//step0 setup Logger
-	logger.Init_Logger(*isAppendLogPtr, *logLevelPtr)
+	logger.Init_Logger(*isAppendLogPtr, *logLevelPtr, *identityPtr)
 
 	//step1 check identity
 	logger.LogSimpleInfo("Using " + *identityPtr)

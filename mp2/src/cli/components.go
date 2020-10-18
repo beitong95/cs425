@@ -33,7 +33,7 @@ func getHelp() string {
 var commandsClient = []string{"get", "set", "delete", "store", "exit", "help"}
 var commandsMaster= []string{"ls", "store", "exit", "help"}
 var commandsDataNode = []string{"store", "exit", "help"}
-
+const UPDATESHELL = 500
 func createShell() {
 	history = tui.NewVBox()
 	historyScroll := tui.NewScrollArea(history)
@@ -56,17 +56,26 @@ func createShell() {
 	shell.SetSizePolicy(tui.Expanding, tui.Expanding)
 }
 
-func write2Shell(text string) {
+func Write2Shell(text string) {
 	history.Append(tui.NewHBox(
 		tui.NewLabel(time.Now().Format("15:04")),
-		tui.NewPadder(1, 0, tui.NewLabel("")),
+		tui.NewLabel(" "),
 		tui.NewLabel(text),
 		tui.NewSpacer(),
 	))
 }
 
+func autoUpdateShell() {
+	for {
+		ui.Update(func(){
+
+		})
+		time.Sleep(UPDATESHELL * time.Millisecond)
+	}
+}
+
 func parseCmd(cmd string) (string, string) {
-	write2Shell(cmd)
+	Write2Shell(cmd)
 	cmds := strings.Fields(cmd)
 	mainCmd := ""
 	subCmd := ""
@@ -77,8 +86,8 @@ func parseCmd(cmd string) (string, string) {
 		mainCmd = cmds[0]
 		subCmd = cmds[1]
 	} else {
-		write2Shell("bad command format")
-		write2Shell(getHelp())
+		Write2Shell("bad command format")
+		Write2Shell(getHelp())
 		return "",""
 	}
 	input.SetText(">>")

@@ -23,7 +23,7 @@ var Logger = log.New()
 	Logger.Debug: Detailed info like the value of a counter or something
 **/
 
-func Init_Logger(isAppendLog bool, logLevel string) {
+func Init_Logger(isAppendLog bool, logLevel string, identity string) {
 	/** some possible settings
 	// Log as JSON instead of the default ASCII formatter.
 	log.SetFormatter(&log.JSONFormatter{})
@@ -54,7 +54,7 @@ func Init_Logger(isAppendLog bool, logLevel string) {
 	if _, err := os.Stat(logFileDir); os.IsNotExist(err) {
 		os.Mkdir(logFileDir, 0755)
 	}
-	logFileName := logFileDir + vmNumber + "_MP2.log"
+	logFileName := logFileDir + vmNumber + "_" + identity + "_MP2.log"
 
 	//open log file
 	if isAppendLog == true {

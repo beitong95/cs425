@@ -20,11 +20,11 @@ func CliMaster() {
 		}
 		switch cmd {
 		case "help":
-			write2Shell(getHelp())
+			Write2Shell(getHelp())
 		case "ls":
-			write2Shell("TODO")
+			Write2Shell("TODO")
 		case "store":
-			write2Shell("TODO")
+			Write2Shell("TODO")
 		case "exit":
 			time.Sleep(time.Duration(500) * time.Millisecond)
 			ui.Quit()
@@ -45,5 +45,6 @@ func CliMaster() {
 		os.Exit(1)
 	})
 	go ui.Run()
+	go autoUpdateShell()
 	<-done
 }
