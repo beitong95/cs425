@@ -130,15 +130,21 @@ func handleCommand(_cmd []string) {
 	cli.Write2Shell(history, cmd + filename1 + filename2)
 	switch cmd {
 		case "get":
+			sdfsfilename := filename1 
+			localfilename := filename2
 			//go getFile()
 			cli.Write2Shell(history, "TODO")
 		case "put":
+			sdfsfilename := filename2 
+			localfilename := filename1
 			//go putFile()
 			cli.Write2Shell(history, "TODO")
 		case "delete":
+			sdfsfilename := filename1 
 			//go deleteFile()
 			cli.Write2Shell(history, "TODO")
 		case "ls":
+			sdfsfilename := filename1 
 			//go lsFile()
 			cli.Write2Shell(history, "TODO")
 		case "store":
