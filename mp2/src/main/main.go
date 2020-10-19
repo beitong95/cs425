@@ -6,6 +6,8 @@ import (
 	"client"
 	"datanode"
 	"master"
+	"constant"
+	"networking"
 )
 
 
@@ -37,6 +39,7 @@ func main() {
 	logger.LogSimpleInfo("Using " + *identityPtr)
 
 	//step2 run according to identity
+	constant.LocalIP,_ = networking.GetLocalIP()
 	switch *identityPtr {
 	case "client":
 		client.Run(*cliLevelPtr)

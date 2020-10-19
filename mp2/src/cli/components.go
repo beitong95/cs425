@@ -5,6 +5,8 @@ import (
 	"strings"
 	"fmt"
 	"time"
+	"sort"
+	"sync"
 )
 
 func getHelp() string {
@@ -65,7 +67,203 @@ func Write2Shell(text string) {
 	))
 }
 
-func autoUpdateShell() {
+func createMasterMembershipBox() {
+	masterClientMembershipLabel = tui.NewLabel("")
+	masterDatanodeMembershipLabel = tui.NewLabel("")
+	masterClientMembershipLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+	masterDatanodeMembershipLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+
+	masterClientMembershipBox := tui.NewVBox(masterClientMembershipLabel)
+	masterDatanodeMembershipBox := tui.NewVBox(masterDatanodeMembershipLabel)
+	masterClientMembershipBox.SetTitle("client membershiplist")
+	masterClientMembershipBox.SetBorder(true)
+	masterDatanodeMembershipBox.SetTitle("datanode membershiplist")
+	masterDatanodeMembershipBox.SetBorder(true)
+
+	masterMembershipBox = tui.NewHBox(masterClientMembershipBox, masterDatanodeMembershipBox)
+}
+
+func Write2MasterClientMembershipBox(text string) {
+	masterClientMembershipLabel.SetText(text)
+}
+
+func Write2MasterDatanodeMembershipBox(text string) {
+	masterDatanodeMembershipLabel.SetText(text)
+}
+func ConvertMasterClientMembershipList2String(membershipList map[string] int64, muxClientMembershipList sync.Mutex) string {
+	var res []string
+	if membershipList == nil {
+		return ""
+	}
+
+	membershipAttributeCount := 1
+	tableWidth := membershipAttributeCount + 1
+	muxClientMembershipList.Lock()
+	tableHeight := len(membershipList)
+	maxL := make([]int, tableWidth)
+
+	//get table header info
+	s1 := make([]interface{}, tableWidth)
+	keyName := "ID"
+	s1[0] = keyName
+	maxL[0] = len(keyName)
+	attrName := "last active time" 
+	s1[1] =  attrName
+	maxL[1] = len(attrName)
+
+	// get table body info
+	s3 := make([][]interface{}, tableHeight)
+	i := 0
+	for k, v := range membershipList {
+		s3[i] = make([]interface{}, tableWidth)
+		s3[i][0] = k
+		if l := len(k); l > maxL[0] {
+			maxL[0] = l
+		}
+		s3[i][1] = v
+		str := fmt.Sprintln(s3[i][1])
+		if l := len(str); l > maxL[1] {
+			maxL[1] = l
+		}
+		i++
+	}
+	muxClientMembershipList.Unlock()
+	// sort 2d interface{} type slice in column 0
+	sort.SliceStable(s3, func(i, j int) bool {
+		return s3[i][0].(string) < s3[j][0].(string)
+	})
+
+	// get table border info
+	tableWidthByCharacter := 0
+	pad := 3
+	for i := 0; i < tableWidth; i++ {
+		tableWidthByCharacter += maxL[i]
+	}
+	tableWidthByCharacter += pad*tableWidth + (1*tableWidth + 1)
+
+	// create print format command
+	printCommand := ""
+	for i := 0; i < tableWidth; i++ {
+		printCommand = printCommand + "|%-" + fmt.Sprintf("%v", maxL[i]+3) + "v"
+	}
+	printCommand = printCommand + "|"
+	//fmt.Printf("%#v\n", printCommand)
+
+	// print border
+	border := strings.Repeat("-", tableWidthByCharacter)
+	res = append(res, border)
+
+	// print header
+	s := fmt.Sprintf(printCommand, s1...)
+	res = append(res, s)
+	s2 := make([]interface{}, tableWidth)
+	for i := 0; i < tableWidth; i++ {
+		s2[i] = strings.Repeat("-", maxL[i]+3)
+	}
+	s = fmt.Sprintf(printCommand, s2...)
+	res = append(res, s)
+
+	// print body
+	for i := 0; i < tableHeight; i++ {
+		s := fmt.Sprintf(printCommand, s3[i]...)
+		res = append(res, s)
+	}
+
+	// print border
+	res = append(res, border)
+	return strings.Join(res, "\n")
+	
+	
+}
+
+func ConvertMasterDatanodeMembershipList2String(membershipList map[string] int64, muxDatanodeMembershipList sync.Mutex) string {
+	var res []string
+	if membershipList == nil {
+		return ""
+	}
+
+	membershipAttributeCount := 1
+	tableWidth := membershipAttributeCount + 1
+	muxDatanodeMembershipList.Lock()
+	tableHeight := len(membershipList)
+	maxL := make([]int, tableWidth)
+
+	//get table header info
+	s1 := make([]interface{}, tableWidth)
+	keyName := "ID"
+	s1[0] = keyName
+	maxL[0] = len(keyName)
+	attrName := "Heartbeat" 
+	s1[1] =  attrName
+	maxL[1] = len(attrName)
+
+	// get table body info
+	s3 := make([][]interface{}, tableHeight)
+	i := 0
+	for k, v := range membershipList {
+		s3[i] = make([]interface{}, tableWidth)
+		s3[i][0] = k
+		if l := len(k); l > maxL[0] {
+			maxL[0] = l
+		}
+		s3[i][1] = v
+		str := fmt.Sprintln(s3[i][1])
+		if l := len(str); l > maxL[1] {
+			maxL[1] = l
+		}
+		i++
+	}
+	muxDatanodeMembershipList.Unlock()
+	// sort 2d interface{} type slice in column 0
+	sort.SliceStable(s3, func(i, j int) bool {
+		return s3[i][0].(string) < s3[j][0].(string)
+	})
+
+	// get table border info
+	tableWidthByCharacter := 0
+	pad := 3
+	for i := 0; i < tableWidth; i++ {
+		tableWidthByCharacter += maxL[i]
+	}
+	tableWidthByCharacter += pad*tableWidth + (1*tableWidth + 1)
+
+	// create print format command
+	printCommand := ""
+	for i := 0; i < tableWidth; i++ {
+		printCommand = printCommand + "|%-" + fmt.Sprintf("%v", maxL[i]+3) + "v"
+	}
+	printCommand = printCommand + "|"
+	//fmt.Printf("%#v\n", printCommand)
+
+	// print border
+	border := strings.Repeat("-", tableWidthByCharacter)
+	res = append(res, border)
+
+	// print header
+	s := fmt.Sprintf(printCommand, s1...)
+	res = append(res, s)
+	s2 := make([]interface{}, tableWidth)
+	for i := 0; i < tableWidth; i++ {
+		s2[i] = strings.Repeat("-", maxL[i]+3)
+	}
+	s = fmt.Sprintf(printCommand, s2...)
+	res = append(res, s)
+
+	// print body
+	for i := 0; i < tableHeight; i++ {
+		s := fmt.Sprintf(printCommand, s3[i]...)
+		res = append(res, s)
+	}
+
+	// print border
+	res = append(res, border)
+	return strings.Join(res, "\n")
+	
+	
+}
+
+
+func autoUpdateCLI() {
 	for {
 		ui.Update(func(){
 

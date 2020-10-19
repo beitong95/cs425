@@ -34,6 +34,7 @@ func readUDPMessageMaster2Client(message []byte) error {
 	newHeartbeat := remoteMessage.Heartbeat
 	if newHeartbeat > _masterMembershipList.Heartbeat {
 		_masterMembershipList.Heartbeat = newHeartbeat
+		// update memebershiplist
 	}
 	muxMasterMembershipList.Unlock()
 
@@ -157,7 +158,7 @@ func Run(cliLevel string) {
 	_masterMembershipList.Heartbeat = 0
 	clientIP, _ := networking.GetLocalIP()
 	logger.LogSimpleInfo(clientIP)
-	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP, "connect"}
+	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP,"CONNECT"}
 	isConnected = false
 	constant.IsKickout = false
 	// try to connect to master, 

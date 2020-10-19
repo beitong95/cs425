@@ -131,7 +131,7 @@ func readUDPMessageClient2Master(message []byte) error {
 	if err != nil {
 		// log err
 	}
-	if remoteMessage.MessageType == "connect" {
+	if remoteMessage.MessageType == "CONNECT" {
 		muxClientMembershipList.Lock()
 		clientIP := remoteMessage.IP
 		logger.LogSimpleInfo("receive connect from " + clientIP)
@@ -142,6 +142,10 @@ func readUDPMessageClient2Master(message []byte) error {
 			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
 		}
 		muxClientMembershipList.Unlock()
+
+		//update cli
+		cli.Write2MasterClientMembershipBox(cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
+
 		// send ack back
 		heartbeat := time.Now().UnixNano()/1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "ACK"})
@@ -166,9 +170,11 @@ func detectClientInactive() {
 				message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{0, "KICKOUT"})
 				networking.UDPsend(i, constant.UDPportMaster2Client, message)
 				delete(_clientMembershipList, i)
+				//update cli
 			}
 		}
 		muxClientMembershipList.Unlock()
+		cli.Write2MasterClientMembershipBox(cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
 		// every 20s check it
 		time.Sleep(constant.CheckInactiveClientInterval* time.Millisecond)
 	}
@@ -213,6 +219,7 @@ func readUDPMessageDatanode2Master(message []byte) error {
 		}
 
 		muxDatanodeMembershipList.Unlock()
+		cli.Write2MasterDatanodeMembershipBox(cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
 	}
 	return nil
 }
@@ -232,6 +239,7 @@ func detectDatanodeFail() {
 			}
 		}
 		muxDatanodeMembershipList.Unlock()
+		cli.Write2MasterDatanodeMembershipBox(cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
 		
 		time.Sleep(constant.MasterDetectDatanodeFailInterval* time.Millisecond)
 	}

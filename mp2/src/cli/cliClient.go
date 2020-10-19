@@ -66,6 +66,6 @@ func CliClient() {
 		os.Exit(1)
 	})
 	go ui.Run()
-	go autoUpdateShell()
+	go autoUpdateCLI()
 	<-done
 }

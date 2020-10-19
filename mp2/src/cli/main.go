@@ -11,7 +11,9 @@ var input *tui.Entry
 var shell *tui.Box
 var reader *bufio.Reader
 var ui tui.UI
-
+var masterMembershipBox *tui.Box
+var masterClientMembershipLabel *tui.Label
+var masterDatanodeMembershipLabel *tui.Label
 func Run(cliLevel string, identity string){
 	_identity = identity
 	switch cliLevel {

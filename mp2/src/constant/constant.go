@@ -22,3 +22,4 @@ const DatanodeSendHeartbeat2MasterInterval = 1500
 var KickoutRejoinCmd chan string
 var IsKickout bool
 
+var LocalIP string
