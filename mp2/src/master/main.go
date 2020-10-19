@@ -179,8 +179,8 @@ func sendHeartbeat2Clients() {
 		heartbeat := time.Now().UnixNano()/1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "HEARTBEAT"})
 		for i,_ := range _clientMembershipList {
-			logger.LogSimpleInfo("send heartbeat to " + i)
-			cli.Write2Shell("send heartbeat to "+ i)
+			//logger.LogSimpleInfo("send heartbeat to " + i)
+			//cli.Write2Shell("send heartbeat to "+ i)
 			networking.UDPsend(i, constant.UDPportMaster2Client, message)
 		} 
 		time.Sleep(constant.MasterSendHeartbeat2ClientInterval* time.Millisecond)
@@ -202,12 +202,13 @@ func readUDPMessageDatanode2Master(message []byte) error {
 
 		if _, ok := _datanodeMembershipList[id]; !ok {
 			// new datanode
-			logger.LogSimpleInfo(id + " join with heartbeat" + fmt.Sprintf("%v", newHeartbeat))
-			_datanodeMembershipList[id].Heartbeat = newHeartbeat
+			logger.LogSimpleInfo(id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
+			cli.Write2Shell(id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
+			_datanodeMembershipList[id]= newHeartbeat
 		} else {
-			if newHeartbeat > _datanodeMembershipList[id].Heartbeat {
-				logger.LogSimpleInfo(id + " update heartbeat from " + fmt.Sprintf("%v", _datanodeMembershipList[id].Heartbeat) + " to " + fmt.Sprintf("%v", newHeartbeat))
-				_datanodeMembershipList[id].Heartbeat = newHeartbeat
+			if newHeartbeat > _datanodeMembershipList[id]{
+				logger.LogSimpleInfo(id + " update heartbeat from " + fmt.Sprintf("%v", _datanodeMembershipList[id]) + " to " + fmt.Sprintf("%v", newHeartbeat))
+				_datanodeMembershipList[id]= newHeartbeat
 			}
 		}
 
@@ -219,16 +220,18 @@ func readUDPMessageDatanode2Master(message []byte) error {
 func detectDatanodeFail() {
 	for {
 		currentTime := time.Now().UnixNano()/1000000
-		muxMasterMembershipList.Lock()
+		muxDatanodeMembershipList.Lock()
 		for i, v := range _datanodeMembershipList {
-			diff := currentTime - _datanodeMembershipList.Heartbeat
+			diff := currentTime - v
 			if diff > constant.DatanodeTimeout {
 				logger.LogSimpleInfo("detect data node fail " + i)
+				cli.Write2Shell("detect data node fail " + i)
 				delete(_datanodeMembershipList, i)
 				logger.LogSimpleInfo("remove node " + i)
+				cli.Write2Shell("remove node " + i)
 			}
 		}
-		muxMasterMembershipList.Unlock()
+		muxDatanodeMembershipList.Unlock()
 		
 		time.Sleep(constant.MasterDetectDatanodeFailInterval* time.Millisecond)
 	}
