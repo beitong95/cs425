@@ -234,6 +234,7 @@ func detectDatanodeFail() {
 				logger.LogSimpleInfo("detect data node fail " + i)
 				cli.Write2Shell("detect data node fail " + i)
 				delete(_datanodeMembershipList, i)
+			// TODO: handle rereplica
 				logger.LogSimpleInfo("remove node " + i)
 				cli.Write2Shell("remove node " + i)
 			}
