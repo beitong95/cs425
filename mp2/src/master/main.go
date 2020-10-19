@@ -135,22 +135,22 @@ func readUDPMessageClient2Master(message []byte) error {
 		muxClientMembershipList.Lock()
 		clientIP := remoteMessage.IP
 		logger.LogSimpleInfo("receive connect from " + clientIP)
-		cli.Write2Shell("receive connect from " + clientIP)
+		cli.Write2Shell(history, "receive connect from " + clientIP)
 		if _, ok := _clientMembershipList[clientIP]; ok {
 			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
 		} else {
 			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
 		}
 		muxClientMembershipList.Unlock()
+		cli.Write2MasterClientMembershipBox(masterClientMembershipLabel, cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
 
 		//update cli
-		cli.Write2MasterClientMembershipBox(cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
 
 		// send ack back
 		heartbeat := time.Now().UnixNano()/1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "ACK"})
 		logger.LogSimpleInfo("send ack back to " + clientIP)
-		cli.Write2Shell("send ack back to " + clientIP)
+		cli.Write2Shell(history, "send ack back to " + clientIP)
 		networking.UDPsend(clientIP, constant.UDPportMaster2Client, message)
 	}
 	return nil
@@ -166,7 +166,7 @@ func detectClientInactive() {
 			if  currentTime - v > constant.KickoutTimeout  {
 				// send kick out and delete
 				logger.LogSimpleInfo("send kickout to " + i)
-				cli.Write2Shell("send kickout to "+ i)
+				cli.Write2Shell(history, "send kickout to "+ i)
 				message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{0, "KICKOUT"})
 				networking.UDPsend(i, constant.UDPportMaster2Client, message)
 				delete(_clientMembershipList, i)
@@ -174,7 +174,8 @@ func detectClientInactive() {
 			}
 		}
 		muxClientMembershipList.Unlock()
-		cli.Write2MasterClientMembershipBox(cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
+		cli.Write2MasterClientMembershipBox(masterClientMembershipLabel, cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
+
 		// every 20s check it
 		time.Sleep(constant.CheckInactiveClientInterval* time.Millisecond)
 	}
@@ -209,7 +210,7 @@ func readUDPMessageDatanode2Master(message []byte) error {
 		if _, ok := _datanodeMembershipList[id]; !ok {
 			// new datanode
 			logger.LogSimpleInfo(id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
-			cli.Write2Shell(id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
+			cli.Write2Shell(history, id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
 			_datanodeMembershipList[id]= newHeartbeat
 		} else {
 			if newHeartbeat > _datanodeMembershipList[id]{
@@ -219,7 +220,8 @@ func readUDPMessageDatanode2Master(message []byte) error {
 		}
 
 		muxDatanodeMembershipList.Unlock()
-		cli.Write2MasterDatanodeMembershipBox(cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
+		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel,cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
+
 	}
 	return nil
 }
@@ -232,15 +234,15 @@ func detectDatanodeFail() {
 			diff := currentTime - v
 			if diff > constant.DatanodeTimeout {
 				logger.LogSimpleInfo("detect data node fail " + i)
-				cli.Write2Shell("detect data node fail " + i)
+				cli.Write2Shell(history, "detect data node fail " + i)
 				delete(_datanodeMembershipList, i)
 			// TODO: handle rereplica
 				logger.LogSimpleInfo("remove node " + i)
-				cli.Write2Shell("remove node " + i)
+				cli.Write2Shell(history, "remove node " + i)
 			}
 		}
 		muxDatanodeMembershipList.Unlock()
-		cli.Write2MasterDatanodeMembershipBox(cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
+		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel,cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
 		
 		time.Sleep(constant.MasterDetectDatanodeFailInterval* time.Millisecond)
 	}
@@ -254,5 +256,9 @@ func Run(cliLevel string) {
 	go detectClientInactive()
 	go detectDatanodeFail()
 	go sendHeartbeat2Clients()
-	cli.Run(cliLevel, "master")
+	if cliLevel == "cli" {
+		cliMaster()
+	} else {
+		cliSimpleMaster()
+	}
 } 
