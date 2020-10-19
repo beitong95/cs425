@@ -110,8 +110,9 @@ func find(filename string, ip string) bool {
 	MF.Lock()
 	var ips = File2VmMap[filename]
 	for i := 0; i < len(ips); i++ {
-		if ips[i] == ip
-		return true
+		if ips[i] == ip {
+			return true
+		}
 	}
 	MF.Unlock()
 	return false
