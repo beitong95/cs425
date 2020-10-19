@@ -4,6 +4,8 @@ import (
 	"testing"
 	"fmt"
 	"networking"
+	"net/http"
+	"html"
 )
 
 func TestUDP(t *testing.T) {
@@ -21,4 +23,16 @@ func TestUDP(t *testing.T) {
 
 func TestTCP(t* testing.T){
 	fmt.Println("test TCP")
+}
+
+func TestHTTP(t *testing.T){
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("some wrong with hello"))
+		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
+	}
+	networking.HTTPlisten("/hello", handler)
+	go networking.HTTPstart("3000")
+	body := networking.HTTPsend("http://127.0.0.1:3000/hello")
+	fmt.Println(string(body))
+	
 }
