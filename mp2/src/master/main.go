@@ -8,11 +8,8 @@ import (
 	"cli"
 	"networking"
 	"constant"
-<<<<<<< HEAD
 	"strings"
-=======
-	_ "fmt"
->>>>>>> e47c9a44e7b9f14a139dd6d06418ca9de53a9e18
+	"fmt"
 )
 
 
@@ -22,11 +19,11 @@ type file2VmMap map[string] []string
 
 var MessageQueue []string
 
-var MQ Mutex
+var MQ sync.Mutex
 
-var MW Mutex
+var MW sync.Mutex
 
-var MR Mutex
+var MR sync.Mutex
 
 var ReadCounter int = 0
 
@@ -39,53 +36,80 @@ var (
 	_clientMembershipList clientMembershipList
 	muxClientMembershipList sync.Mutex
 )
-func enqueue(cmd string, queue []string){
-	append(queue,cmd)
+func enqueue(cmd string){
+	MQ.Lock()
+	MessageQueue = append(MessageQueue,cmd)
+	MQ.Unlock()
 }
 
-func dequeue(queue []string) string{
-	if len(queue) == 0 {
-		return nil
+func dequeue() string{
+	MQ.Lock()
+	var num = len(MessageQueue)
+	fmt.Println(num)
+	MQ.Unlock()
+	if  num == 0 {
+		return ""
 	}
-	if len(queue) == 1 {
-		queue = []
-		return queue[0]
+	var output = MessageQueue[0]
+	if num == 1 {
+		MQ.Lock()
+		MessageQueue = []string {}
+		MQ.Unlock()
+		return output
 	}
-	queue = queue[1:]
-	return queue[0]
+	MQ.Lock()
+	MessageQueue = MessageQueue[1:]
+	MQ.Unlock()
+	//fmt.Println(MessageQueue)
+	return output
 }
 // when master receives (get put delete store ls) => (read write), handle read write concurrency problem.
-func handleMessage() {
+func HandleMessage() {
+	//MessageQueue = []string {"get1","get2","put1","get3","delete1","put2","ls1","store1"}
 	for {
 		//mutex
-		MQ.Lock()
-		cmd = dequeue(MessageQueue)
-		MQ.Unlock()
+		fmt.Println(MessageQueue)
+		var cmd = dequeue()
 		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
 			//handle write, wait for reads (count acks)
+			for {
+				MW.Lock()
+				MR.Lock()
+				if ReadCounter == 0 && WriteCounter == 0 {
+					MR.Unlock()
+					MW.Unlock()
+					break
+				}
+				MR.Unlock()
+				MW.Unlock()
+			}
 			MW.Lock()
 			WriteCounter++
 			MW.Unlock()
-			for ReadCounter != 0 && WriteCounter != 0 {
-			}
-			handleCmd(cmd)
+			go handleCmd(cmd)
 		} else {
 			//handle read
 			MR.Lock()
 			ReadCounter++
 			MR.Unlock()
-			for WriteCounter != 0 {
+			for {
+				MW.Lock()
+				if WriteCounter == 0 {
+					MW.Unlock()
+					break
+				}
+				MW.Unlock()
 			}
-			handleCmd(cmd)
+			go handleCmd(cmd)
 		}
 	}
 }
 
 func handleCmd(cmd string) {
 	//TODO: this version is just for test
-	fmt.Println(cmd)
+	fmt.Println(cmd,time.Now())
 	//simulate handle cmd
-	time.Sleep(2)
+	time.Sleep(2*time.Second)
 	if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
 		MW.Lock()
 		WriteCounter--
@@ -95,6 +119,7 @@ func handleCmd(cmd string) {
 		ReadCounter--
 		MR.Unlock()
 	}
+	fmt.Println(WriteCounter," ",ReadCounter)
 }
 
 func readUDPMessageClient2Master(message []byte) error {
