@@ -106,13 +106,25 @@ func Hash2Ips(filename string) {
 	MF.Unlock()
 }
 
+func find(filename string, ip string) bool {
+	MF.Lock()
+	var ips = File2VmMap[filename]
+	for i := 0; i < len(ips); i++ {
+		if ips[i] == ip
+		return true
+	}
+	MF.Unlock()
+	return false
+}
+
 func rereplica(filename string) {
 	MV.Lock()
 	var replica = ""
 	for ip := range Vm2fileMap {
+		var found = find(filename, ip)
 		if replica == "" {
 			replica = ip
-		} else if len(Vm2fileMap[ip]) < len(Vm2fileMap[replica]) {
+		} else if len(Vm2fileMap[ip]) < len(Vm2fileMap[replica]) && !found {
 			replica = ip
 		}
 	}
