@@ -157,12 +157,20 @@ func handleCommands() {
 		
 	}
 }
-/**
 // all commands should be parallel? 
 func downloadFileFromDatanode(filename string, ip string) (*file, error) {
 	//XINHANG
 	//http download file
 	//store in local location
+}
+
+func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
+	
+	// XINHANG
+	// send request to master server 
+	// get IPs	
+	
+	return IPs, nil
 }
 
 func getFile(filename string, masterIp string) {
@@ -213,7 +221,6 @@ func lsFile() {
 func storeFile() {
 
 }
-**/
 
 func Run(cliLevel string) {
 	// initialize
