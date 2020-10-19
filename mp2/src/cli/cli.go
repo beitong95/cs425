@@ -276,20 +276,25 @@ func AutoUpdateCLI(ui tui.UI) {
 	}
 }
 
-func ParseCmd(history *tui.Box, input *tui.Entry, cmd string, commands []string) (string, string) {
+func ParseCmd(history *tui.Box, input *tui.Entry, cmd string, commands []string) (string, string, string) {
 	Write2Shell(history, cmd)
 	cmds := strings.Fields(cmd)
 	mainCmd := ""
-	subCmd := ""
+	filename1 := ""
+	filename2 := ""
 	if len(cmds) == 1 {
 		mainCmd = cmds[0]
-		subCmd = ""
 	} else if len(cmds) == 2{
+		// delete or ls
 		mainCmd = cmds[0]
-		subCmd = cmds[1]
+		filename1 = cmds[1]
+	} else if len(cmds) == 3{
+		mainCmd = cmds[0]
+		filename1 = cmds[1]
+		filename2 = cmds[2]
 	} else {
 		Write2Shell(history, "bad command format")
-		return "",""
+		return "","",""
 	}
 	input.SetText(">>")
 	wrongCommand := true
@@ -299,26 +304,32 @@ func ParseCmd(history *tui.Box, input *tui.Entry, cmd string, commands []string)
 		}
 	}
 	if wrongCommand == true {
-		return "",""
+		Write2Shell(history, "wrong command")
+		return "","",""
 	}
-	return mainCmd, subCmd
+	return mainCmd, filename1, filename2
 }
 
-func ParseCmdSimple(cmd string, commands []string) (string,string) {
+func ParseCmdSimple(cmd string, commands []string) (string,string,string) {
 		cmd = strings.Replace(cmd, "\r\n", "", -1)
 		cmd = strings.Replace(cmd, "\n", "", -1)
 		cmds := strings.Fields(cmd)
 		mainCmd := ""
-		subCmd := ""
+		filename1 := ""
+		filename2 := ""
 		if len(cmds) == 1 {
 			mainCmd = cmds[0]
-			subCmd = ""
 		} else if len(cmds) == 2{
+			// delete or ls
 			mainCmd = cmds[0]
-			subCmd = cmds[1]
+			filename1 = cmds[1]
+		} else if len(cmds) == 3{
+			mainCmd = cmds[0]
+			filename1 = cmds[1]
+			filename2 = cmds[2]
 		} else {
 			fmt.Println("bad command format")
-			return "",""
+			return "","",""
 		}
 		wrongCommand := true
 		for i := 0; i < len(commands); i++ {
@@ -327,8 +338,9 @@ func ParseCmdSimple(cmd string, commands []string) (string,string) {
 			}
 		}
 		if wrongCommand == true {
-			return "",""
+			fmt.Println("wrong command")
+			return "","",""
 		}
-		return mainCmd, subCmd
+		return mainCmd, filename1, filename2
 
 }

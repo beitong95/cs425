@@ -21,7 +21,7 @@ func main() {
 	//configFilePtr := flag.String("config", "../../config.json", "Location of Config File")
 	//myPortPtr := flag.String("port", "1234", "Port used for Debug on one machine")
 
-	identityPtr := flag.String("identity", "client", "identity: client, master, dataNode")
+	identityPtr := flag.String("identity", "client", "identity: client, master, datanode")
 
 	/**
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
@@ -45,7 +45,7 @@ func main() {
 		client.Run(*cliLevelPtr)
 	case "master":
 		master.Run(*cliLevelPtr)
-	case "dataNode":
+	case "datanode":
 		datanode.Run(*cliLevelPtr)
 	}
 

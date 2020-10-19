@@ -33,7 +33,7 @@ func cliDatanode() {
 	done := make(chan string)
 	// shell logic
 	input.OnSubmit(func(e *tui.Entry) {
-		cmd, _:= cli.ParseCmd(history, input,e.Text()[2:], commandsDatanode)
+		cmd, _, _:= cli.ParseCmd(history, input,e.Text()[2:], commandsDatanode)
 		if cmd == "" {
 			// wrong command
 			return
@@ -70,7 +70,7 @@ func cliSimpleDatanode() {
 	for {
 		fmt.Print("-> ")
 		cmd, _ := reader.ReadString('\n')
-		cmd, _ = cli.ParseCmdSimple(cmd, commandsDatanode)
+		cmd, _, _ = cli.ParseCmdSimple(cmd, commandsDatanode)
 		if cmd == "" {
 			// wrong command
 			continue

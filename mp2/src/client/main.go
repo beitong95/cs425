@@ -9,6 +9,7 @@ import (
 	"cli"
 	"networking"
 	"logger"
+	ds "datastructure"
 )
 /**
  Finished parts:
@@ -37,6 +38,8 @@ var (
 	muxMasterMembershipList sync.Mutex
 	client2MasterMessageUDP constant.UDPMessageClient2Master
 	isKickout bool
+	cmdQueue ds.CommandQueue
+	cmdStatusQueue ds.CommandQueue
 )
 
 func readUDPMessageMaster2Client(message []byte) error {
@@ -120,26 +123,61 @@ func connectMaster() {
 	}
 }
 
-/** TODO:
+func handleCommand(_cmd []string) {
+	cmd := _cmd[0]
+	filename1 := _cmd[1]
+	filename2 := _cmd[2]
+	cli.Write2Shell(history, cmd + filename1 + filename2)
+	switch cmd {
+		case "get":
+			//go getFile()
+			cli.Write2Shell(history, "TODO")
+		case "put":
+			//go putFile()
+			cli.Write2Shell(history, "TODO")
+		case "delete":
+			//go putFile()
+			cli.Write2Shell(history, "TODO")
+		case "ls":
+			//go lsFile()
+			cli.Write2Shell(history, "TODO")
+		case "store":
+			//go storeFile()
+			cli.Write2Shell(history, "TODO")
+	}
+}
 
-func readFileFromDatanode(filename string, ip string) {
-	networking.GetFTP(filename, ip)
+func handleCommands() {
+	cmd := []string{}
+	for {
+		for !cmdQueue.IsEmpty(){
+			cmd = cmdQueue.Dequeue()
+			handleCommand(cmd)
+		}
+		
+	}
+}
+/**
+// all commands should be parallel? 
+func downloadFileFromDatanode(filename string, ip string) (*file, error) {
+	//XINHANG
+	//http download file
+	//store in local location
 }
 
 func getFile(filename string, masterIp string) {
-	IPs, err := getDestnationFromMaster(filename, masterIP)
-	for i, v := range IPs {
-		file, err := readFileFromDatanode(filename, ip)
+	// command start 
+	IPs, err := networking.GetIPsFromMaster(filename, masterIP)
+	for i, ip := range IPs {
+		file, err := downloadFileFromDatanode(filename, ip)
 		if err == nil {
 			break 
 		}
 		if i == len(IPs) - 1 {
-			//fatal error 
+			// fatal error all 4 data nodes down 
 		}
 	}
-	//store the file into local location 
-	//compare two files if the get file exist and output prompt
-	 
+	// command end
 }
 
 
@@ -168,11 +206,19 @@ func deleteFile(filename string, masterIP string) {
 	// wait for master's ACK	
 }
 
+func lsFile() {
+
+}
+
+func storeFile() {
+
+}
 **/
 
 func Run(cliLevel string) {
 	// initialize
 	constant.KickoutRejoinCmd = make(chan string)
+	cmdQueue = ds.CommandQueue{}
 	_masterMembershipList = masterMembershipList{}
 	_masterMembershipList.Heartbeat = 0
 	clientIP, _ := networking.GetLocalIP()
@@ -184,6 +230,7 @@ func Run(cliLevel string) {
 	go networking.UDPlisten(constant.UDPportMaster2Client, readUDPMessageMaster2Client)
 	go connectMaster()
 	go detectMasterFail()
+	go handleCommands()
 	if cliLevel == "cli" {
 		cliClient()
 	} else {

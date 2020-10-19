@@ -37,7 +37,7 @@ func cliMaster() {
 	done := make(chan string)
 	// shell logic
 	input.OnSubmit(func(e *tui.Entry) {
-		cmd, _:= cli.ParseCmd(history, input,e.Text()[2:], commandsMaster)
+		cmd, filename1, _:= cli.ParseCmd(history, input,e.Text()[2:], commandsMaster)
 		if cmd == "" {
 			// wrong command
 			return
@@ -46,7 +46,7 @@ func cliMaster() {
 		case "help":
 			cli.Write2Shell(history, getMasterHelp())
 		case "ls":
-			cli.Write2Shell(history,"TODO")
+			cli.Write2Shell(history, filename1)
 		case "store":
 			cli.Write2Shell(history, "TODO")
 		case "exit":
@@ -76,7 +76,7 @@ func cliSimpleMaster() {
 	for {
 		fmt.Print("-> ")
 		cmd, _ := reader.ReadString('\n')
-		cmd, _ = cli.ParseCmdSimple(cmd, commandsMaster)
+		cmd, filename1, _ := cli.ParseCmdSimple(cmd, commandsMaster)
 		if cmd == "" {
 			// wrong command
 			continue
@@ -88,7 +88,7 @@ func cliSimpleMaster() {
 		case "help":
 			fmt.Println(strings.Replace(getMasterHelp(),"\t","",-1))
 		case "ls":
-			fmt.Println("TODO")
+			fmt.Println(filename1)
 		case "store":
 			fmt.Println("TODO")
 		case "exit":

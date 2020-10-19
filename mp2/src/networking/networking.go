@@ -220,3 +220,14 @@ func HTTPstart(port string){
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, nil))
 }
+
+/**
+func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
+	
+	// XINHANG
+	// send request to master server 
+	// get IPs	
+	
+	return IPs, nil
+}
+**/

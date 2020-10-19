@@ -11,15 +11,16 @@ import (
 	"time"
 )
 
-var commandsClient = []string{"get", "set", "delete", "store", "exit", "help"}
+var commandsClient = []string{"get", "put", "delete", "store", "ls", "exit", "help"}
 
 func getClientHelp() string{
-	return `help                        -> help inFormation
-			get filename                -> read file from HDFS
-			set filename (newfilename)  -> write file to HDFS
-			delete filename             -> delete file in HDFS	
-			store                       -> list files stored on local disk
-			exit                        -> exit from HDFS`
+	return `help                            -> help inFormation
+			get sdfsfilename localfilename  -> read file from HDFS
+			put localfilename sdfsfilename  -> write file to HDFS
+			delete sdfsfilename             -> delete file in HDFS	
+			ls sdfsfilename                 -> list all VMs where the file is stored
+			store                           -> list files stored on local disk
+			exit                            -> exit from HDFS`
 }
 var (
 	history *tui.Box
@@ -54,7 +55,7 @@ func cliClient() {
 				os.Exit(1)
 			}
 		} else {
-			cmd, _:= cli.ParseCmd(history,input, _cmd, commandsClient)
+			cmd, filename1, filename2 := cli.ParseCmd(history,input, _cmd, commandsClient)
 			if cmd == "" {
 				// wrong command
 				return
@@ -63,13 +64,15 @@ func cliClient() {
 			case "help":
 				cli.Write2Shell(history,getClientHelp())
 			case "get":
-				cli.Write2Shell(history, "TODO")
-			case "set":
-				cli.Write2Shell(history, "TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
+			case "put":
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "delete":
-				cli.Write2Shell(history, "TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
+			case "ls":
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "store":
-				cli.Write2Shell(history, "TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "exit":
 				time.Sleep(time.Duration(500) * time.Millisecond)
 				ui.Quit()
@@ -109,7 +112,7 @@ func cliSimpleClient() {
 				os.Exit(1)
 			}
 		} else {
-			cmd, _ = cli.ParseCmdSimple(cmd, commandsClient)
+			cmd, filename1, filename2 := cli.ParseCmdSimple(cmd, commandsClient)
 			if cmd == "" {
 				// wrong command
 				continue
@@ -121,13 +124,15 @@ func cliSimpleClient() {
 			case "help":
 				fmt.Println(strings.Replace(getClientHelp(),"\t","",-1))
 			case "get":
-				fmt.Println("TODO")
-			case "set":
-				fmt.Println("TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
+			case "put":
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "delete":
-				fmt.Println("TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
+			case "ls":
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "store":
-				fmt.Println("TODO")
+				cmdQueue.Enqueue([]string{cmd, filename1, filename2})
 			case "exit":
 				os.Exit(1)
 			}
