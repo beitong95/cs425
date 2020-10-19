@@ -10,8 +10,24 @@ import (
 	"networking"
 	"logger"
 )
+/**
+ Finished parts:
+ 1. connect to master
+ 2. detect master fail
+ 3. reconnect master if master fails
+ 4. kick out prompt
+ 5. kick out and rejoin 
 
-type masterMembershipList struct {
+ TODO: 
+ 1. get
+ 2. put
+ 3. abort current command when master fails
+ 4. resend current command if current command fails
+ 5. command queue or command mutual exclusion 
+ ( command queue: allow user input multi commands in a short time. 
+   command mutual exclusion: user cannot type new command until current command finishs)
+**/
+ type masterMembershipList struct {
 	Heartbeat int64
 }
 
@@ -41,15 +57,15 @@ func readUDPMessageMaster2Client(message []byte) error {
 	if remoteMessage.MessageType == "ACK" {
 		// this message is the ack to connect request
 		isConnected = true 
-		cli.Write2ClientMasterStatus("CONN")
+		cli.Write2ClientMasterStatus(clientMasterStatusLabel, "CONN")
 		// log success connect to master
-		cli.Write2Shell("Successfully connect to master")
+		cli.Write2Shell(history, "Successfully connect to master")
 		logger.LogSimpleInfo("Successfully connect to master")			
 	} else if remoteMessage.MessageType == "KICKOUT" {
-		cli.Write2ClientMasterStatus("KICKED")
-		cli.Write2Shell("You are kicked out because of inactive")
+		cli.Write2ClientMasterStatus(clientMasterStatusLabel, "KICKED")
+		cli.Write2Shell(history,"You are kicked out because of inactive")
 		logger.LogSimpleInfo("You are kicked out because of inactive")	
-		cli.Write2Shell("Rejoin Y/N")
+		cli.Write2Shell(history, "Rejoin Y/N")
 		constant.IsKickout = true
 		cmd := <-constant.KickoutRejoinCmd
 		if cmd == "true" {
@@ -69,8 +85,8 @@ func detectMasterFail() {
 			muxMasterMembershipList.Unlock()
 			
 			if diff > constant.MasterTimeout {
-				cli.Write2ClientMasterStatus("FAIL")
-				cli.Write2Shell("detect master fail")
+				cli.Write2ClientMasterStatus(clientMasterStatusLabel, "FAIL")
+				cli.Write2Shell(history, "detect master fail")
 				logger.LogSimpleInfo("detect master fail")
 				isConnected = false
 				break
@@ -85,11 +101,11 @@ func connectMaster() {
 	for {
 		if isConnected == false {
 			if connectCount == 0 {
-				cli.Write2Shell("Send connect request to master")
+				cli.Write2Shell(history, "Send connect request to master")
 				logger.LogSimpleInfo("Send connect request to master")
 				// log send connect request to master
 			} else {
-				cli.Write2Shell("Connect request Fail. Resend connect request to master")
+				cli.Write2Shell(history, "Connect request Fail. Resend connect request to master")
 				logger.LogSimpleInfo("Connect request Fail. Resend connect request to master")
 				// log connect fail resend connect request
 			}
@@ -168,5 +184,9 @@ func Run(cliLevel string) {
 	go networking.UDPlisten(constant.UDPportMaster2Client, readUDPMessageMaster2Client)
 	go connectMaster()
 	go detectMasterFail()
-	cli.Run(cliLevel, "client")
+	if cliLevel == "cli" {
+		cliClient()
+	} else {
+		cliSimpleClient()
+	}
 } 

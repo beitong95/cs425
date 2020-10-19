@@ -9,42 +9,17 @@ import (
 	"sync"
 )
 
-func getHelp() string {
-	switch _identity {
-	case "client":
-		return `help                        -> help inFormation
-				get filename                -> read file from HDFS
-				set filename (newfilename)  -> write file to HDFS
-				delete filename             -> delete file in HDFS	
-				store                       -> list files stored on local disk
-				exit                        -> exit from HDFS`
-	case "master":
-		return `help                        -> help inFormation
-				ls filename                 -> list where is this file stores in HDFS
-				store                       -> list files stored on local disk
-				exit                        -> exit from HDFS`
-	case "dataNode":
-		return `help                        -> help inFormation
-				store                       -> list files stored on local disk
-				exit                        -> exit from HDFS`
-	default:
-		return "unknown identity"
-	}
-}
-
-var commandsClient = []string{"get", "set", "delete", "store", "exit", "help"}
-var commandsMaster= []string{"ls", "store", "exit", "help"}
-var commandsDataNode = []string{"store", "exit", "help"}
 const UPDATESHELL = 500
-func createShell() {
-	history = tui.NewVBox()
+
+func CreateShell() (*tui.Box, *tui.Entry, *tui.Box){
+	history := tui.NewVBox()
 	historyScroll := tui.NewScrollArea(history)
 	historyScroll.SetAutoscrollToBottom(true)
 
 	historyBox := tui.NewVBox(historyScroll)
 	historyBox.SetBorder(true)
 
-	input = tui.NewEntry()
+	input := tui.NewEntry()
 	input.SetFocused(true)
 	input.SetText(">>")
 	input.SetSizePolicy(tui.Expanding, tui.Maximum)
@@ -54,34 +29,43 @@ func createShell() {
 	inputBox.SetSizePolicy(tui.Expanding, tui.Maximum)
 
 	// combine history and input to get shell
-	shell = tui.NewVBox(historyBox, inputBox)
+	shell := tui.NewVBox(historyBox, inputBox)
 	shell.SetSizePolicy(tui.Expanding, tui.Expanding)
+	return history, input, shell
 }
 
-func Write2Shell(text string) {
-	history.Append(tui.NewHBox(
-		tui.NewLabel(time.Now().Format("15:04")),
-		tui.NewLabel(" "),
-		tui.NewLabel(text),
-		tui.NewSpacer(),
-	))
+func Write2Shell(history *tui.Box, text string) {
+	if history == nil {
+		fmt.Println(text)
+	} else {
+		history.Append(tui.NewHBox(
+			tui.NewLabel(time.Now().Format("15:04")),
+			tui.NewLabel(" "),
+			tui.NewLabel(text),
+			tui.NewSpacer(),
+		))
+	}
 }
 
-func createClientMasterStatusBox() {
-	clientMasterStatusLabel = tui.NewLabel("UNCONN")
+func CreateClientMasterStatusBox() (*tui.Box, *tui.Label) {
+	clientMasterStatusLabel := tui.NewLabel("UNCONN")
 	clientMasterStatusLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
-	clientMasterStatusBox = tui.NewVBox(clientMasterStatusLabel)
+	clientMasterStatusBox := tui.NewVBox(clientMasterStatusLabel)
 	clientMasterStatusBox.SetTitle("MasterStatus")
 	clientMasterStatusBox.SetBorder(true)
+	return clientMasterStatusBox, clientMasterStatusLabel
 }
 
-func Write2ClientMasterStatus(text string) {
+func Write2ClientMasterStatus(clientMasterStatusLabel *tui.Label ,text string) {
+	if clientMasterStatusLabel == nil {
+		return
+	}
 	clientMasterStatusLabel.SetText(text)
 }
 
-func createMasterMembershipBox() {
-	masterClientMembershipLabel = tui.NewLabel("")
-	masterDatanodeMembershipLabel = tui.NewLabel("")
+func CreateMasterMembershipBox() (*tui.Box, *tui.Label, *tui.Label) {
+	masterClientMembershipLabel := tui.NewLabel("")
+	masterDatanodeMembershipLabel := tui.NewLabel("")
 	masterClientMembershipLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
 	masterDatanodeMembershipLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
 
@@ -92,16 +76,24 @@ func createMasterMembershipBox() {
 	masterDatanodeMembershipBox.SetTitle("datanode membershiplist")
 	masterDatanodeMembershipBox.SetBorder(true)
 
-	masterMembershipBox = tui.NewHBox(masterClientMembershipBox, masterDatanodeMembershipBox)
+	masterMembershipBox := tui.NewHBox(masterClientMembershipBox, masterDatanodeMembershipBox)
+	return masterMembershipBox, masterClientMembershipLabel, masterDatanodeMembershipLabel
 }
 
-func Write2MasterClientMembershipBox(text string) {
+func Write2MasterClientMembershipBox(masterClientMembershipLabel *tui.Label, text string) {
+	if masterClientMembershipLabel == nil {
+		return
+	}
 	masterClientMembershipLabel.SetText(text)
 }
 
-func Write2MasterDatanodeMembershipBox(text string) {
+func Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel *tui.Label, text string) {
+	if masterDatanodeMembershipLabel == nil {
+		return
+	}
 	masterDatanodeMembershipLabel.SetText(text)
 }
+
 func ConvertMasterClientMembershipList2String(membershipList map[string] int64, muxClientMembershipList sync.Mutex) string {
 	var res []string
 	if membershipList == nil {
@@ -275,7 +267,7 @@ func ConvertMasterDatanodeMembershipList2String(membershipList map[string] int64
 }
 
 
-func autoUpdateCLI() {
+func AutoUpdateCLI(ui tui.UI) {
 	for {
 		ui.Update(func(){
 
@@ -284,8 +276,8 @@ func autoUpdateCLI() {
 	}
 }
 
-func parseCmd(cmd string) (string, string) {
-	Write2Shell(cmd)
+func ParseCmd(history *tui.Box, input *tui.Entry, cmd string, commands []string) (string, string) {
+	Write2Shell(history, cmd)
 	cmds := strings.Fields(cmd)
 	mainCmd := ""
 	subCmd := ""
@@ -296,21 +288,11 @@ func parseCmd(cmd string) (string, string) {
 		mainCmd = cmds[0]
 		subCmd = cmds[1]
 	} else {
-		Write2Shell("bad command format")
-		Write2Shell(getHelp())
+		Write2Shell(history, "bad command format")
 		return "",""
 	}
 	input.SetText(">>")
 	wrongCommand := true
-	commands := make([]string, 0)
-	switch _identity {
-	case "client":
-		commands = commandsClient
-	case "master":
-		commands = commandsMaster
-	case "dataNode":
-		commands = commandsDataNode
-	}
 	for i := 0; i < len(commands); i++ {
 		if commands[i] == strings.Fields(cmd)[0] {
 			wrongCommand = false
@@ -322,7 +304,7 @@ func parseCmd(cmd string) (string, string) {
 	return mainCmd, subCmd
 }
 
-func parseCmdSimple(cmd string) (string,string) {
+func ParseCmdSimple(cmd string, commands []string) (string,string) {
 		cmd = strings.Replace(cmd, "\r\n", "", -1)
 		cmd = strings.Replace(cmd, "\n", "", -1)
 		cmds := strings.Fields(cmd)
@@ -336,19 +318,9 @@ func parseCmdSimple(cmd string) (string,string) {
 			subCmd = cmds[1]
 		} else {
 			fmt.Println("bad command format")
-			fmt.Println(strings.Replace(getHelp(),"\t","",-1))
 			return "",""
 		}
 		wrongCommand := true
-		commands := make([]string, 0)
-		switch _identity {
-		case "client":
-			commands = commandsClient
-		case "master":
-			commands = commandsMaster
-		case "dataNode":
-			commands = commandsDataNode
-		}
 		for i := 0; i < len(commands); i++ {
 			if commands[i] == cmd {
 				wrongCommand = false
