@@ -123,7 +123,7 @@ func rereplica(filename string) {
 	var replica = ""
 	for ip := range Vm2fileMap {
 		var found = find(filename, ip)
-		if replica == "" {
+		if replica == "" && !found {
 			replica = ip
 		} else if len(Vm2fileMap[ip]) < len(Vm2fileMap[replica]) && !found {
 			replica = ip
