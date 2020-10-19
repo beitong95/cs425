@@ -11,7 +11,9 @@ import (
 func CliClient() {
 	done := make(chan string)
 	//create shell
+	
 	createShell()
+	createClientMasterStatusBox()
 	// shell logic
 	input.OnSubmit(func(e *tui.Entry) {
 		// rejoin cmd
@@ -54,7 +56,7 @@ func CliClient() {
 		} 
 	})
 
-	root := tui.NewVBox(shell)
+	root := tui.NewVBox(clientMasterStatusBox, shell)
 	var er error
 	ui, er = tui.New(root)
 	if er != nil {
@@ -66,6 +68,6 @@ func CliClient() {
 		os.Exit(1)
 	})
 	go ui.Run()
-	go autoUpdateShell()
+	go autoUpdateCLI()
 	<-done
 }
