@@ -136,7 +136,7 @@ func handleCommand(_cmd []string) {
 			//go putFile()
 			cli.Write2Shell(history, "TODO")
 		case "delete":
-			//go putFile()
+			//go deleteFile()
 			cli.Write2Shell(history, "TODO")
 		case "ls":
 			//go lsFile()
@@ -164,7 +164,7 @@ func downloadFileFromDatanode(filename string, ip string) (*file, error) {
 	//store in local location
 }
 
-func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
+func getIPsFromMaster(filename string, masterIP string) ([]string, error) {
 	
 	// XINHANG
 	// send request to master server 
@@ -175,7 +175,7 @@ func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
 
 func getFile(filename string, masterIp string) {
 	// command start 
-	IPs, err := networking.GetIPsFromMaster(filename, masterIP)
+	IPs, err := networking.getIPsFromMaster(filename, masterIP)
 	for i, ip := range IPs {
 		file, err := downloadFileFromDatanode(filename, ip)
 		if err == nil {
@@ -190,10 +190,6 @@ func getFile(filename string, masterIp string) {
 
 
 func putFile(filename string, masterIP string, action string) {
-	switch action {
-	case "update": updateFile(filename, masterIP)
-	case "delete": deleteFile(filename, masterIP)
-	}
 
 }
 
