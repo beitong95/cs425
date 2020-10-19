@@ -4,6 +4,9 @@ import (
 	"errors"
 	"encoding/json"
 	"constant"
+	"net/http"
+	"io/ioutil"
+	"log"
 )
 
 func GetLocalIP() (string, error) {
@@ -95,19 +98,53 @@ func DecodeUDPMessageClient2Master(message []byte) (*constant.UDPMessageClient2M
 	return list, err
 } 
 
-/** TODO:
-func TCPsend(){
+// func TCPsend(ip string, port string, message []byte) {
 
+
+// }
+
+// func TCPlisten(port string, callback func(message []byte)) {
+// 	port = ":" + port
+// 	handleConnection := func(conn TCPconn) {
+// 		for{
+// 			buffer := make([]byte, 4096)
+// 			n, err := conn.Read(buffer)
+// 			if err != nil{
+// 				panic(err)
+// 			}
+// 			callback(buffer[0:n])
+// 		}
+// 	}
+// 	ln, err := net.Listen("tcp", port)
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	for {
+// 		conn, err := ln.Accept()
+// 		if err != nil {
+// 			panic(err)
+// 		}
+// 		go handleConnection(conn)
+// 	}
+// }
+func HTTPsend(url string)[]byte{
+	resp, err := http.Get(url)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil{
+		panic(err)
+	}
+	return body
 }
 
-func TCPlisten(){
-	
+func HTTPlisten(endpoint string, handler func(w http.ResponseWriter, req *http.Request)){
+	http.HandleFunc(endpoint, handler)
 }
 
-func FTPsend() {
+func HTTPstart(port string){
+	port = ":" + port
+	log.Fatal(http.ListenAndServe(port, nil))
 }
-
-func FTPlisten() {
-
-}
-**/
