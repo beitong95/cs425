@@ -159,8 +159,8 @@ func HTTPsend(url string)[]byte{
 func HTTPlisten(endpoint string, handler func(w http.ResponseWriter, req *http.Request)){
 	http.HandleFunc(endpoint, handler)
 }
-func HTTPfileServer(port string){
-	fs := http.FileServer(http.Dir("/Users/chenxinhang/Downloads"))
+func HTTPfileServer(port string, dir string){
+	fs := http.FileServer(http.Dir(dir))
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, fs))
 }
