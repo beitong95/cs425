@@ -12,6 +12,24 @@ import (
 	"fmt"
 )
 
+/**
+Finished:
+1. detect inactive client
+2. handle client connection
+3. maintain client membershiplist
+4. handle datanode connection
+5. detect datanode fail
+6. maintain datanode membershiplist
+
+TODO:
+1. master read in client commands and put them in queue
+2. master process those commands, allow parallel read or single write (because we use a queue, there is no starving problem)
+3. given a file name locate the 4 copies' ips
+4. handle datanode fail, create an rereplica algorithm
+5. maintain vm2file and file2vm
+
+**/
+
 
 type vm2fileMap map[string] []string
 
@@ -76,6 +94,9 @@ func HandleMessage() {
 		var cmd = dequeue()
 		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
 			//handle write, wait for reads (count acks)
+			// I am not sure if this is hanging
+			// we can use wait group(like semaphore)
+			
 			for {
 				MW.Lock()
 				MR.Lock()

@@ -10,8 +10,24 @@ import (
 	"networking"
 	"logger"
 )
+/**
+ Finished parts:
+ 1. connect to master
+ 2. detect master fail
+ 3. reconnect master if master fails
+ 4. kick out prompt
+ 5. kick out and rejoin 
 
-type masterMembershipList struct {
+ TODO: 
+ 1. get
+ 2. put
+ 3. abort current command when master fails
+ 4. resend current command if current command fails
+ 5. command queue or command mutual exclusion 
+ ( command queue: allow user input multi commands in a short time. 
+   command mutual exclusion: user cannot type new command until current command finishs)
+**/
+ type masterMembershipList struct {
 	Heartbeat int64
 }
 
