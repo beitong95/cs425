@@ -31,8 +31,12 @@ func TestHTTP(t *testing.T){
 		fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 	}
 	networking.HTTPlisten("/hello", handler)
+	networking.HTTPlistenDownload("./")
+	go networking.HTTPfileServer("5000")
 	go networking.HTTPstart("3000")
-	body := networking.HTTPsend("http://127.0.0.1:3000/hello")
-	fmt.Println(string(body))
+	content := networking.HTTPuploadFile("http://127.0.0.1:3000/put", "networking_test.go", "test")
+	fmt.Println(string(content))
+	// body := networking.HTTPsend("http://127.0.0.1:3000/hello")
+	// fmt.Println(string(body))
 	
 }

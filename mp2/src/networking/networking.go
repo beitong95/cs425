@@ -7,7 +7,14 @@ import (
 	"net/http"
 	"io/ioutil"
 	"log"
+	"os"
+	"time"
+	"io"
+	"bytes"
+	"mime/multipart"
 )
+
+var	c *http.Client = &http.Client{Timeout: time.Second * 3}
 
 func GetLocalIP() (string, error) {
 	addrs, _ := net.InterfaceAddrs()
@@ -152,7 +159,63 @@ func HTTPsend(url string)[]byte{
 func HTTPlisten(endpoint string, handler func(w http.ResponseWriter, req *http.Request)){
 	http.HandleFunc(endpoint, handler)
 }
+func HTTPfileServer(port string){
+	fs := http.FileServer(http.Dir("/Users/chenxinhang/Downloads"))
+	port = ":" + port
+	log.Fatal(http.ListenAndServe(port, fs))
+}
+func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
+    buf := new(bytes.Buffer)
+    writer := multipart.NewWriter(buf)
+    formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
+    if err != nil {
+        log.Fatalf("Create form file failed: %s\n", err)
+    }
+    srcFile, err := os.Open(filename)
+    if err != nil {
+        log.Fatalf("%Open source file failed: s\n", err)
+    }
+    defer srcFile.Close()
+    _, err = io.Copy(formFile, srcFile)
+    if err != nil {
+        log.Fatalf("Write to form file falied: %s\n", err)
+    }
+    contentType := writer.FormDataContentType()
+    writer.Close() 
+    resp, err := http.Post(url, contentType, buf)
+    if err != nil {
+        log.Fatalf("Post failed: %s\n", err)
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil{
+		panic(err)
+	}
+	return body
+}
+func HTTPlistenDownload(BaseUploadPath string){
+	Download := func(w http.ResponseWriter, r *http.Request){
+		formFile, header, err := r.FormFile("uploadfile")
+    if err != nil {
+        log.Printf("Get form file failed: %s\n", err)
+        return
+    }
+	defer formFile.Close()
+	
+    destFile, err := os.Create("./" + header.Filename)
+    if err != nil {
+        log.Printf("Create failed: %s\n", err)
+        return
+    }
+    defer destFile.Close()
 
+    _, err = io.Copy(destFile, formFile)
+		if err != nil {
+			log.Printf("Write file failed: %s\n", err)
+			return
+		}
+	}
+	http.HandleFunc("/put", Download)
+}
 func HTTPstart(port string){
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, nil))
