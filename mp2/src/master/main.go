@@ -8,11 +8,8 @@ import (
 	"cli"
 	"networking"
 	"constant"
-<<<<<<< HEAD
 	"strings"
-=======
 	_ "fmt"
->>>>>>> e47c9a44e7b9f14a139dd6d06418ca9de53a9e18
 )
 
 
@@ -34,10 +31,14 @@ var WriteCounter int = 0
 
 type clientMembershipList map[string] int64
 // map [client ip] last active time
+type datanodeMembershipList map[string] int64
+// map [datanode ip] heartbeat
 
 var (
 	_clientMembershipList clientMembershipList
+	_datanodeMembershipList datanodeMembershipList
 	muxClientMembershipList sync.Mutex
+	muxDatanodeMembershipList sync.Mutex
 )
 func enqueue(cmd string, queue []string){
 	append(queue,cmd)
@@ -48,7 +49,6 @@ func dequeue(queue []string) string{
 		return nil
 	}
 	if len(queue) == 1 {
-		queue = []
 		return queue[0]
 	}
 	queue = queue[1:]
@@ -96,7 +96,7 @@ func handleCmd(cmd string) {
 		MR.Unlock()
 	}
 }
-
+// handle udp message from client
 func readUDPMessageClient2Master(message []byte) error {
 	remoteMessage, err := networking.DecodeUDPMessageClient2Master(message)
 	if err != nil {
@@ -130,7 +130,7 @@ func detectClientInactive() {
 		currentTime := time.Now().UnixNano()/1000000
 		for i,v := range _clientMembershipList {
 			// kick out 1min inactive client (actual time 1min20s)
-			if  currentTime - v > constant.KickoutInactiveClientPeriod  {
+			if  currentTime - v > constant.KickoutTimeout  {
 				// send kick out and delete
 				logger.LogSimpleInfo("send kickout to " + i)
 				cli.Write2Shell("send kickout to "+ i)
@@ -141,7 +141,7 @@ func detectClientInactive() {
 		}
 		muxClientMembershipList.Unlock()
 		// every 20s check it
-		time.Sleep(constant.CheckInactiveClientPeriod* time.Millisecond)
+		time.Sleep(constant.CheckInactiveClientInterval* time.Millisecond)
 	}
 }
 
@@ -154,16 +154,64 @@ func sendHeartbeat2Clients() {
 			cli.Write2Shell("send heartbeat to "+ i)
 			networking.UDPsend(i, constant.UDPportMaster2Client, message)
 		} 
-		time.Sleep(constant.MasterSendHeartbeat2ClientPeriod* time.Millisecond)
+		time.Sleep(constant.MasterSendHeartbeat2ClientInterval* time.Millisecond)
 	}
 
 
 }
 
+// handle udp message from datanode
+func readUDPMessageDatanode2Master(message []byte) error {
+	remoteMessage, err := networking.DecodeUDPMessageDatanode2Master(message)
+	id := remoteMessage.ID
+	if err != nil {
+		// log err
+	}
+	if remoteMessage.MessageType == "HEARTBEAT" {
+		muxDatanodeMembershipList.Lock()
+		newHeartbeat := remoteMessage.Heartbeat
+
+		if _, ok := _datanodeMembershipList[id]; !ok {
+			// new datanode
+			logger.LogSimpleInfo(id + " join with heartbeat" + fmt.Sprintf("%v", newHeartbeat))
+			_datanodeMembershipList[id].Heartbeat = newHeartbeat
+		} else {
+			if newHeartbeat > _datanodeMembershipList[id].Heartbeat {
+				logger.LogSimpleInfo(id + " update heartbeat from " + fmt.Sprintf("%v", _datanodeMembershipList[id].Heartbeat) + " to " + fmt.Sprintf("%v", newHeartbeat))
+				_datanodeMembershipList[id].Heartbeat = newHeartbeat
+			}
+		}
+
+		muxDatanodeMembershipList.Unlock()
+	}
+	return nil
+}
+
+func detectDatanodeFail() {
+	for {
+		currentTime := time.Now().UnixNano()/1000000
+		muxMasterMembershipList.Lock()
+		for i, v := range _datanodeMembershipList {
+			diff := currentTime - _datanodeMembershipList.Heartbeat
+			if diff > constant.DatanodeTimeout {
+				logger.LogSimpleInfo("detect data node fail " + i)
+				delete(_datanodeMembershipList, i)
+				logger.LogSimpleInfo("remove node " + i)
+			}
+		}
+		muxMasterMembershipList.Unlock()
+		
+		time.Sleep(constant.MasterDetectDatanodeFailInterval* time.Millisecond)
+	}
+}
+
 func Run(cliLevel string) {
 	_clientMembershipList = clientMembershipList{}
+	_datanodeMembershipList = datanodeMembershipList{}
 	go networking.UDPlisten(constant.UDPportClient2Master, readUDPMessageClient2Master)
+	go networking.UDPlisten(constant.UDPportDatanode2Master, readUDPMessageDatanode2Master)
 	go detectClientInactive()
+	go detectDatanodeFail()
 	go sendHeartbeat2Clients()
 	cli.Run(cliLevel, "master")
 } 

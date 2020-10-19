@@ -75,9 +75,8 @@ func EncodeUDPMessageClient2Master(list *constant.UDPMessageClient2Master) ([]by
 	message, err := json.Marshal(list)
 	return message, err
 }
-// master to client
-func DecodeUDPMessageMaster2Client(message []byte) (*constant.UDPMessageMaster2Client, error) {
-	list := &constant.UDPMessageMaster2Client{}
+func DecodeUDPMessageClient2Master(message []byte) (*constant.UDPMessageClient2Master, error) {
+	list := &constant.UDPMessageClient2Master{}
 	err := json.Unmarshal(message, list)
 
 	return list, err
@@ -87,9 +86,19 @@ func EncodeUDPMessageMaster2Client(list *constant.UDPMessageMaster2Client) ([]by
 	message, err := json.Marshal(list)
 	return message, err
 }
-// client to master
-func DecodeUDPMessageClient2Master(message []byte) (*constant.UDPMessageClient2Master, error) {
-	list := &constant.UDPMessageClient2Master{}
+func DecodeUDPMessageMaster2Client(message []byte) (*constant.UDPMessageMaster2Client, error) {
+	list := &constant.UDPMessageMaster2Client{}
+	err := json.Unmarshal(message, list)
+
+	return list, err
+} 
+// datanode to master 
+func EncodeUDPMessageDatanode2Master(list *constant.UDPMessageDatanode2Master) ([]byte, error){
+	message, err := json.Marshal(list)
+	return message, err
+}
+func DecodeUDPMessageDatanode2Master(message []byte) (*constant.UDPMessageDatanode2Master, error) {
+	list := &constant.UDPMessageDatanode2Master{}
 	err := json.Unmarshal(message, list)
 
 	return list, err

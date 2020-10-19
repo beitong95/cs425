@@ -9,6 +9,12 @@ type UDPMessageMaster2Client struct {
 	Heartbeat int64
 	MessageType string // ls ack heartbeat kickout
 }
+
+type UDPMessageDatanode2Master struct {
+	ID string
+	Heartbeat int64
+	MessageType string // heartbeat 
+}
 /** TODO:
 type Master2ClientMessageTCP struct {
 	IPs []string

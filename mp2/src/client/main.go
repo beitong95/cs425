@@ -72,7 +72,7 @@ func detectMasterFail() {
 				break
 			}
 		}
-		time.Sleep(constant.ClientFailDetectPeriod * time.Millisecond)
+		time.Sleep(constant.ClientDetectMasterFailInterval * time.Millisecond)
 	}
 }
 
