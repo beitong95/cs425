@@ -41,10 +41,12 @@ func readUDPMessageMaster2Client(message []byte) error {
 	if remoteMessage.MessageType == "ACK" {
 		// this message is the ack to connect request
 		isConnected = true 
+		cli.Write2ClientMasterStatus("CONN")
 		// log success connect to master
 		cli.Write2Shell("Successfully connect to master")
 		logger.LogSimpleInfo("Successfully connect to master")			
 	} else if remoteMessage.MessageType == "KICKOUT" {
+		cli.Write2ClientMasterStatus("KICKED")
 		cli.Write2Shell("You are kicked out because of inactive")
 		logger.LogSimpleInfo("You are kicked out because of inactive")	
 		cli.Write2Shell("Rejoin Y/N")
@@ -67,6 +69,7 @@ func detectMasterFail() {
 			muxMasterMembershipList.Unlock()
 			
 			if diff > constant.MasterTimeout {
+				cli.Write2ClientMasterStatus("FAIL")
 				cli.Write2Shell("detect master fail")
 				logger.LogSimpleInfo("detect master fail")
 				isConnected = false

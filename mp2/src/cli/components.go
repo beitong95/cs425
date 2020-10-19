@@ -67,6 +67,18 @@ func Write2Shell(text string) {
 	))
 }
 
+func createClientMasterStatusBox() {
+	clientMasterStatusLabel = tui.NewLabel("UNCONN")
+	clientMasterStatusLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+	clientMasterStatusBox = tui.NewVBox(clientMasterStatusLabel)
+	clientMasterStatusBox.SetTitle("MasterStatus")
+	clientMasterStatusBox.SetBorder(true)
+}
+
+func Write2ClientMasterStatus(text string) {
+	clientMasterStatusLabel.SetText(text)
+}
+
 func createMasterMembershipBox() {
 	masterClientMembershipLabel = tui.NewLabel("")
 	masterDatanodeMembershipLabel = tui.NewLabel("")

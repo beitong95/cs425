@@ -14,6 +14,8 @@ var ui tui.UI
 var masterMembershipBox *tui.Box
 var masterClientMembershipLabel *tui.Label
 var masterDatanodeMembershipLabel *tui.Label
+var clientMasterStatusBox *tui.Box
+var clientMasterStatusLabel *tui.Label
 func Run(cliLevel string, identity string){
 	_identity = identity
 	switch cliLevel {
