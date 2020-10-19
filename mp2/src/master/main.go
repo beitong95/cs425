@@ -31,9 +31,9 @@ TODO:
 **/
 
 
-type vm2fileMap map[string] []string
+var Vm2fileMap map[string] []string
 
-type file2VmMap map[string] []string
+var File2VmMap map[string] []string
 
 var MessageQueue []string
 
@@ -42,6 +42,10 @@ var MQ sync.Mutex
 var MW sync.Mutex
 
 var MR sync.Mutex
+
+var MF sync.Mutex
+
+var MV sync.Mutex
 
 var ReadCounter int = 0
 
@@ -58,9 +62,76 @@ var (
 	muxClientMembershipList sync.Mutex
 	muxDatanodeMembershipList sync.Mutex
 )
+
+func FindMaxLen(ips []string) (int,string) {
+	var output = ""
+	var idx = 0
+    for i := 0; i < 4; i++ {
+		if output == "" {
+			output = ips[i]
+		} else if len(Vm2fileMap[ips[i]]) > len(Vm2fileMap[output]) {
+			output = ips[i]
+			idx = i
+		}
+	}
+	return idx,output
+}
+
+func Hash2Ips(filename string) {
+	// assert filename is name of new file!
+	var fourIps = []string{"","","",""}
+	MV.Lock()
+	for ip := range Vm2fileMap {
+		if fourIps[0] == "" {
+			fourIps[0] = ip
+		} else if fourIps[1] == "" {
+			fourIps[1] = ip
+		} else if fourIps[2] == "" {
+			fourIps[2] = ip
+		} else if fourIps[3] == "" {
+			fourIps[3] = ip
+		} else {
+			var idx,maxlen = FindMaxLen(fourIps)
+			if len(Vm2fileMap[ip]) < len(Vm2fileMap[maxlen]) {
+				fourIps[idx] = ip
+			}
+		}
+	}
+	for i := 0 ; i < 4; i++ {
+		Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]],filename)
+	}
+	MV.Unlock()
+	MF.Lock()
+	File2VmMap[filename] = fourIps
+	MF.Unlock()
+}
+
+func rereplica(filename string) {
+	MV.Lock()
+	var replica = ""
+	for ip := range Vm2fileMap {
+		if replica == "" {
+			replica = ip
+		} else if len(Vm2fileMap[ip]) < len(Vm2fileMap[replica]) {
+			replica = ip
+		}
+	}
+	Vm2fileMap[replica] = append(Vm2fileMap[replica],filename)
+	MV.Unlock()
+	MF.Lock()
+	File2VmMap[filename] = append(File2VmMap[filename],replica)
+	MF.Unlock()
+}
+
 func enqueue(cmd string){
 	MQ.Lock()
 	MessageQueue = append(MessageQueue,cmd)
+	MQ.Unlock()
+}
+
+func enqueue_front(cmd string) {
+	MQ.Lock()
+	MessageQueue = append([]string{cmd},MessageQueue...)
 	MQ.Unlock()
 }
 
@@ -92,7 +163,7 @@ func HandleMessage() {
 		//mutex
 		fmt.Println(MessageQueue)
 		var cmd = dequeue()
-		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
+		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") || strings.Contains(cmd,"replica") {
 			//handle write, wait for reads (count acks)
 			// I am not sure if this is hanging
 			// we can use wait group(like semaphore)
