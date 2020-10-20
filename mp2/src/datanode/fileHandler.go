@@ -1,24 +1,25 @@
 package datanode
 
 import (
+	"constant"
 	"fmt"
 	"io/ioutil"
 	"os"
-	"constant"
 )
 
 func CreateFile() {
 	err := os.Mkdir(constant.Dir, 0777)
 	fmt.Println(err)
+	FileList = []string{}
 }
 
 func Get(fileName string) ([]byte, string) {
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
 		fmt.Println(err)
-		return data,"Not Found"
+		return data, "Not Found"
 	}
-	return data,"Found"
+	return data, "Found"
 }
 
 func Put(fileName string, buf []byte) {
@@ -26,7 +27,7 @@ func Put(fileName string, buf []byte) {
 		// File does not exist
 		CreateFile()
 	}
-	var path = constant.Dir+"/" + fileName
+	var path = constant.Dir + "/" + fileName
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// filename exists
 		Delete(fileName)
@@ -34,15 +35,30 @@ func Put(fileName string, buf []byte) {
 	err := ioutil.WriteFile(path, buf, 0644)
 	if err != nil {
 		fmt.Println(err)
+		return
+	}
+	FileList = append(list, fileName)
+}
+
+func remove(filename string) []string {
+	for i, file := range FileList {
+		if file == filename {
+			if i == len(FileList)-1 {
+				return FileList[:i]
+			}
+			return append(FileList[:i], FileList[i+1:]...)
+		}
 	}
 }
 
 func Delete(fileName string) {
-	var path = constant.Dir+"/" + fileName
-	err := os.Remove(path) 
-    if err != nil { 
-        fmt.Println(err)
-    }
+	var path = constant.Dir + "/" + fileName
+	err := os.Remove(path)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	FileList = remove(fileName)
 }
 
 func List() []string {
@@ -53,7 +69,7 @@ func List() []string {
 	}
 	var output []string
 	for _, entry := range c {
-        output = append(output,entry.Name())
+		output = append(output, entry.Name())
 	}
 	return output
 }
