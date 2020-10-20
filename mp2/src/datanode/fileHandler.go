@@ -37,7 +37,7 @@ func Put(fileName string, buf []byte) {
 		fmt.Println(err)
 		return
 	}
-	FileList = append(list, fileName)
+	FileList = append(FileList, fileName)
 }
 
 func remove(filename string) []string {
@@ -49,6 +49,7 @@ func remove(filename string) []string {
 			return append(FileList[:i], FileList[i+1:]...)
 		}
 	}
+	return FileList
 }
 
 func Delete(fileName string) {
