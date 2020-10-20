@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"constant"
 )
 
 func CreateFile() {
-	err := os.Mkdir("../File", 0755)
+	err := os.Mkdir(constant.Dir, 0777)
 	fmt.Println(err)
 }
 
@@ -21,11 +22,11 @@ func Get(fileName string) ([]byte, string) {
 }
 
 func Put(fileName string, buf []byte) {
-	if _, err := os.Stat("../File"); os.IsNotExist(err) {
+	if _, err := os.Stat(constant.Dir); os.IsNotExist(err) {
 		// File does not exist
 		CreateFile()
 	}
-	var path = "../File/" + fileName
+	var path = constant.Dir+"/" + fileName
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// filename exists
 		Delete(fileName)
@@ -37,7 +38,7 @@ func Put(fileName string, buf []byte) {
 }
 
 func Delete(fileName string) {
-	var path = "../File/" + fileName
+	var path = constant.Dir+"/" + fileName
 	err := os.Remove(path) 
     if err != nil { 
         fmt.Println(err)
@@ -45,7 +46,7 @@ func Delete(fileName string) {
 }
 
 func List() []string {
-	var c, err = ioutil.ReadDir("../File")
+	var c, err = ioutil.ReadDir(constant.Dir)
 	if err != nil {
 		fmt.Println(err)
 		return nil

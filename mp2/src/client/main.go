@@ -1,15 +1,19 @@
 package client
 
 import (
-	_ "fmt"
-	_ "os"
+	"fmt"
+	 "os"
 	"sync"
 	"time"
 	"constant"
 	"cli"
 	"networking"
 	"logger"
+	"encoding/json"
 	ds "datastructure"
+	"log"
+	"io"
+	"net/http"
 )
 /**
  Finished parts:
@@ -130,21 +134,21 @@ func handleCommand(_cmd []string) {
 	cli.Write2Shell(history, cmd + filename1 + filename2)
 	switch cmd {
 		case "get":
-			sdfsfilename := filename1 
-			localfilename := filename2
+			// sdfsfilename := filename1 
+			// localfilename := filename2
 			//go getFile()
 			cli.Write2Shell(history, "TODO")
 		case "put":
-			sdfsfilename := filename2 
-			localfilename := filename1
+			// sdfsfilename := filename2 
+			// localfilename := filename1
 			//go putFile()
 			cli.Write2Shell(history, "TODO")
 		case "delete":
-			sdfsfilename := filename1 
+			// sdfsfilename := filename1 
 			//go deleteFile()
 			cli.Write2Shell(history, "TODO")
 		case "ls":
-			sdfsfilename := filename1 
+			// sdfsfilename := filename1 
 			//go lsFile()
 			cli.Write2Shell(history, "TODO")
 		case "store":
@@ -164,65 +168,85 @@ func handleCommands() {
 	}
 }
 // all commands should be parallel? 
-func downloadFileFromDatanode(filename string, ip string) (*file, error) {
-	//XINHANG
-	//http download file
-	//store in local location
-}
-
-func getIPsFromMaster(filename string, masterIP string) ([]string, error) {
-	
-	// XINHANG
-	// send request to master server 
-	// get IPs	
-	
-	return IPs, nil
-}
-
-func getFile(filename string, masterIp string) {
-	// command start 
-	IPs, err := networking.getIPsFromMaster(filename, masterIP)
-	for i, ip := range IPs {
-		file, err := downloadFileFromDatanode(filename, ip)
-		if err == nil {
-			break 
-		}
-		if i == len(IPs) - 1 {
-			// fatal error all 4 data nodes down 
-		}
+func DownloadFileFromDatanode(filename string,localfilename string,  ip string) (string, error) {
+	url := "http://" + ip + ":"+constant.HTTPClient2DataNodeDownload+"/"+filename
+	fmt.Println(url)
+	rsp, err := http.Get(url)
+	if err != nil{
+		return "Connection error", err
 	}
-	// command end
-}
-
-
-func putFile(filename string, masterIP string, action string) {
-
-}
-
-func updateFile(filename string, masterIP string) {
-	IPs, err := getDestnationFromMaster(filename, masterIP)
-	for _,v := range IPs {
-		err := networking.FTPsend(filename, v) 
+	fmt.Println(rsp.Header)
+	destFile, err := os.Create("./" + localfilename)
+	if err != nil{
+		log.Printf("Create file failed: %s\n", err)
+		return "Create Failed", err
 	}
-	// wait for master's ACK
+	_, err = io.Copy(destFile, rsp.Body)
+		if err != nil {
+			log.Printf("Write file failed: %s\n", err)
+			return "Write error", err
+	}
+	return "OK", nil
+}
+
+func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
+	url := "http://"+masterIP+":"+constant.HTTPportClient2Master+"/getips?file="+filename
+	body := networking.HTTPsend(url)
+	var ipList []string
+	err := json.Unmarshal([]byte(body), &ipList)
+	if err != nil{
+		return []string{}, err
+	}
+	fmt.Println(ipList)
+	return ipList, nil
+}
+
+// func GetFile(filename string, masterIP string) {
+// 	IPs, err := GetIPsFromMaster(filename, masterIP)
+// 	if err != nil{
+// 		panic(err)
+// 	}
+// 	for i, ip := range IPs {
+// 		file, err := DownloadFileFromDatanode(filename, ip)
+// 		if err == nil {
+// 			break 
+// 		}
+// 		if i == len(IPs) - 1 {
+			
+// 		}
+// 	}
+// 	// command end
+// }
+
+
+func PutFile(filename string, masterIP string, action string) {
+
+}
+
+// func UpdateFile(filename string, masterIP string) {
+// 	IPs, err := getDestnationFromMaster(filename, masterIP)
+// 	for _,v := range IPs {
+// 		err := networking.FTPsend(filename, v) 
+// 	}
+// 	// wait for master's ACK
 	
-}
+// }
 
-func deleteFile(filename string, masterIP string) {
-	IPs, err := getDestnationFromMaster(filename, masterIP)
-	for _,v := range IPs {
-		err := networking.FTPsend(filename, v) 
-	}
-	// wait for master's ACK	
-}
+// func DeleteFile(filename string, masterIP string) {
+// 	IPs, err := getDestnationFromMaster(filename, masterIP)
+// 	for _,v := range IPs {
+// 		err := networking.FTPsend(filename, v) 
+// 	}
+// 	// wait for master's ACK	
+// }
 
-func lsFile() {
+// func LsFile() {
 
-}
+// }
 
-func storeFile() {
+// func StoreFile() {
 
-}
+// }
 
 func Run(cliLevel string) {
 	// initialize
