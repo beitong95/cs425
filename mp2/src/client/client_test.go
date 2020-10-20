@@ -15,4 +15,18 @@ func TestDownloadFile(t *testing.T){
 		panic(err)
 	}
 	fmt.Println(status)
+	status, err = client.DownloadFileFromDatanode("2.txt","joke","localhost")
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(status)
+	status, err = client.DownloadFileFromDatanode("dsad","1","localhost")
+	if err != nil{
+		panic(err)
+	}
+	fmt.Println(status)
+}
+
+func TestGetFile(t *testing.T){
+	client.GetFile("1.txt","22", "127.0.0.1")
 }

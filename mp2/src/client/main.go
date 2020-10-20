@@ -14,6 +14,8 @@ import (
 	"log"
 	"io"
 	"net/http"
+	"errors"
+	"strings"
 )
 /**
  Finished parts:
@@ -37,6 +39,7 @@ import (
 }
 
 var (
+	ID string = fmt.Sprint(time.Now().UnixNano())
 	_masterMembershipList masterMembershipList 
 	isConnected bool
 	muxMasterMembershipList sync.Mutex
@@ -175,7 +178,27 @@ func DownloadFileFromDatanode(filename string,localfilename string,  ip string) 
 	if err != nil{
 		return "Connection error", err
 	}
-	fmt.Println(rsp.Header)
+	if rsp.Header["Content-Length"][0] == "19"{
+		fmt.Println("Possible empty")
+		buffer := make([]byte, 19)
+		rsp.Body.Read(buffer)
+		if string(buffer) == "404 page not found\n"{
+			return "File not found", errors.New("networking: file not found")
+		}else{
+			file := strings.NewReader(string(buffer))
+			destFile, err := os.Create("./" + localfilename)
+			if err != nil{
+				log.Printf("Create file failed: %s\n", err)
+				return "Create Failed", err
+			}
+			_, err = io.Copy(destFile, file)
+				if err != nil {
+					log.Printf("Write file failed: %s\n", err)
+					return "Write error", err
+			}
+			return "OK", nil
+		}
+	}
 	destFile, err := os.Create("./" + localfilename)
 	if err != nil{
 		log.Printf("Create file failed: %s\n", err)
@@ -201,27 +224,39 @@ func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
 	return ipList, nil
 }
 
-// func GetFile(filename string, masterIP string) {
+func GetFile(filename string, localfilename string, masterIP string) {
+	url := "http://" + masterIP+":"+constant.HTTPportClient2Master+ "/get?id=" + ID 
+	go networking.HTTPsend(url)
+	IPs, err := GetIPsFromMaster(filename, masterIP)
+	if len(IPs) == 0{
+		url = "http://"+masterIP+":"+constant.HTTPportClient2Master+"/clientBad?id="+ID
+		networking.HTTPsend(url)
+	}
+	if err != nil{
+		panic(err)
+	}
+	for _, ip := range IPs {
+		status, _ := DownloadFileFromDatanode(filename,localfilename, ip)
+		if status == "OK"{
+			url = "http://" + masterIP+":"+constant.HTTPportClient2Master + "/clientACK"
+			networking.HTTPsend(url)
+			return
+		}
+	}
+	// command end
+}
+
+
+// func PutFile(filename string, masterIP string) {
 // 	IPs, err := GetIPsFromMaster(filename, masterIP)
 // 	if err != nil{
 // 		panic(err)
 // 	}
-// 	for i, ip := range IPs {
-// 		file, err := DownloadFileFromDatanode(filename, ip)
-// 		if err == nil {
-// 			break 
-// 		}
-// 		if i == len(IPs) - 1 {
-			
-// 		}
+// 	for i, ip := range IPs{
+// 		url := "http://" + ip + 
+// 		networking.HTTPuploadFile(, filename string, uploadFilename string)
 // 	}
-// 	// command end
 // }
-
-
-func PutFile(filename string, masterIP string, action string) {
-
-}
 
 // func UpdateFile(filename string, masterIP string) {
 // 	IPs, err := getDestnationFromMaster(filename, masterIP)
