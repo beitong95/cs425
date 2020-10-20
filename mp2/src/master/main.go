@@ -136,6 +136,18 @@ func rereplica(filename string) {
 	MF.Unlock()
 }
 
+func Recover(ip string, list []string) {
+	MV.Lock()
+	Vm2fileMap[ip] = list
+	MV.Unlock()
+	for i := 0; i < len(list); i++ {
+		MF.Lock()
+		File2VmMap[list[i]] = append(File2VmMap[list[i]],ip)
+		MF.Unlock()
+	}
+	return
+}
+
 func enqueue(cmd string){
 	MQ.Lock()
 	MessageQueue = append(MessageQueue,cmd)
