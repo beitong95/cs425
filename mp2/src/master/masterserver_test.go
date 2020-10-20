@@ -10,13 +10,6 @@ func TestMasterServer(t * testing.T){
 	master.File2VmMap["1.txt"] = []string{"127.0.0.1"}
 	master.ServerRun("4321")
 }
-
-func TestMasterServer(t *testing.T) {
-	master.File2VmMap = make(map[string][]string)
-	master.File2VmMap["1.txt"] = []string{"127.0.0.1:3001", "127.0.0.1:4001", "127.0.0.1:5001"}
-	//master.ServerRun("4321")
-}
-
 func TestMaster(t *testing.T) {
 	// master.Vm2fileMap = map[string][]string{"1":[]string{},"2":[]string{},"3":[]string{},"4":[]string{},"5":[]string{},"6":[]string{},"7":[]string{},"8":[]string{},"9":[]string{},"10":[]string{}}
 	fmt.Println("test Master")
@@ -32,7 +25,7 @@ func TestMaster(t *testing.T) {
 	master.Recover("8", []string{"cs425", "linkedin", "snapchat"})
 	master.Recover("9", []string{"cs425", "linkedin"})
 	master.Recover("10", []string{"qq"})
-	printmap()
+	// printmap()
 	//fmt.Println("here")
 	return
 }

@@ -232,13 +232,14 @@ func GetFile(filename string, localfilename string, masterIP string) {
 		url = "http://"+masterIP+":"+constant.HTTPportClient2Master+"/clientBad?id="+ID
 		networking.HTTPsend(url)
 	}
+	fmt.Println(IPs)
 	if err != nil{
 		panic(err)
 	}
 	for _, ip := range IPs {
 		status, _ := DownloadFileFromDatanode(filename,localfilename, ip)
 		if status == "OK"{
-			url = "http://" + masterIP+":"+constant.HTTPportClient2Master + "/clientACK"
+			url = "http://" + masterIP+":"+constant.HTTPportClient2Master + "/clientACK?id="+ID
 			networking.HTTPsend(url)
 			return
 		}

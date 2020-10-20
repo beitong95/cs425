@@ -7,7 +7,7 @@ import(
 	"encoding/json"
 	"sync"
 ) 
-var ClientMap map[string] string
+var ClientMap map[string] string = make(map[string] string)
 var CM sync.Mutex
 
 func ServerRun(port string){
@@ -20,9 +20,10 @@ func ServerRun(port string){
 
 }
 func HandleGetIPs(w http.ResponseWriter, req *http.Request){
-	file, ok := req.URL.Query()["id"]
+	fmt.Println(req)
+	file, ok := req.URL.Query()["file"]
     if !ok {
-        log.Println("Url Param 'key' is missing")
+        log.Println("Get IPs Url Param 'key' is missing")
         return
     }
 	filename := file[0]
@@ -62,23 +63,37 @@ func HandlePut(w http.ResponseWriter, req *http.Request){
 }
 
 func HandleGet(w http.ResponseWriter, req *http.Request){
-	id:= req.URL.Query()["id"][0]
+	ids, ok := req.URL.Query()["id"]
+    if !ok {
+        log.Println("Handle Get Url Param 'key' is missing")
+        return
+    }
+	id := ids[0]
 	CM.Lock()
 	ClientMap[id] = "Get"
 	CM.Unlock()
 	for{
+		CM.Lock()
 		if ClientMap[id] == "Done"{
 			w.Write([]byte("OK"))
+			CM.Unlock()
 			break;
 		}else if ClientMap[id] == "Bad"{
 			w.Write([]byte("Bad"))
+			CM.Unlock()
 			break;
 		}
+		CM.Unlock()
 	}
 }
 
 func HandleClientACK(w http.ResponseWriter, req *http.Request){
-	id:= req.URL.Query()["id"][0]
+	ids, ok := req.URL.Query()["id"]
+    if !ok {
+        log.Println("Client Ack Url Param 'key' is missing")
+        return
+    }
+	id := ids[0]
 	CM.Lock()
 	ClientMap[id] = "Done"
 	CM.Unlock()
@@ -86,7 +101,12 @@ func HandleClientACK(w http.ResponseWriter, req *http.Request){
 }
 
 func HandleClientBad(w http.ResponseWriter, req *http.Request){
-	id:= req.URL.Query()["id"][0]
+	ids, ok := req.URL.Query()["id"]
+    if !ok {
+        log.Println("Client Bad Url Param 'key' is missing")
+        return
+    }
+	id := ids[0]
 	CM.Lock()
 	ClientMap[id] = "Bad"
 	CM.Unlock()
