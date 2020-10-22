@@ -1,15 +1,15 @@
 package master
 
 import (
+	"cli"
+	"constant"
 	_ "errors"
+	"fmt"
+	"logger"
+	"networking"
+	"strings"
 	"sync"
 	"time"
-	"logger"
-	"cli"
-	"networking"
-	"constant"
-	"strings"
-	"fmt"
 )
 
 /**
@@ -30,10 +30,9 @@ TODO:
 
 **/
 
+var Vm2fileMap map[string][]string
 
-var Vm2fileMap map[string] []string
-
-var File2VmMap map[string] []string
+var File2VmMap map[string][]string
 
 var MessageQueue []string
 
@@ -51,22 +50,24 @@ var ReadCounter int = 0
 
 var WriteCounter int = 0
 
-type clientMembershipList map[string] int64
+type clientMembershipList map[string]int64
+
 // map [client ip] last active time
-type datanodeMembershipList map[string] int64
+type datanodeMembershipList map[string]int64
+
 // map [datanode ip] heartbeat
 
 var (
-	_clientMembershipList clientMembershipList
-	_datanodeMembershipList datanodeMembershipList
-	muxClientMembershipList sync.Mutex
+	_clientMembershipList     clientMembershipList
+	_datanodeMembershipList   datanodeMembershipList
+	muxClientMembershipList   sync.Mutex
 	muxDatanodeMembershipList sync.Mutex
 )
 
-func FindMaxLen(ips []string) (int,string) {
+func FindMaxLen(ips []string) (int, string) {
 	var output = ""
 	var idx = 0
-    for i := 0; i < 4; i++ {
+	for i := 0; i < 4; i++ {
 		if output == "" {
 			output = ips[i]
 		} else if len(Vm2fileMap[ips[i]]) > len(Vm2fileMap[output]) {
@@ -74,12 +75,12 @@ func FindMaxLen(ips []string) (int,string) {
 			idx = i
 		}
 	}
-	return idx,output
+	return idx, output
 }
 
-func Hash2Ips(filename string) {
+func Hash2Ips(filename string) []string {
 	// assert filename is name of new file!
-	var fourIps = []string{"","","",""}
+	var fourIps = []string{"", "", "", ""}
 	MV.Lock()
 	for ip := range Vm2fileMap {
 		if fourIps[0] == "" {
@@ -91,19 +92,20 @@ func Hash2Ips(filename string) {
 		} else if fourIps[3] == "" {
 			fourIps[3] = ip
 		} else {
-			var idx,maxlen = FindMaxLen(fourIps)
+			var idx, maxlen = FindMaxLen(fourIps)
 			if len(Vm2fileMap[ip]) < len(Vm2fileMap[maxlen]) {
 				fourIps[idx] = ip
 			}
 		}
 	}
-	for i := 0 ; i < 4; i++ {
-		Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]],filename)
+	for i := 0; i < 4; i++ {
+		Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]], filename)
 	}
 	MV.Unlock()
 	MF.Lock()
 	File2VmMap[filename] = fourIps
 	MF.Unlock()
+	return fourIps
 }
 
 func find(filename string, ip string) bool {
@@ -129,10 +131,10 @@ func rereplica(filename string) {
 			replica = ip
 		}
 	}
-	Vm2fileMap[replica] = append(Vm2fileMap[replica],filename)
+	Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
 	MV.Unlock()
 	MF.Lock()
-	File2VmMap[filename] = append(File2VmMap[filename],replica)
+	File2VmMap[filename] = append(File2VmMap[filename], replica)
 	MF.Unlock()
 }
 
@@ -142,36 +144,36 @@ func Recover(ip string, list []string) {
 	MV.Unlock()
 	for i := 0; i < len(list); i++ {
 		MF.Lock()
-		File2VmMap[list[i]] = append(File2VmMap[list[i]],ip)
+		File2VmMap[list[i]] = append(File2VmMap[list[i]], ip)
 		MF.Unlock()
 	}
 	return
 }
 
-func enqueue(cmd string){
+func enqueue(cmd string) {
 	MQ.Lock()
-	MessageQueue = append(MessageQueue,cmd)
+	MessageQueue = append(MessageQueue, cmd)
 	MQ.Unlock()
 }
 
 func enqueue_front(cmd string) {
 	MQ.Lock()
-	MessageQueue = append([]string{cmd},MessageQueue...)
+	MessageQueue = append([]string{cmd}, MessageQueue...)
 	MQ.Unlock()
 }
 
-func dequeue() string{
+func dequeue() string {
 	MQ.Lock()
 	var num = len(MessageQueue)
 	fmt.Println(num)
 	MQ.Unlock()
-	if  num == 0 {
+	if num == 0 {
 		return ""
 	}
 	var output = MessageQueue[0]
 	if num == 1 {
 		MQ.Lock()
-		MessageQueue = []string {}
+		MessageQueue = []string{}
 		MQ.Unlock()
 		return output
 	}
@@ -181,6 +183,7 @@ func dequeue() string{
 	//fmt.Println(MessageQueue)
 	return output
 }
+
 // when master receives (get put delete store ls) => (read write), handle read write concurrency problem.
 func HandleMessage() {
 	//MessageQueue = []string {"get1","get2","put1","get3","delete1","put2","ls1","store1"}
@@ -188,11 +191,11 @@ func HandleMessage() {
 		//mutex
 		fmt.Println(MessageQueue)
 		var cmd = dequeue()
-		if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") || strings.Contains(cmd,"replica") {
+		if strings.Contains(cmd, "put") || strings.Contains(cmd, "delete") || strings.Contains(cmd, "replica") {
 			//handle write, wait for reads (count acks)
 			// I am not sure if this is hanging
 			// we can use wait group(like semaphore)
-			
+
 			for {
 				MW.Lock()
 				MR.Lock()
@@ -228,10 +231,10 @@ func HandleMessage() {
 
 func handleCmd(cmd string) {
 	//TODO: this version is just for test
-	fmt.Println(cmd,time.Now())
+	fmt.Println(cmd, time.Now())
 	//simulate handle cmd
-	time.Sleep(2*time.Second)
-	if strings.Contains(cmd,"put") || strings.Contains(cmd,"delete") {
+	time.Sleep(2 * time.Second)
+	if strings.Contains(cmd, "put") || strings.Contains(cmd, "delete") {
 		MW.Lock()
 		WriteCounter--
 		MW.Unlock()
@@ -240,8 +243,9 @@ func handleCmd(cmd string) {
 		ReadCounter--
 		MR.Unlock()
 	}
-	fmt.Println(WriteCounter," ",ReadCounter)
+	fmt.Println(WriteCounter, " ", ReadCounter)
 }
+
 // handle udp message from client
 func readUDPMessageClient2Master(message []byte) error {
 	remoteMessage, err := networking.DecodeUDPMessageClient2Master(message)
@@ -252,11 +256,11 @@ func readUDPMessageClient2Master(message []byte) error {
 		muxClientMembershipList.Lock()
 		clientIP := remoteMessage.IP
 		logger.LogSimpleInfo("receive connect from " + clientIP)
-		cli.Write2Shell(history, "receive connect from " + clientIP)
+		cli.Write2Shell(history, "receive connect from "+clientIP)
 		if _, ok := _clientMembershipList[clientIP]; ok {
-			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
+			_clientMembershipList[clientIP] = time.Now().UnixNano() / 1000000
 		} else {
-			_clientMembershipList[clientIP] = time.Now().UnixNano()/1000000
+			_clientMembershipList[clientIP] = time.Now().UnixNano() / 1000000
 		}
 		muxClientMembershipList.Unlock()
 		cli.Write2MasterClientMembershipBox(masterClientMembershipLabel, cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
@@ -264,26 +268,25 @@ func readUDPMessageClient2Master(message []byte) error {
 		//update cli
 
 		// send ack back
-		heartbeat := time.Now().UnixNano()/1000000
+		heartbeat := time.Now().UnixNano() / 1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "ACK"})
 		logger.LogSimpleInfo("send ack back to " + clientIP)
-		cli.Write2Shell(history, "send ack back to " + clientIP)
+		cli.Write2Shell(history, "send ack back to "+clientIP)
 		networking.UDPsend(clientIP, constant.UDPportMaster2Client, message)
 	}
 	return nil
 }
 
-
 func detectClientInactive() {
 	for {
 		muxClientMembershipList.Lock()
-		currentTime := time.Now().UnixNano()/1000000
-		for i,v := range _clientMembershipList {
+		currentTime := time.Now().UnixNano() / 1000000
+		for i, v := range _clientMembershipList {
 			// kick out 1min inactive client (actual time 1min20s)
-			if  currentTime - v > constant.KickoutTimeout  {
+			if currentTime-v > constant.KickoutTimeout {
 				// send kick out and delete
 				logger.LogSimpleInfo("send kickout to " + i)
-				cli.Write2Shell(history, "send kickout to "+ i)
+				cli.Write2Shell(history, "send kickout to "+i)
 				message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{0, "KICKOUT"})
 				networking.UDPsend(i, constant.UDPportMaster2Client, message)
 				delete(_clientMembershipList, i)
@@ -294,22 +297,21 @@ func detectClientInactive() {
 		cli.Write2MasterClientMembershipBox(masterClientMembershipLabel, cli.ConvertMasterClientMembershipList2String(_clientMembershipList, muxClientMembershipList))
 
 		// every 20s check it
-		time.Sleep(constant.CheckInactiveClientInterval* time.Millisecond)
+		time.Sleep(constant.CheckInactiveClientInterval * time.Millisecond)
 	}
 }
 
 func sendHeartbeat2Clients() {
 	for {
-		heartbeat := time.Now().UnixNano()/1000000
+		heartbeat := time.Now().UnixNano() / 1000000
 		message, _ := networking.EncodeUDPMessageMaster2Client(&constant.UDPMessageMaster2Client{heartbeat, "HEARTBEAT"})
-		for i,_ := range _clientMembershipList {
+		for i, _ := range _clientMembershipList {
 			//logger.LogSimpleInfo("send heartbeat to " + i)
 			//cli.Write2Shell("send heartbeat to "+ i)
 			networking.UDPsend(i, constant.UDPportMaster2Client, message)
-		} 
-		time.Sleep(constant.MasterSendHeartbeat2ClientInterval* time.Millisecond)
+		}
+		time.Sleep(constant.MasterSendHeartbeat2ClientInterval * time.Millisecond)
 	}
-
 
 }
 
@@ -327,17 +329,17 @@ func readUDPMessageDatanode2Master(message []byte) error {
 		if _, ok := _datanodeMembershipList[id]; !ok {
 			// new datanode
 			logger.LogSimpleInfo(id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
-			cli.Write2Shell(history, id + " join with heartbeat " + fmt.Sprintf("%v", newHeartbeat))
-			_datanodeMembershipList[id]= newHeartbeat
+			cli.Write2Shell(history, id+" join with heartbeat "+fmt.Sprintf("%v", newHeartbeat))
+			_datanodeMembershipList[id] = newHeartbeat
 		} else {
-			if newHeartbeat > _datanodeMembershipList[id]{
+			if newHeartbeat > _datanodeMembershipList[id] {
 				logger.LogSimpleInfo(id + " update heartbeat from " + fmt.Sprintf("%v", _datanodeMembershipList[id]) + " to " + fmt.Sprintf("%v", newHeartbeat))
-				_datanodeMembershipList[id]= newHeartbeat
+				_datanodeMembershipList[id] = newHeartbeat
 			}
 		}
 
 		muxDatanodeMembershipList.Unlock()
-		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel,cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
+		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel, cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
 
 	}
 	return nil
@@ -345,23 +347,23 @@ func readUDPMessageDatanode2Master(message []byte) error {
 
 func detectDatanodeFail() {
 	for {
-		currentTime := time.Now().UnixNano()/1000000
+		currentTime := time.Now().UnixNano() / 1000000
 		muxDatanodeMembershipList.Lock()
 		for i, v := range _datanodeMembershipList {
 			diff := currentTime - v
 			if diff > constant.DatanodeTimeout {
 				logger.LogSimpleInfo("detect data node fail " + i)
-				cli.Write2Shell(history, "detect data node fail " + i)
+				cli.Write2Shell(history, "detect data node fail "+i)
 				delete(_datanodeMembershipList, i)
-			// TODO: handle rereplica
+				// TODO: handle rereplica
 				logger.LogSimpleInfo("remove node " + i)
-				cli.Write2Shell(history, "remove node " + i)
+				cli.Write2Shell(history, "remove node "+i)
 			}
 		}
 		muxDatanodeMembershipList.Unlock()
-		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel,cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
-		
-		time.Sleep(constant.MasterDetectDatanodeFailInterval* time.Millisecond)
+		cli.Write2MasterDatanodeMembershipBox(masterDatanodeMembershipLabel, cli.ConvertMasterDatanodeMembershipList2String(_datanodeMembershipList, muxDatanodeMembershipList))
+
+		time.Sleep(constant.MasterDetectDatanodeFailInterval * time.Millisecond)
 	}
 }
 
@@ -378,4 +380,4 @@ func Run(cliLevel string) {
 	} else {
 		cliSimpleMaster()
 	}
-} 
+}

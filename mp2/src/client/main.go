@@ -1,52 +1,52 @@
 package client
 
 import (
+	"cli"
+	"constant"
+	ds "datastructure"
+	"encoding/json"
+	"errors"
 	"fmt"
-	 "os"
+	"io"
+	"log"
+	"logger"
+	"net/http"
+	"networking"
+	"os"
+	"strings"
 	"sync"
 	"time"
-	"constant"
-	"cli"
-	"networking"
-	"logger"
-	"encoding/json"
-	ds "datastructure"
-	"log"
-	"io"
-	"net/http"
-	"errors"
-	"strings"
 )
+
 /**
  Finished parts:
  1. connect to master
  2. detect master fail
  3. reconnect master if master fails
  4. kick out prompt
- 5. kick out and rejoin 
+ 5. kick out and rejoin
 
- TODO: 
+ TODO:
  1. get
  2. put
  3. abort current command when master fails
  4. resend current command if current command fails
- 5. command queue or command mutual exclusion 
- ( command queue: allow user input multi commands in a short time. 
+ 5. command queue or command mutual exclusion
+ ( command queue: allow user input multi commands in a short time.
    command mutual exclusion: user cannot type new command until current command finishs)
 **/
- type masterMembershipList struct {
+type masterMembershipList struct {
 	Heartbeat int64
 }
 
 var (
-	ID string = fmt.Sprint(time.Now().UnixNano())
-	_masterMembershipList masterMembershipList 
-	isConnected bool
+	_masterMembershipList   masterMembershipList
+	isConnected             bool
 	muxMasterMembershipList sync.Mutex
 	client2MasterMessageUDP constant.UDPMessageClient2Master
-	isKickout bool
-	cmdQueue ds.CommandQueue
-	cmdStatusQueue ds.CommandQueue
+	isKickout               bool
+	cmdQueue                ds.CommandQueue
+	cmdStatusQueue          ds.CommandQueue
 )
 
 func readUDPMessageMaster2Client(message []byte) error {
@@ -66,15 +66,15 @@ func readUDPMessageMaster2Client(message []byte) error {
 
 	if remoteMessage.MessageType == "ACK" {
 		// this message is the ack to connect request
-		isConnected = true 
+		isConnected = true
 		cli.Write2ClientMasterStatus(clientMasterStatusLabel, "CONN")
 		// log success connect to master
 		cli.Write2Shell(history, "Successfully connect to master")
-		logger.LogSimpleInfo("Successfully connect to master")			
+		logger.LogSimpleInfo("Successfully connect to master")
 	} else if remoteMessage.MessageType == "KICKOUT" {
 		cli.Write2ClientMasterStatus(clientMasterStatusLabel, "KICKED")
-		cli.Write2Shell(history,"You are kicked out because of inactive")
-		logger.LogSimpleInfo("You are kicked out because of inactive")	
+		cli.Write2Shell(history, "You are kicked out because of inactive")
+		logger.LogSimpleInfo("You are kicked out because of inactive")
 		cli.Write2Shell(history, "Rejoin Y/N")
 		constant.IsKickout = true
 		cmd := <-constant.KickoutRejoinCmd
@@ -83,7 +83,7 @@ func readUDPMessageMaster2Client(message []byte) error {
 			isConnected = false
 		} else {
 		}
-	} 
+	}
 	return nil
 }
 
@@ -93,7 +93,7 @@ func detectMasterFail() {
 			muxMasterMembershipList.Lock()
 			diff := time.Now().UnixNano()/1000000 - _masterMembershipList.Heartbeat
 			muxMasterMembershipList.Unlock()
-			
+
 			if diff > constant.MasterTimeout {
 				cli.Write2ClientMasterStatus(clientMasterStatusLabel, "FAIL")
 				cli.Write2Shell(history, "detect master fail")
@@ -122,7 +122,7 @@ func connectMaster() {
 			connectCount += 1
 			message, _ := networking.EncodeUDPMessageClient2Master(&client2MasterMessageUDP)
 			networking.UDPsend(constant.MasterIP, constant.UDPportClient2Master, message)
-			// TODO: using TCP and detect error? 
+			// TODO: using TCP and detect error?
 		} else if connectCount != 0 {
 			connectCount = 0
 		}
@@ -134,90 +134,103 @@ func handleCommand(_cmd []string) {
 	cmd := _cmd[0]
 	filename1 := _cmd[1]
 	filename2 := _cmd[2]
-	cli.Write2Shell(history, cmd + filename1 + filename2)
+	cli.Write2Shell(history, cmd+filename1+filename2)
 	switch cmd {
-		case "get":
-			// sdfsfilename := filename1 
-			// localfilename := filename2
-			//go getFile()
-			cli.Write2Shell(history, "TODO")
-		case "put":
-			// sdfsfilename := filename2 
-			// localfilename := filename1
-			//go putFile()
-			cli.Write2Shell(history, "TODO")
-		case "delete":
-			// sdfsfilename := filename1 
-			//go deleteFile()
-			cli.Write2Shell(history, "TODO")
-		case "ls":
-			// sdfsfilename := filename1 
-			//go lsFile()
-			cli.Write2Shell(history, "TODO")
-		case "store":
-			//go storeFile()
-			cli.Write2Shell(history, "TODO")
+	case "get":
+		// sdfsfilename := filename1
+		// localfilename := filename2
+		//go getFile()
+		cli.Write2Shell(history, "TODO")
+	case "put":
+		// sdfsfilename := filename2
+		// localfilename := filename1
+		//go putFile()
+		cli.Write2Shell(history, "TODO")
+	case "delete":
+		// sdfsfilename := filename1
+		//go deleteFile()
+		cli.Write2Shell(history, "TODO")
+	case "ls":
+		// sdfsfilename := filename1
+		//go lsFile()
+		cli.Write2Shell(history, "TODO")
+	case "store":
+		//go storeFile()
+		cli.Write2Shell(history, "TODO")
 	}
 }
 
 func handleCommands() {
 	cmd := []string{}
 	for {
-		for !cmdQueue.IsEmpty(){
+		for !cmdQueue.IsEmpty() {
 			cmd = cmdQueue.Dequeue()
 			handleCommand(cmd)
 		}
-		
+
 	}
 }
-// all commands should be parallel? 
-func DownloadFileFromDatanode(filename string,localfilename string,  ip string) (string, error) {
-	url := "http://" + ip + ":"+constant.HTTPClient2DataNodeDownload+"/"+filename
+
+// all commands should be parallel?
+func DownloadFileFromDatanode(filename string, localfilename string, ip string) (string, error) {
+	url := "http://" + ip + ":" + constant.HTTPClient2DataNodeDownload + "/" + filename
 	fmt.Println(url)
 	rsp, err := http.Get(url)
-	if err != nil{
+	if err != nil {
 		return "Connection error", err
 	}
-	if rsp.Header["Content-Length"][0] == "19"{
+	if rsp.Header["Content-Length"][0] == "19" {
 		fmt.Println("Possible empty")
 		buffer := make([]byte, 19)
 		rsp.Body.Read(buffer)
-		if string(buffer) == "404 page not found\n"{
+		if string(buffer) == "404 page not found\n" {
 			return "File not found", errors.New("networking: file not found")
-		}else{
+		} else {
 			file := strings.NewReader(string(buffer))
 			destFile, err := os.Create("./" + localfilename)
-			if err != nil{
+			if err != nil {
 				log.Printf("Create file failed: %s\n", err)
 				return "Create Failed", err
 			}
 			_, err = io.Copy(destFile, file)
-				if err != nil {
-					log.Printf("Write file failed: %s\n", err)
-					return "Write error", err
+			if err != nil {
+				log.Printf("Write file failed: %s\n", err)
+				return "Write error", err
 			}
 			return "OK", nil
 		}
 	}
 	destFile, err := os.Create("./" + localfilename)
-	if err != nil{
+	if err != nil {
 		log.Printf("Create file failed: %s\n", err)
 		return "Create Failed", err
 	}
 	_, err = io.Copy(destFile, rsp.Body)
-		if err != nil {
-			log.Printf("Write file failed: %s\n", err)
-			return "Write error", err
+	if err != nil {
+		log.Printf("Write file failed: %s\n", err)
+		return "Write error", err
 	}
 	return "OK", nil
 }
 
 func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
-	url := "http://"+masterIP+":"+constant.HTTPportClient2Master+"/getips?file="+filename
+	url := "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/getips?file=" + filename
 	body := networking.HTTPsend(url)
 	var ipList []string
 	err := json.Unmarshal([]byte(body), &ipList)
-	if err != nil{
+	if err != nil {
+		return []string{}, err
+	}
+	fmt.Println(ipList)
+	return ipList, nil
+}
+
+func GetIPsPutFromMaster(filename string, masterIP string) ([]string, error) {
+	url := "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/getipsput?file=" + filename
+	body := networking.HTTPsend(url)
+	var ipList []string
+	err := json.Unmarshal([]byte(body), &ipList)
+	if err != nil {
 		return []string{}, err
 	}
 	fmt.Println(ipList)
@@ -225,21 +238,22 @@ func GetIPsFromMaster(filename string, masterIP string) ([]string, error) {
 }
 
 func GetFile(filename string, localfilename string, masterIP string) {
-	url := "http://" + masterIP+":"+constant.HTTPportClient2Master+ "/get?id=" + ID 
+	ID := fmt.Sprint(time.Now().UnixNano())
+	url := "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/get?id=" + ID
 	go networking.HTTPsend(url)
 	IPs, err := GetIPsFromMaster(filename, masterIP)
-	if len(IPs) == 0{
-		url = "http://"+masterIP+":"+constant.HTTPportClient2Master+"/clientBad?id="+ID
+	if len(IPs) == 0 {
+		url = "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
 	}
 	fmt.Println(IPs)
-	if err != nil{
+	if err != nil {
 		panic(err)
 	}
 	for _, ip := range IPs {
-		status, _ := DownloadFileFromDatanode(filename,localfilename, ip)
-		if status == "OK"{
-			url = "http://" + masterIP+":"+constant.HTTPportClient2Master + "/clientACK?id="+ID
+		status, _ := DownloadFileFromDatanode(filename, localfilename, ip)
+		if status == "OK" {
+			url = "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/clientACK?id=" + ID
 			networking.HTTPsend(url)
 			return
 		}
@@ -247,33 +261,44 @@ func GetFile(filename string, localfilename string, masterIP string) {
 	// command end
 }
 
-
-// func PutFile(filename string, masterIP string) {
-// 	IPs, err := GetIPsFromMaster(filename, masterIP)
-// 	if err != nil{
-// 		panic(err)
-// 	}
-// 	for i, ip := range IPs{
-// 		url := "http://" + ip + 
-// 		networking.HTTPuploadFile(, filename string, uploadFilename string)
-// 	}
-// }
+func PutFile(filename string, masterIP string) {
+	ID := fmt.Sprint(time.Now().UnixNano())
+	url := "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/get?id=" + ID
+	go networking.HTTPsend(url)
+	IPs, err := GetIPsPutFromMaster(filename, masterIP)
+	// if len(IPs) == 0 {
+	// 	url = "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/clientBad?id=" + ID
+	// 	networking.HTTPsend(url)
+	// }
+	fmt.Println(IPs)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// for _, ip := range IPs {
+	// 	status, _ := DownloadFileFromDatanode(filename, localfilename, ip)
+	// 	if status == "OK" {
+	// 		url = "http://" + masterIP + ":" + constant.HTTPportClient2Master + "/clientACK?id=" + ID
+	// 		networking.HTTPsend(url)
+	// 		return
+	// 	}
+	// }
+}
 
 // func UpdateFile(filename string, masterIP string) {
 // 	IPs, err := getDestnationFromMaster(filename, masterIP)
 // 	for _,v := range IPs {
-// 		err := networking.FTPsend(filename, v) 
+// 		err := networking.FTPsend(filename, v)
 // 	}
 // 	// wait for master's ACK
-	
+
 // }
 
 // func DeleteFile(filename string, masterIP string) {
 // 	IPs, err := getDestnationFromMaster(filename, masterIP)
 // 	for _,v := range IPs {
-// 		err := networking.FTPsend(filename, v) 
+// 		err := networking.FTPsend(filename, v)
 // 	}
-// 	// wait for master's ACK	
+// 	// wait for master's ACK
 // }
 
 // func LsFile() {
@@ -292,10 +317,10 @@ func Run(cliLevel string) {
 	_masterMembershipList.Heartbeat = 0
 	clientIP, _ := networking.GetLocalIP()
 	logger.LogSimpleInfo(clientIP)
-	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP,"CONNECT"}
+	client2MasterMessageUDP = constant.UDPMessageClient2Master{clientIP, "CONNECT"}
 	isConnected = false
 	constant.IsKickout = false
-	// try to connect to master, 
+	// try to connect to master,
 	go networking.UDPlisten(constant.UDPportMaster2Client, readUDPMessageMaster2Client)
 	go connectMaster()
 	go detectMasterFail()
@@ -305,4 +330,4 @@ func Run(cliLevel string) {
 	} else {
 		cliSimpleClient()
 	}
-} 
+}

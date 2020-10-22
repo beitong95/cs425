@@ -5,9 +5,11 @@ import (
 	"master"
 	"testing"
 )
-func TestMasterServer(t * testing.T){
-	master.File2VmMap = make(map[string] []string)
+
+func TestMasterServer(t *testing.T) {
+	master.File2VmMap = make(map[string][]string)
 	master.File2VmMap["1.txt"] = []string{"127.0.0.1"}
+	master.Vm2fileMap["127.0.0.1"] = []string{"1.txt"}
 	master.ServerRun("4321")
 }
 func TestMaster(t *testing.T) {
