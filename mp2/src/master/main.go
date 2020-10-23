@@ -99,6 +99,10 @@ func Hash2Ips(filename string) []string {
 		}
 	}
 	for i := 0; i < 4; i++ {
+		if fourIps[i] == "" {
+			fourIps = fourIps[:i]
+			break
+		}
 		Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]], filename)
 	}
 	MV.Unlock()
