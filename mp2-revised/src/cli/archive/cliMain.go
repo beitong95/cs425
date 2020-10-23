@@ -6,7 +6,7 @@ import (
 	"os"
 	. "structs"
 	"time"
-	"github.com/marcusolsson/tui-go"
+	"tui"
 )
 
 var testMap1 map[string]Membership = map[string]Membership{"11111": Membership{1111, 1111}, "11113": Membership{112321, 123123}}

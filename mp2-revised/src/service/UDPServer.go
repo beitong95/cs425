@@ -4,26 +4,28 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/rand"
 	"net"
 	"strings"
 	. "structs"
 	"sync"
 	"time"
-	"helper"
 )
 
-// bandwidth function
+//var isJoin bool = false
+//Gossip parameters
+// var B int = 2
+// var preservedB int = 1
 func countBandwidth() {
 	for {
 		time.Sleep(1 * time.Second)
 		MT2.Lock()
+		//		fmt.Println("Current Bandwidth: ", Bandwidth)
 		Bandwidth = 0
 		MT2.Unlock()
 	}
 }
-
-// cleanup function
 func deleteIDAfterTcleanup(id string) {
 	time.Sleep(time.Duration(Tclean) * time.Millisecond)
 	MT.Lock()
@@ -31,7 +33,6 @@ func deleteIDAfterTcleanup(id string) {
 	MT.Unlock()
 }
 
-// fail detector
 func selectFailedID(ticker *time.Ticker) {
 	for {
 		<-ticker.C
@@ -42,7 +43,6 @@ func selectFailedID(ticker *time.Ticker) {
 				_, ok := LeaveNodes[id]
 				if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
 					//fmt.Println(id + "might failed")
-					helper.LogFail(Logger, MyVM, id, MembershipList[id].HeartBeat, diff)
 					MembershipList[id] = Membership{-1, diff}
 					FailedNodes[id] = 1
 					go deleteIDAfterTcleanup(id)
@@ -60,6 +60,7 @@ func selectFailedID(ticker *time.Ticker) {
 					} else {
 						FirstDetect[id] = diff
 					}
+					//fmt.Println("timeout: " + fmt.Sprint(diff))
 				}
 			}
 		}
@@ -67,8 +68,6 @@ func selectFailedID(ticker *time.Ticker) {
 	
 	}
 }
-
-// gossip round robin function
 func selectGossipID() []string {
 	var num = len(Container)
 	var res = make([]string, B)
@@ -80,10 +79,12 @@ func selectGossipID() []string {
 			_, okFail := FailedNodes[key]
 
 			if key != MyID && !okLeave && !okFail {
+				//			if key != MyID{
 				Container = append(Container, key)
 			}
 		}
 		MT.Unlock()
+		//fmt.Println(Container)
 		rand.Shuffle(len(Container), func(i, j int) { Container[i], Container[j] = Container[j], Container[i] })
 	}
 	num = len(Container)
@@ -97,22 +98,24 @@ func selectGossipID() []string {
 	return res
 }
 
-// merge membership list after receiving new membership list
 func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
+	//MT.Lock()
 	for key, _ := range recievedMemberShipList {
 		if key == MyOldID {
 			return
 		}
 	}
+	//MT.Unlock()
+
 	for key, receivedMembership := range recievedMemberShipList {
 		MT.Lock()
 		if existedMembership, ok := MembershipList[key]; ok {
 			if receivedMembership.HeartBeat == -2 {
 				if _, ok := LeaveNodes[key]; !ok {
-					helper.LogLeaver(Logger, MyVM, key)
 					MembershipList[key] = receivedMembership
 					LeaveNodes[key] = 1
 					//build one row message
+					// possible BUG
 					tempMembershipList := map[string]Membership{key: MembershipList[key]}
 					jsonString, err := json.Marshal(tempMembershipList)
 					if err != nil {
@@ -120,10 +123,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 					}
 					msg := string(jsonString)
 					for id := range MembershipList {
-						_, okLeave := LeaveNodes[id]
-						_, okFail := FailedNodes[id]
-						// dont send to myself, leave nodes and fail nodes
-						if id != MyID && !okLeave && !okFail {
+						if id != MyID && LeaveNodes[id] != 1 && FailedNodes[id] != 1 {
 							sendMsgToID(id, msg)
 						}
 					}
@@ -138,6 +138,7 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 				if !okLeave && !okFail {
 					MembershipList[key] = receivedMembership
 				}
+				//fmt.Printf("key: %v, update time: %v\n", key, receivedMembership.HeartBeat-existedMembership.HeartBeat)
 			}
 		} else {
 			if _, ok := FailedNodes[key]; ok {
@@ -145,66 +146,74 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 			} else if _, ok := LeaveNodes[key]; ok {
 				// refuse accept leaved node
 			} else {
-				helper.LogJoiner(Logger, MyVM, key)
 				MembershipList[key] = receivedMembership
 			}
 		}
 		MT.Unlock()
 	}
-}
+	//UpdateGUI <- "Ping"
 
-// handle UDP connection
+}
 func handleConnection(conn net.UDPConn) {
 	buf := make([]byte, 4096)
 	n, err := conn.Read(buf)
 	MT2.Lock()
 	Bandwidth += n
+	//fmt.Println(Bandwidth)
 	MT2.Unlock()
 	if err != nil {
-		Logger.Fatal(err)
+		fmt.Println(err)
 	}
 	msgString := string(buf)
+	//fmt.Println(msgString)
 	if msgString[:8] == "Command:" {
 		command := strings.Split(msgString, ":")[1]
+		//		fmt.Println(int(command[0]))
 		C1 <- int(command[0]) + 8
+		//fmt.Println(fmt.Sprint(int(command[0])))
 	} else if msgString[:6] == "Leave:" {
 		deleteID := strings.Split(msgString, ":")[1]
 		deleteIDAfterTcleanup(deleteID)
 	} else {
+		// fmt.Println(string(buf) + " " + fmt.Sprint(n) + " bytes read")
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)
+
+		//fix bug
+
 		err = json.Unmarshal(buf[:n], &recievedMemberShipList)
 		if err != nil {
-			Logger.Fatal(err)
+			panic(err)
 		}
-		//introducer handle new joiner
-		if len(recievedMemberShipList) == 1 && MyIP == IntroIP {
+		if len(recievedMemberShipList) == 1 {
+			// this sender must be a new memeber
+			// because he/she sends it to me
+			// then i must be the introducer
+			MT.Lock()
+			jsonString, err := json.Marshal(MembershipList)
+			MT.Unlock()
+			if err != nil {
+				panic(err)
+			}
+			msg := string(jsonString)
 			for key, _ := range recievedMemberShipList {
-				// if it is not in introducer membershiplist
-				if _,ok := MembershipList[key]; !ok {
-					MT.Lock()
-					jsonString, err := json.Marshal(MembershipList)
-					MT.Unlock()
-					if err != nil {
-						Logger.Fatal(err)
-					}
-					msg := string(jsonString)
-					sendMsgToID(key, msg)
-				}
+				sendMsgToID(key, msg)
 			}
 		}
 		mergeMemberShipList(recievedMemberShipList)
 	}
-}
 
+}
 func listenUDP() {
 
 	udpAddr, err := net.ResolveUDPAddr("udp4", ":"+MyPort)
+	//fmt.Println("listen on port:" + MyPort)
 	if err != nil {
 		panic(err)
 		return
 	}
 	conn, err := net.ListenUDP("udp", udpAddr)
+
 	if err != nil {
 		panic(err)
 	}
@@ -215,7 +224,6 @@ func listenUDP() {
 		handleConnection(*conn)
 	}
 }
-
 func sendMsgToID(id string, msg string) {
 	//simulate for loss rate
 	if rand.Intn(100) < LossRate {
@@ -228,13 +236,22 @@ func sendMsgToID(id string, msg string) {
 	}
 	fmt.Fprintf(conn, msg+"\n")
 }
-
-// the name should be multicast UDP
 func broadcastUDP() {
+	//fmt.Println("idList: ", idList, "len: ", len(idList))
+	// for id := range MembershipList {
+	// 	if MyID != id {
+	// 		ip := strings.Split(id, "*")[0]
+	// 		conn, err := net.Dial("udp", ip)
+	// 		if err != nil {
+	// 			fmt.Println(err)
+	// 		}
+	// 		fmt.Fprintf(conn, msg+"\n")
+	// 	}
+	// }
 	if !IsJoin {
 		return
 	}
-	if CurrentProtocol == "All2All" {
+	if IsAll2All {
 		selfNode := make(map[string]Membership)
 		MT.Lock()
 		selfNode[MyID] = MembershipList[MyID]
@@ -246,16 +263,12 @@ func broadcastUDP() {
 		msg := string(jsonString)
 		MT.Lock()
 		for id, _ := range MembershipList {
-			_, okLeave := LeaveNodes[id]
-			_, okFail := FailedNodes[id]
-			// dont send to myself, leave nodes and fail nodes
-			if id != MyID && !okLeave && !okFail {
-				//Logger.Info("All2All: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
+			if id != MyID {
 				sendMsgToID(id, msg)
 			}
 		}
 		MT.Unlock()
-	} else if CurrentProtocol == "Gossip" {
+	} else if IsGossip {
 		MT.Lock()
 		jsonString, err := json.Marshal(MembershipList)
 		MT.Unlock()
@@ -264,14 +277,13 @@ func broadcastUDP() {
 		}
 		msg := string(jsonString)
 		idList := selectGossipID()
-		// dont send to myself, leave nodes and fail nodes
 		for _, id := range idList {
-			//Logger.Info("Gossip: " + helper.ConvertIDtoVM(id) + fmt.Sprintf(" %v", len(msg)))
 			sendMsgToID(id, msg)
+			//fmt.Println(msg)
 		}
 	}
-}
 
+}
 func updateSelfHeartBeat() {
 	for {
 		t := time.Now().UnixNano() / 1000000
@@ -280,8 +292,8 @@ func updateSelfHeartBeat() {
 		MT.Unlock()
 	}
 }
-
 func joinGroup() {
+	//fmt.Println("joining group")
 	MT.Lock()
 	jsonString, err := json.Marshal(MembershipList)
 	MT.Unlock()
@@ -289,6 +301,7 @@ func joinGroup() {
 		panic(err)
 	}
 	msg := string(jsonString)
+	//fmt.Println(msg)
 	introIP, err := config.IntroducerIPAddresses()
 	if err != nil {
 		panic(err)
@@ -297,16 +310,15 @@ func joinGroup() {
 	if err != nil {
 		panic(err)
 	}
+	//fmt.Println(string(introIP[0]) + ":" + introPort)
 	id := string(introIP[0]) + ":" + introPort
 	sendMsgToID(id, msg)
-	helper.LogSelfJoin(Logger, MyVM, MyID)
+	//fmt.Println("join group")
 	IsJoin = true
 }
-
 func leaveGroup() {
 	MT.Lock()
 	IsJoin = false
-	helper.LogSelfLeave(Logger, MyVM, MyID)
 	MembershipList[MyID] = Membership{-2, 0}
 	LeaveNodes[MyID] = 1
 	jsonString, err := json.Marshal(MembershipList)
@@ -316,8 +328,7 @@ func leaveGroup() {
 	msg := string(jsonString)
 	for id := range MembershipList {
 		_, okFail := FailedNodes[id]
-		_, okLeave := LeaveNodes[id]
-		if id != MyID && !okFail && !okLeave{
+		if id != MyID && !okFail {
 			sendMsgToID(id, msg)
 		}
 	}
@@ -335,26 +346,21 @@ func leaveGroup() {
 
 func piggybackCommand(cmd int) {
 	if cmd == CHANGE_TO_ALL2ALL {
-		NextProtocol = "All2All"
-		helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
+		IsAll2All = true
+		IsGossip = false
 	} else if cmd == CHANGE_TO_GOSSIP {
-		NextProtocol = "Gossip"
-		helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
+		IsGossip = true
+		IsAll2All = false
 	}
 	msg := "Command:" + string(cmd)
 	MT.Lock()
 	for id := range MembershipList {
-		_, okLeave := LeaveNodes[id]
-		_, okFail := FailedNodes[id]
-		// dont send to myself, leave nodes and fail nodes
-		if id != MyID && !okLeave && !okFail {
-			sendMsgToID(id, msg)
-		}
+		sendMsgToID(id, msg)
 	}
 	MT.Unlock()
 
 }
-/**
+
 func parseCmds(cmds []int) []int {
 	//gossip or all2all
 	//fmt.Println(cmds)
@@ -409,108 +415,127 @@ func parseCmds(cmds []int) []int {
 	}
 	return res
 }
-**/
 
 //UDPServer is the udp server thread function
-func UDPServer(wg *sync.WaitGroup, c chan int) {
+func UDPServer(isAll2All bool, isIntroducer bool, wg *sync.WaitGroup, c chan int) {
+	//log.SetOutput(ioutil.Discard)
 	defer wg.Done()
-	//ticker for gossip and all2all period; ClogN * gossip = all2all 
+	//timer for gossip period
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
-	//ticker for fail detect period; gossip = all2all 
 	tickerDetectFail := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
 	cmd := 0
 	gossipCounter := 0
-	// bandwidth thread
 	go countBandwidth()
-	// udp handler thread
 	go listenUDP()
-	// fail detector thread
-	go selectFailedID(tickerDetectFail)
 	// main loop
+	go selectFailedID(tickerDetectFail)
 	for {
+		//helper.PrintMembershipListAsTable(MembershipList)
+		// can go through here ever gossipPeriod
+		//fmt.Println("1")
+		log.Println("waiting for next gossip period")
 		t1 := time.Now()
+		//no wait means our gossip period is too short for gossip process
+		//fmt.Println(t1)
 		<-ticker.C
-		// here a new gossip period starts
-
-		// step0: check if gossip period is long enough to run the code in each gossip period? 
-		t2 := time.Now()
-		diff := t2.Sub(t1)
-		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
-			Logger.Fatal("gossip period time too short")
-		}
-		gossipCounter = gossipCounter + 1
-
-		// step 1: change to other protocol if needed
-		if CurrentProtocol != NextProtocol{
-			helper.LogChangeProtocol(Logger, MyVM, MyID, CurrentProtocol, NextProtocol)
-			if NextProtocol == "Gossip" {
+		if CurrentProtocol != IsGossip {
+			if IsGossip == true {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
-				CurrentProtocol = "Gossip"
-				select {
-					// for simple cli this is a channel with no receiver
-				case ProtocolChangeACK <- "Gossip":
-					Logger.Debug("Send Gossip to CLI")
-				default:
-				}
+				CurrentProtocol = true
+				ProtocolChangeACK <- "Gossip"
 			} else {
 				ticker.Reset(time.Duration(Tall2all) * time.Millisecond)
-				CurrentProtocol = "All2All"
-				select {
-				case ProtocolChangeACK <- "All2All":
-					Logger.Debug("Send All2All to CLI")
-				default:
-				}
+				CurrentProtocol = false
+				ProtocolChangeACK <- "All2All"
 			}
-		}
 
-		// step2: read commands
+		}
+		t2 := time.Now()
+		diff := t2.Sub(t1)
+		log.Println("wait time:", diff)
+		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
+			log.Fatalln("gossip period time too short")
+		}
+		gossipCounter = gossipCounter + 1
+		log.Println("----------------------------------------------")
+		log.Println("Start gossip period", gossipCounter)
+		// in every gossipPeriod, the first thing is to read commands from CLI
 		cmds := make([]int, 0)
+		// read commands
 	forLoop:
 		for {
 			select {
 			case cmd = <-c:
+				log.Printf("UDPServer receives cmd from CLI in %d gossip period: %d\n", gossipCounter, cmd)
 				cmds = append(cmds, cmd)
 			default:
 				if len(cmds) == 0 {
-					Logger.Debug("No command from CLI. Do nothing")
+					log.Println("No command from CLI. Do nothing")
 				} else {
-					Logger.Debug("No more commands.")
-					Logger.Info("Commands received:", cmds)
+					log.Println("No more commands.")
+					log.Println("Commands received:", cmds)
 				}
 				break forLoop
 			}
 		}
-
-		// step3: execute commands 
+		log.Println("Doing Gossip work with commands", cmds)
+		//we should process cmds in sequence, and there are some rules
+		//for example, if join and leave are in the same cmd sequence, we should only execute leave
+		//cmds = parseCmds(cmds)
+		//fmt.Println(cmds)
+		log.Println("Parsed commands ", cmds)
+		//execute commands
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
+				//fmt.Println(cmd)
 				switch cmd {
+				//if change gossip to all2all or all2all to gossip
+				//change b, add command to membership list
 				case CHANGE_TO_ALL2ALL:
-					// actually we just broadcast it
+					// B = len(MembershipList)
 					piggybackCommand(CHANGE_TO_ALL2ALL)
 				case CHANGE_TO_GOSSIP:
-					// actually we just broadcast it
+					// B = preservedB
 					piggybackCommand(CHANGE_TO_GOSSIP)
 				case JOIN_GROUP:
 					joinGroup()
 				case LEAVE_GROUP:
 					leaveGroup()
 				case RECEIVE_CHANGE_TO_ALL2ALL:
-					NextProtocol = "All2All"
-					helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
+					IsAll2All = true
+					IsGossip = false
 				case RECEIVE_CHANGE_TO_GOSSIP:
-					NextProtocol = "Gossip"
-					helper.LogReceiveProtocol(Logger, MyVM, MyID, NextProtocol)
+					IsAll2All = false
+					IsGossip = true
 				}
 			}
 		}
+		// TODO: Gossip logic
+		//merge membershiplist
+		/**
+		jsonString, err := json.Marshal(MembershipList)
+		if err != nil {
+			panic(err)
+		}
+		//fmt.Println(string(jsonString))
+		**/
 
+		// helper.PrintMembershipListAsTable(MembershipList)
 		t := time.Now().UnixNano() / 1000000
+		//fmt.Println(t)
 		//if not leave
 		MT.Lock()
 		MembershipList[MyID] = Membership{t, -1}
+		//UpdateGUI <- "Ping"
 		MT.Unlock()
 		broadcastUDP()
+		//update timer
+		//control timers
+		//failure detect
+		//deseminate failure
+		//execute global commands set B
+		//time.Sleep(time.Duration(Tgossip) * time.Millisecond)
+		log.Println("Finish Gossip work")
 	}
 }
