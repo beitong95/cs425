@@ -179,6 +179,8 @@ func main() {
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000
 	MyID = MyIP + ":" + MyPort + "*" + fmt.Sprint(secs)
+	//test locally
+	MasterIP = IntroIP + ":1234"
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
 	Logger.WithFields(log.Fields{

@@ -31,6 +31,46 @@ func deleteIDAfterTcleanup(id string) {
 	MT.Unlock()
 }
 
+func findMin(m map[string]Membership) string{
+	var min = ""
+	var output = ""
+	for ip,_ := range m {
+		var temp = ip
+		if min == "" {
+			min = temp
+			output = ip
+		} else if min > temp {
+			min = temp
+			output = ip
+		}
+	}
+	return output
+}
+
+func Election() string{
+	CandidateID = findMin(MembershipList)
+	if CandidateID == MyID {
+		for Ack < (len(MembershipList)-2) {
+		}
+		Ack = 0
+		for id,_ := range MembershipList {
+			if id !=MyID {
+				sendMsgToID(id,"Im new master")
+			}
+		}
+	} else {
+		sendMsgToID(CandidateID,"Ack")
+		for !Master && CandidateFail {
+		}
+		if CandidateFail {
+			return "Candidate Failed"
+		}
+		if Master {
+			MasterIP = strings.Split(CandidateID,"*")[0]
+		}
+	}
+	return "Succeed"
+}
 // fail detector
 func selectFailedID(ticker *time.Ticker) {
 	for {
@@ -45,6 +85,15 @@ func selectFailedID(ticker *time.Ticker) {
 					helper.LogFail(Logger, MyVM, id, MembershipList[id].HeartBeat, diff)
 					MembershipList[id] = Membership{-1, diff}
 					FailedNodes[id] = 1
+					if strings.Contains(id,MasterIP) {
+						fmt.Println("begin election")
+						for Election() != "Succeed" {
+						}
+						fmt.Println("new master is "+MasterIP)
+					}
+					if id == CandidateID {
+						CandidateFail = true
+					}
 					go deleteIDAfterTcleanup(id)
 					if currentFailTime1, ok := BroadcastAll[id]; ok {
 						if currentFailTime1 < diff {
@@ -64,7 +113,6 @@ func selectFailedID(ticker *time.Ticker) {
 			}
 		}
 		MT.Unlock()
-	
 	}
 }
 
@@ -170,6 +218,10 @@ func handleConnection(conn net.UDPConn) {
 	} else if msgString[:6] == "Leave:" {
 		deleteID := strings.Split(msgString, ":")[1]
 		deleteIDAfterTcleanup(deleteID)
+	} else if msgString[:3] == "Ack" {
+		Ack++
+	} else if msgString[:2] == "Im" {
+		Master = true
 	} else {
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)

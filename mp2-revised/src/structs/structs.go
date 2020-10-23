@@ -85,3 +85,9 @@ var UpdateGUI chan string = make(chan string) // update membership list
 // global mutex
 var MT sync.Mutex //Mutex for MembershipList
 var MT2 sync.Mutex //mutex for Bandwidth
+
+var Ack int = 0
+var Master bool = false
+var CandidateFail bool = false
+var CandidateID string
+var MasterIP string = ""
