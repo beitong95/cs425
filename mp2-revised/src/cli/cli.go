@@ -11,7 +11,7 @@ import (
 	"fmt"
 )
 
-func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI, ticker2 *time.Ticker) {
+func updateMembershipListInGUI(membershipBoxLabel *tui.Label, membershipBox *tui.Box, ui tui.UI, ticker2 *time.Ticker) {
 	for {
 		<-ticker2.C
 		s, err := helper.PrintMembershipListAsTableInGUI(MembershipList)
@@ -20,23 +20,26 @@ func updateMembershipListInGUI(membershipBoxLabel *tui.Label, ui tui.UI, ticker2
 		}
 		ui.Update(func() {
 			membershipBoxLabel.SetText(s)
+			membershipBox.SetTitle("MembershipList on " + MyID)
 		})
 	}
 }
 
-func updateBandwidth(bandwidthBoxLabel *tui.Label, ui tui.UI, ticker *time.Ticker) {
+func updateBandwidthAndJoin(bandwidthBoxLabel *tui.Label, joinBoxLabel *tui.Label, ui tui.UI, ticker *time.Ticker) {
 	for {
 		<-ticker.C
 		ui.Update(func() {
 			bandwidthBoxLabel.SetText(fmt.Sprintf("%v",Bandwidth))
+			joinBoxLabel.SetText(fmt.Sprintf("%v",IsJoin))
 		})
 	}
 }
 
-func updateProtocolChangeACK(history *tui.Box, ui tui.UI) {
+func updateProtocolChangeACK(history *tui.Box, protocolBoxLabel *tui.Label, ui tui.UI) {
 	for {
 		msg := <-ProtocolChangeACK
 		ui.Update(func() {
+			protocolBoxLabel.SetText(msg)
             history.Append(tui.NewHBox(
                 tui.NewLabel(time.Now().Format("15:04")),
                 tui.NewPadder(1, 0, tui.NewLabel("")),
@@ -55,6 +58,7 @@ func getHelp() string {
 			join    -> join current group
 			id      -> print current id
 			list    -> print current membershipList  
+			para    -> print all gossip and all2all parameter
 			kill    -> fail myself`
 }
 
@@ -63,7 +67,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
 	done := make(chan string)
 	var ui tui.UI
-	commands := []string{"help", "all2all", "gossip", "leave", "join", "id", "list", "kill"}
+	commands := []string{"help", "all2all", "gossip", "leave", "join", "id", "list", "para","kill"}
 
 	//set up gui
 	// set shell history
@@ -173,6 +177,37 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 					tui.NewLabel(s),
 					tui.NewSpacer(),
 				))
+			case "para":
+				history.Append(tui.NewHBox(
+					tui.NewLabel(time.Now().Format("15:04")),
+					tui.NewPadder(1, 0, tui.NewLabel("")),
+					tui.NewLabel("Tgossip: "+ fmt.Sprintf("%v",Tgossip)),
+					tui.NewSpacer(),
+				))
+				history.Append(tui.NewHBox(
+					tui.NewLabel(time.Now().Format("15:04")),
+					tui.NewPadder(1, 0, tui.NewLabel("")),
+					tui.NewLabel("Tall2all: "+ fmt.Sprintf("%v",Tall2all)),
+					tui.NewSpacer(),
+				))
+				history.Append(tui.NewHBox(
+					tui.NewLabel(time.Now().Format("15:04")),
+					tui.NewPadder(1, 0, tui.NewLabel("")),
+					tui.NewLabel("Tfail: "+ fmt.Sprintf("%v",Tfail)),
+					tui.NewSpacer(),
+				))
+				history.Append(tui.NewHBox(
+					tui.NewLabel(time.Now().Format("15:04")),
+					tui.NewPadder(1, 0, tui.NewLabel("")),
+					tui.NewLabel("Tclean: "+ fmt.Sprintf("%v",Tclean)),
+					tui.NewSpacer(),
+				))
+				history.Append(tui.NewHBox(
+					tui.NewLabel(time.Now().Format("15:04")),
+					tui.NewPadder(1, 0, tui.NewLabel("")),
+					tui.NewLabel("B: "+ fmt.Sprintf("%v",B)),
+					tui.NewSpacer(),
+				))
 			case "kill":
 				history.Append(tui.NewHBox(
 					tui.NewLabel(time.Now().Format("15:04")),
@@ -202,16 +237,34 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	}
 	membershipBoxLabel.SetText(s)
 
-	//  bandwidth
+	//  bandwidth and protocol
 	bandwidthBoxLabel := tui.NewLabel("")
 	bandwidthBoxLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
 
 	bandwidthBox := tui.NewVBox(bandwidthBoxLabel)
-	bandwidthBox.SetTitle("BandWidth on Current Machine")
+	bandwidthBox.SetTitle("BandWidth")
 	bandwidthBox.SetBorder(true)
 	bandwidthBoxLabel.SetText(fmt.Sprintf("%v",Bandwidth))
 
-	root := tui.NewVBox(membershipBox, bandwidthBox, shell)
+	protocolBoxLabel := tui.NewLabel("")
+	protocolBoxLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+
+	protocolBox := tui.NewVBox(protocolBoxLabel)
+	protocolBox.SetTitle("Protocol")
+	protocolBox.SetBorder(true)
+	protocolBoxLabel.SetText(CurrentProtocol)
+
+	joinBoxLabel := tui.NewLabel("")
+	joinBoxLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
+
+	joinBox:= tui.NewVBox(joinBoxLabel)
+	joinBox.SetTitle("Join")
+	joinBox.SetBorder(true)
+	joinBoxLabel.SetText(fmt.Sprintf("%v",IsJoin))
+
+	bandpandjBox := tui.NewHBox(bandwidthBox, protocolBox, joinBox)
+
+	root := tui.NewVBox(membershipBox, bandpandjBox, shell)
 
 	var er error
 	ui, er = tui.New(root)
@@ -226,9 +279,9 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	})
 	go ui.Run()
 	tickerMembershipList := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
-	go updateMembershipListInGUI(membershipBoxLabel, ui, tickerMembershipList)
-    	go updateProtocolChangeACK(history, ui)
+	go updateMembershipListInGUI(membershipBoxLabel, membershipBox, ui, tickerMembershipList)
+    go updateProtocolChangeACK(history, protocolBoxLabel, ui)
 	ticker := time.NewTicker(time.Duration(1000) * time.Millisecond)
-	go updateBandwidth(bandwidthBoxLabel, ui, ticker)
+	go updateBandwidthAndJoin(bandwidthBoxLabel, joinBoxLabel, ui, ticker)
 	<-done
 }
