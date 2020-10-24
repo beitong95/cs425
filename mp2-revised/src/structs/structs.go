@@ -3,6 +3,9 @@ package structs
 import (
 	"sync"
 	log "github.com/sirupsen/logrus"
+	"github.com/marcusolsson/tui-go"
+	"time"
+	"fmt"
 )
 
 //Membership struct 
@@ -91,3 +94,23 @@ var Master bool = false
 var CandidateFail bool = false
 var CandidateID string
 var MasterIP string = ""
+
+//mp2
+var CurrentStatus = "RUNNING"
+
+var History *tui.Box
+
+func Write2Shell(text string) {
+	
+	if History == nil {
+		// we are using simple cli
+		fmt.Println(text)
+	} else {
+		History.Append(tui.NewHBox(
+			tui.NewLabel(time.Now().Format("15:04")),
+			tui.NewLabel(" "),
+			tui.NewLabel(text),
+			tui.NewSpacer(),
+		))
+	}
+}
