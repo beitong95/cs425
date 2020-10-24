@@ -52,7 +52,7 @@ func runElection() {
 	for Election() != "Succeed" {
 
 	}
-	fmt.Println("new master is " + MasterIP)
+	Write2Shell("new master is "+MasterIP)
 }
 func Election() string {
 	CandidateID = findMin(MembershipList)
@@ -127,7 +127,7 @@ func selectFailedID(ticker *time.Ticker) {
 					//fmt.Println(MembershipList)
 					if strings.Contains(id, MasterIP) {
 						Master = false
-						fmt.Println("begin election")
+						Write2Shell("begin election")
 						go runElection()
 					}
 					if id == CandidateID {

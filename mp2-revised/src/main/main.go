@@ -116,6 +116,7 @@ func main() {
 	logLevel := *logLevelPtr
 	init_Logger(isAppendLog, logLevel)
 	//if master master.ServerRun(myPort)
+
 	//step2 setup all flags and parameters
 	Ttimeout = Tfail - Tgossip
 	//Ceil C*logN*Tgossip ;C = 1
@@ -134,55 +135,13 @@ func main() {
 	//Setup config file env variable
 	os.Setenv("CONFIG", *configFilePtr)
 
-	//Create the first memeber in the membership list
+	//step3 Create the first memeber in the membership list
 	//ID: myIP:myPort:currentTime(Unix s)
 	var err error
 	MyIP, err = helper.GetLocalIP()
-	if err != nil {
-		Logger.WithFields(log.Fields{
-			"package":  "helper",
-			"function": "helper.GetLocalIP",
-			"error":    err,
-			"data":     "",
-		}).Fatal("Cannot get local IP address.")
-	} else {
-		Logger.WithFields(log.Fields{
-			"package":  "helper",
-			"function": "helper.GetLocalIP",
-			"res":      MyIP,
-		}).Info("Local IP address.")
-	}
 	introIP, err := config.IntroducerIPAddresses()
 	IntroIP = introIP[0]
-	if err != nil {
-		Logger.WithFields(log.Fields{
-			"package":  "config",
-			"function": "config.IntroducerIPAddresses",
-			"error":    err,
-			"data":     "",
-		}).Fatal("Cannot get Introducer IP address.")
-	} else {
-		Logger.WithFields(log.Fields{
-			"package":  "config",
-			"function": "config.IntroducerIPAddresses",
-			"res":      introIP,
-		}).Info("Introducer IP address.")
-	}
 	introPort, err := config.Port()
-	if err != nil {
-		Logger.WithFields(log.Fields{
-			"package":  "config",
-			"function": "config.Port",
-			"error":    err,
-			"data":     "",
-		}).Fatal("Cannot get Introducer Port.")
-	} else {
-		Logger.WithFields(log.Fields{
-			"package":  "config",
-			"function": "config.Port",
-			"res":      introPort,
-		}).Info("Introducer Port.")
-	}
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsMaster = true
 		IsJoin = true
@@ -194,23 +153,19 @@ func main() {
 	MasterIP = IntroIP + ":1234"
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
-	Logger.WithFields(log.Fields{
-		"ID":        MyID,
-		"HeartBeat": heartBeat,
-	}).Info("Create Local Membership Record.")
 
-	var wg sync.WaitGroup
 
-	//Start UDPServer thread
+	//step4 Start UDPServer thread
 	//C1 is the channel for CLI command
 	//CLI <-> C1 <-> UDPServer
+	var wg sync.WaitGroup
 	wg.Add(1)
 	go checkIfMasterThenRunMasterLogic()
 	go datanode.Run()
 	go service.UDPServer(&wg, C1)
 	Logger.Info("Start UDPServer go routine")
 
-	//Start CLI
+	//step5 Start CLI
 	if isMuteCli == false {
 		if isSimpleCli == false {
 			wg.Add(1)
@@ -222,6 +177,7 @@ func main() {
 			Logger.Info("Start CliSimple go routine")
 		}
 	}
+
 	//Wait for UDPServer and CliSimple to return
 	Logger.Info("Main thread waits for other threads return")
 	wg.Wait()
