@@ -100,7 +100,9 @@ func find(filename string, ip string) bool {
 	MF.Unlock()
 	return false
 }
-
+// Notes: we need rereplica 
+// 1) after new master elected, files have no more 4 replicas
+// 2) after one datanode failed, all files stored in this datanode
 func rereplica(filename string) {
 	MV.Lock()
 	var replica = ""

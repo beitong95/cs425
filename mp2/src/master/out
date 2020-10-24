@@ -1,0 +1,5 @@
+test Master
+map[1:[cs425]]
+map[cs425:[1]]
+PASS
+ok  	master	0.168s
