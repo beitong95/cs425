@@ -8,6 +8,8 @@ import (
 	"networking"
 	"sync"
 	. "structs"
+	"time"
+	"constant"
 )
 
 var ClientMap map[string]string = make(map[string]string)
@@ -118,17 +120,37 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	fmt.Println(filename)
 }
 func HandleGet(w http.ResponseWriter, req *http.Request) {
+	// record current time for exit3
+	start := time.Now()
+
+	//handle get 
+	//step1. get "GET" request id.  
+	//step2. start tracking this request's state
 	ids, ok := req.URL.Query()["id"]
 	if !ok {
-		log.Println("Handle Get Url Param 'key' is missing")
+		Logger.Error("Handle Get Url Param 'key' is missing")
 		return
 	}
 	id := ids[0]
 	CM.Lock()
 	ClientMap[id] = "Get"
 	CM.Unlock()
-	//detect if can read
-	// Question: wrong reader writer logic
+	Write2Shell("Master receive GET request id: " + fmt.Sprintf("%v",id))
+
+	//step3. get "GET" request file name
+	file, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("Get IPs Url Param 'key' is missing")
+		return
+	}
+	filename := file[0]
+	Write2Shell("Master receive GET request for file: " + filename)
+
+	//step4. handle reader and writer logic
+	//if we cannot read now, we stop here and wait for permission
+	MR.Lock()
+	ReadCounter++
+	MR.Unlock()
 	for {
 		MW.Lock()
 		if WriteCounter == 0 {
@@ -137,10 +159,31 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		}
 		MW.Unlock()
 	}
-	//read
-	MR.Lock()
-	ReadCounter++
-	MR.Unlock()
+	Write2Shell("Now Approve This Read id: " + fmt.Sprintf("%v",id))
+
+	//step5. send ips back to client 
+	var res []byte
+	var err error
+	if val, ok := File2VmMap[filename]; ok {
+		res, err = json.Marshal(val)
+		if err != nil {
+			panic(err)
+		}
+		// print ips
+		for _,v := range val {
+			Write2Shell("Master sends IPS: " + v)
+		}
+	} else {
+		res = []byte("[]")
+		Write2Shell("File does not exist")
+	} 
+	w.Write(res)
+
+	//step6. master wait ACK from client
+	//exit 1: receive "Done" -> get success
+	//exit 2: receive "Bad"  -> get fail
+	//exit 3: timer timeout	 -> timeout
+	Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v",id))
 	for {
 		CM.Lock()
 		if ClientMap[id] == "Done" {
@@ -159,8 +202,14 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			MR.Unlock()
 			CM.Unlock()
 			break
-		}
-		// Question add else if ClientMap[id] == "Node Fail" exit
+		} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterGetTimeout * time.Second {
+			Write2Shell("Timeout id: " + fmt.Sprintf("%v",id))
+			CM.Unlock()
+			break
+		} 
+
+		// exit 1 compare time 15 mins 
+		// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
 		CM.Unlock()
 	}
 }

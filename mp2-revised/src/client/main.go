@@ -98,7 +98,8 @@ func GetIPsPutFromMaster(filename string) ([]string, error) {
 
 func GetFile(filename string, localfilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
-	url := "http://" + MasterIP + "/get?id=" + ID
+	// my ip + my port + current time
+	url := "http://" + MasterIP + "/get?id=" + ID + "&file=" + filename 
 	go networking.HTTPsend(url)
 	IPs, err := GetIPsFromMaster(filename)
 	if len(IPs) == 0 {

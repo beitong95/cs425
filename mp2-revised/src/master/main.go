@@ -136,6 +136,8 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
+	File2VmMap = make(map[string][]string)
+	File2VmMap["1.txt"] = []string{"2","3","4","5"}
 	i, err := strconv.Atoi(MyPort)
 	if err != nil {
 		panic(err)
