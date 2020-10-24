@@ -2,26 +2,27 @@ package structs
 
 import (
 	"sync"
+
 	log "github.com/sirupsen/logrus"
 )
 
-//Membership struct 
+//Membership struct
 type Membership struct {
 	HeartBeat  int64 `json:"heartbeat"`
 	FailedTime int64 `json:"failedtime"`
 }
 
-var IPtoVM map[string] int = map[string]int{
-	    "172.22.156.12": 1,
-        "172.22.158.12": 2,
-        "172.22.94.12": 3,
-        "172.22.156.13": 4,
-        "172.22.158.13": 5,
-        "172.22.94.13": 6,
-        "172.22.156.14": 7,
-        "172.22.158.14": 8,
-        "172.22.94.14": 9,
-        "172.22.156.15": 10,
+var IPtoVM map[string]int = map[string]int{
+	"172.22.156.12": 1,
+	"172.22.158.12": 2,
+	"172.22.94.12":  3,
+	"172.22.156.13": 4,
+	"172.22.158.13": 5,
+	"172.22.94.13":  6,
+	"172.22.156.14": 7,
+	"172.22.158.14": 8,
+	"172.22.94.14":  9,
+	"172.22.156.15": 10,
 }
 
 const (
@@ -53,6 +54,7 @@ var IntroIP string = ""
 var Tgossip int
 var Tfail int
 var Tclean int
+
 // Ttimeout - Tgossip
 var Ttimeout int
 var VMMaxCount int = 10
@@ -73,21 +75,22 @@ var IsJoin bool = false
 
 // statistics
 var Bandwidth int
-var LossRate int//1 5 10 15 20 five points
+var LossRate int //1 5 10 15 20 five points
 
 // channels
 var C1 chan int = make(chan int, 10) // command channel between cli and udpserver
-// channel for ack between udpserver and cli; 
+// channel for ack between udpserver and cli;
 // On receiving change protocol command, send ack to cli and print it.
-var ProtocolChangeACK chan string = make(chan string) 
-var UpdateGUI chan string = make(chan string) // update membership list 
+var ProtocolChangeACK chan string = make(chan string)
+var UpdateGUI chan string = make(chan string) // update membership list
 
 // global mutex
-var MT sync.Mutex //Mutex for MembershipList
+var MT sync.Mutex  //Mutex for MembershipList
 var MT2 sync.Mutex //mutex for Bandwidth
 
 var Ack int = 0
-var Master bool = false
+var Master bool = false //if myself is master
 var CandidateFail bool = false
 var CandidateID string
 var MasterIP string = ""
+var IsMaster = false

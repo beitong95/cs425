@@ -4,13 +4,13 @@ import (
 	"config"
 	"encoding/json"
 	"fmt"
+	"helper"
 	"math/rand"
 	"net"
 	"strings"
 	. "structs"
 	"sync"
 	"time"
-	"helper"
 )
 
 // bandwidth function
@@ -31,10 +31,10 @@ func deleteIDAfterTcleanup(id string) {
 	MT.Unlock()
 }
 
-func findMin(m map[string]Membership) string{
+func findMin(m map[string]Membership) string {
 	var min = ""
 	var output = ""
-	for ip,_ := range m {
+	for ip, _ := range m {
 		var temp = ip
 		if min == "" {
 			min = temp
@@ -51,34 +51,36 @@ func runElection() {
 	for Election() != "Succeed" {
 
 	}
-	fmt.Println("new master is "+MasterIP)
+	fmt.Println("new master is " + MasterIP)
 }
-func Election() string{
+func Election() string {
 	CandidateID = findMin(MembershipList)
 	if CandidateID == MyID {
-		for Ack < (len(MembershipList)-1) {
+		for Ack < (len(MembershipList) - 1) {
 		}
 		Ack = 0
-		for id,_ := range MembershipList {
-			if id !=MyID {
-				sendMsgToID(id,"Im new master")
+		for id, _ := range MembershipList {
+			if id != MyID {
+				sendMsgToID(id, "Im new master")
 			}
 		}
-		MasterIP = strings.Split(CandidateID,"*")[0]
+		MasterIP = strings.Split(CandidateID, "*")[0]
+		IsMaster = true
 	} else {
-		sendMsgToID(CandidateID,"Ack")
+		sendMsgToID(CandidateID, "Ack")
 		for !Master && !CandidateFail {
 		}
 		if CandidateFail {
-			CandidateFail = false 
+			CandidateFail = false
 			return "Candidate Failed"
 		}
 		if Master {
-			MasterIP = strings.Split(CandidateID,"*")[0]
+			MasterIP = strings.Split(CandidateID, "*")[0]
 		}
 	}
 	return "Succeed"
 }
+
 // fail detector
 func selectFailedID(ticker *time.Ticker) {
 	for {
@@ -96,7 +98,7 @@ func selectFailedID(ticker *time.Ticker) {
 					// test for election
 					delete(MembershipList, id)
 					fmt.Println(MembershipList)
-					if strings.Contains(id,MasterIP) {
+					if strings.Contains(id, MasterIP) {
 						Master = false
 						fmt.Println("begin election")
 						go runElection()
@@ -235,6 +237,7 @@ func handleConnection(conn net.UDPConn) {
 	} else if msgString[:2] == "Im" {
 		//test
 		Master = true
+		IsMaster = false
 	} else {
 		//merge buf and membershiplist
 		recievedMemberShipList := make(map[string]Membership)
@@ -246,7 +249,7 @@ func handleConnection(conn net.UDPConn) {
 		if len(recievedMemberShipList) == 1 && MyIP == IntroIP {
 			for key, _ := range recievedMemberShipList {
 				// if it is not in introducer membershiplist
-				if _,ok := MembershipList[key]; !ok {
+				if _, ok := MembershipList[key]; !ok {
 					MT.Lock()
 					jsonString, err := json.Marshal(MembershipList)
 					MT.Unlock()
@@ -382,7 +385,7 @@ func leaveGroup() {
 	for id := range MembershipList {
 		_, okFail := FailedNodes[id]
 		_, okLeave := LeaveNodes[id]
-		if id != MyID && !okFail && !okLeave{
+		if id != MyID && !okFail && !okLeave {
 			sendMsgToID(id, msg)
 		}
 	}
@@ -419,6 +422,7 @@ func piggybackCommand(cmd int) {
 	MT.Unlock()
 
 }
+
 /**
 func parseCmds(cmds []int) []int {
 	//gossip or all2all
@@ -479,9 +483,9 @@ func parseCmds(cmds []int) []int {
 //UDPServer is the udp server thread function
 func UDPServer(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
-	//ticker for gossip and all2all period; ClogN * gossip = all2all 
+	//ticker for gossip and all2all period; ClogN * gossip = all2all
 	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
-	//ticker for fail detect period; gossip = all2all 
+	//ticker for fail detect period; gossip = all2all
 	tickerDetectFail := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
 	cmd := 0
@@ -498,7 +502,7 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 		<-ticker.C
 		// here a new gossip period starts
 
-		// step0: check if gossip period is long enough to run the code in each gossip period? 
+		// step0: check if gossip period is long enough to run the code in each gossip period?
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
@@ -507,13 +511,13 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 		gossipCounter = gossipCounter + 1
 
 		// step 1: change to other protocol if needed
-		if CurrentProtocol != NextProtocol{
+		if CurrentProtocol != NextProtocol {
 			helper.LogChangeProtocol(Logger, MyVM, MyID, CurrentProtocol, NextProtocol)
 			if NextProtocol == "Gossip" {
 				ticker.Reset(time.Duration(Tgossip) * time.Millisecond)
 				CurrentProtocol = "Gossip"
 				select {
-					// for simple cli this is a channel with no receiver
+				// for simple cli this is a channel with no receiver
 				case ProtocolChangeACK <- "Gossip":
 					Logger.Debug("Send Gossip to CLI")
 				default:
@@ -547,7 +551,7 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 			}
 		}
 
-		// step3: execute commands 
+		// step3: execute commands
 		if len(cmds) != 0 {
 			for _, cmd := range cmds {
 				switch cmd {

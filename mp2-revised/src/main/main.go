@@ -3,16 +3,19 @@ package main
 import (
 	"cli"
 	"config"
+	"datanode"
 	"flag"
 	"fmt"
 	"helper"
 	"io/ioutil"
+	"master"
 	"math"
 	"os"
 	"service"
 	. "structs"
 	"sync"
 	"time"
+
 	log "github.com/sirupsen/logrus"
 )
 
@@ -21,7 +24,7 @@ import (
 	Logger.Error: Program can continue but the final result might be wrong
 	Logger.Warning: Node Fail, Node Leave, Node Join
 	Warning Fields:
-		Reason: Fail, Join, Leave, ChangeProtocol 
+		Reason: Fail, Join, Leave, ChangeProtocol
 		Detail:
 			Fail: check helper/logHelper.go
 			Leave: check helper/logHelper.go
@@ -56,7 +59,7 @@ func init_Logger(isAppendLog bool, logLevel string) {
 		return
 	default:
 		Logger.SetLevel(log.DebugLevel)
-	} 
+	}
 	homeDir := os.Getenv("HOME")
 	vmNumber := os.Getenv("VMNUMBER")
 	MyVM = vmNumber
@@ -78,8 +81,16 @@ func init_Logger(isAppendLog bool, logLevel string) {
 			Logger.Info("Failed to log to file " + logFileName + ", using default stderr")
 		} else {
 			file.Truncate(0)
-			file.Seek(0,0)
+			file.Seek(0, 0)
 			Logger.Out = file
+		}
+	}
+}
+func checkIfMasterThenRunMasterLogic() {
+	for {
+		if IsMaster {
+			go master.Run()
+			break
 		}
 	}
 }
@@ -97,7 +108,6 @@ func main() {
 	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time; Remove the record from the membershiplist")
 	flag.IntVar(&LossRate, "loss", 0, "message loss rate 1-100")
-
 	//Parse and save flags
 	flag.Parse()
 
@@ -105,7 +115,7 @@ func main() {
 	isAppendLog := *isAppendLogPtr
 	logLevel := *logLevelPtr
 	init_Logger(isAppendLog, logLevel)
-
+	//if master master.ServerRun(myPort)
 	//step2 setup all flags and parameters
 	Ttimeout = Tfail - Tgossip
 	//Ceil C*logN*Tgossip ;C = 1
@@ -130,50 +140,51 @@ func main() {
 	MyIP, err = helper.GetLocalIP()
 	if err != nil {
 		Logger.WithFields(log.Fields{
-			"package":	"helper",
-			"function":	"helper.GetLocalIP",
-			"error": err,
-			"data": "",
+			"package":  "helper",
+			"function": "helper.GetLocalIP",
+			"error":    err,
+			"data":     "",
 		}).Fatal("Cannot get local IP address.")
 	} else {
 		Logger.WithFields(log.Fields{
-			"package":	"helper",
-			"function":	"helper.GetLocalIP",
-			"res": MyIP,
+			"package":  "helper",
+			"function": "helper.GetLocalIP",
+			"res":      MyIP,
 		}).Info("Local IP address.")
 	}
 	introIP, err := config.IntroducerIPAddresses()
 	IntroIP = introIP[0]
 	if err != nil {
 		Logger.WithFields(log.Fields{
-			"package":	"config",
-			"function":	"config.IntroducerIPAddresses",
-			"error": err,
-			"data": "",
+			"package":  "config",
+			"function": "config.IntroducerIPAddresses",
+			"error":    err,
+			"data":     "",
 		}).Fatal("Cannot get Introducer IP address.")
 	} else {
 		Logger.WithFields(log.Fields{
-			"package":	"config",
-			"function":	"config.IntroducerIPAddresses",
-			"res": introIP,
+			"package":  "config",
+			"function": "config.IntroducerIPAddresses",
+			"res":      introIP,
 		}).Info("Introducer IP address.")
 	}
 	introPort, err := config.Port()
 	if err != nil {
 		Logger.WithFields(log.Fields{
-			"package":	"config",
-			"function":	"config.Port",
-			"error": err,
-			"data": "",
+			"package":  "config",
+			"function": "config.Port",
+			"error":    err,
+			"data":     "",
 		}).Fatal("Cannot get Introducer Port.")
 	} else {
 		Logger.WithFields(log.Fields{
-			"package":	"config",
-			"function":	"config.Port",
-			"res": introPort,
+			"package":  "config",
+			"function": "config.Port",
+			"res":      introPort,
 		}).Info("Introducer Port.")
 	}
 	if MyIP == introIP[0] && MyPort == introPort {
+		IsMaster = true
 		IsJoin = true
 	}
 	millis := time.Now().UnixNano() / 1000000
@@ -184,16 +195,18 @@ func main() {
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
 	Logger.WithFields(log.Fields{
-		"ID": MyID,
+		"ID":        MyID,
 		"HeartBeat": heartBeat,
 	}).Info("Create Local Membership Record.")
 
 	var wg sync.WaitGroup
 
 	//Start UDPServer thread
-	//C1 is the channel for CLI command 
+	//C1 is the channel for CLI command
 	//CLI <-> C1 <-> UDPServer
 	wg.Add(1)
+	go checkIfMasterThenRunMasterLogic()
+	go datanode.Run()
 	go service.UDPServer(&wg, C1)
 	Logger.Info("Start UDPServer go routine")
 
