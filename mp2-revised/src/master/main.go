@@ -74,6 +74,7 @@ func Hash2Ips(filename string) []string {
 			}
 		}
 	}
+	//just for test. should be implemented in put/delete.
 	for i := 0; i < 4; i++ {
 		if fourIps[i] == "" {
 			fourIps = fourIps[:i]

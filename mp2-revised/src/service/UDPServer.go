@@ -11,6 +11,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"master"
 )
 
 // bandwidth function
@@ -81,6 +82,19 @@ func Election() string {
 	return "Succeed"
 }
 
+func removeIP(filename string, target string) {
+	var output = []string{}
+	MF.Lock()
+	var list = File2VmMap[filename]
+	for _,str := range list {
+		if str != target {
+			output = append(output,str)
+		}
+	}
+	File2VmMap[filename] = output
+	MF.Unlock()
+}
+
 // fail detector
 func selectFailedID(ticker *time.Ticker) {
 	for {
@@ -97,7 +111,17 @@ func selectFailedID(ticker *time.Ticker) {
 					FailedNodes[id] = 1
 					// test for election
 					delete(MembershipList, id)
-					fmt.Println(MembershipList)
+					// failedIP + Port
+					var failedIP = strings.Split(id, "*")[0]
+					MV.Lock()
+					var filenames = Vm2fileMap[failedIP]
+					delete(Vm2fileMap,failedIP)
+					MV.Unlock()
+					for _,filename := range filenames {
+						removeIP(filename,failedIP)
+					}
+					//replica file stored in this node to other nodes
+					//fmt.Println(MembershipList)
 					if strings.Contains(id, MasterIP) {
 						Master = false
 						fmt.Println("begin election")
