@@ -11,7 +11,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
-	"master"
+	. "master"
 )
 
 // bandwidth function

@@ -139,9 +139,18 @@ func main() {
 	//ID: myIP:myPort:currentTime(Unix s)
 	var err error
 	MyIP, err = helper.GetLocalIP()
+	if err != nil {
+		panic(err)
+	}
 	introIP, err := config.IntroducerIPAddresses()
+	if err != nil {
+		panic(err)
+	}
 	IntroIP = introIP[0]
 	introPort, err := config.Port()
+	if err != nil {
+		panic(err)
+	}
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsMaster = true
 		IsJoin = true
