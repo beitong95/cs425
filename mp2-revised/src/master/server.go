@@ -62,7 +62,6 @@ func ServerRun(port string) {
 // }
 
 func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
-	Write2Shell(req)
 	file, ok := req.URL.Query()["file"]
 	if !ok {
 		log.Println("Get IPs Url Param 'key' is missing")
@@ -88,7 +87,9 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
-		Write2Shell("Master sends IPS: " + val)
+		for _,v := range val {
+			Write2Shell("Master sends IPS: " + v)
+		}
 	} else {
 		res = []byte("[]")
 		Write2Shell("File does not exist")
@@ -116,7 +117,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	w.Write(res)
 	fmt.Println(filename)
 }
-
 func HandleGet(w http.ResponseWriter, req *http.Request) {
 	ids, ok := req.URL.Query()["id"]
 	if !ok {
@@ -128,6 +128,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	ClientMap[id] = "Get"
 	CM.Unlock()
 	//detect if can read
+	// Question: wrong reader writer logic
 	for {
 		MW.Lock()
 		if WriteCounter == 0 {
@@ -159,6 +160,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			CM.Unlock()
 			break
 		}
+		// Question add else if ClientMap[id] == "Node Fail" exit
 		CM.Unlock()
 	}
 }
