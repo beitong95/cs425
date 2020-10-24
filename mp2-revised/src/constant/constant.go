@@ -1,3 +1,3 @@
 package constant
 
-const Dir string = "/Users/chenxinhang/Files"
+var Dir string = "/Users/chenxinhang/Files"

@@ -2,7 +2,6 @@ package master
 
 import (
 	_ "errors"
-	"structs"
 	"sync"
 )
 
@@ -134,5 +133,5 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
-	ServerRun(structs.MyPort)
+	ServerRun("1238")
 }

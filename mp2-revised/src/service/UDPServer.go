@@ -450,63 +450,6 @@ func piggybackCommand(cmd int) {
 
 }
 
-/**
-func parseCmds(cmds []int) []int {
-	//gossip or all2all
-	//fmt.Println(cmds)
-	if len(cmds) == 0 {
-		return make([]int, 0)
-	}
-	gossipOrAll2All := -1
-	joinGroupIndex := -1
-	leaveGroupIndex := -1
-
-	for i := len(cmds) - 1; i >= 0; i-- {
-		if cmds[i] == CHANGE_TO_GOSSIP || cmds[i] == CHANGE_TO_ALL2ALL {
-			if gossipOrAll2All == -1 {
-				gossipOrAll2All = cmds[i]
-			}
-		}
-		if cmds[i] == JOIN_GROUP {
-			if joinGroupIndex == -1 {
-				joinGroupIndex = i
-			}
-		}
-		if cmds[i] == LEAVE_GROUP {
-			if leaveGroupIndex == -1 {
-				leaveGroupIndex = i
-			}
-		}
-	}
-	res := make([]int, 0)
-	if gossipOrAll2All != -1 {
-		res = append(res, gossipOrAll2All)
-	}
-	if joinGroupIndex > leaveGroupIndex && IsJoin == false {
-		res = append(res, JOIN_GROUP)
-		return res
-	} else if joinGroupIndex > leaveGroupIndex && IsJoin == true {
-		log.Println("cannot join group twice")
-		if leaveGroupIndex != -1 {
-			res = append(res, LEAVE_GROUP)
-			return res
-		}
-		return res
-	} else if joinGroupIndex < leaveGroupIndex && IsJoin == true {
-		res = append(res, LEAVE_GROUP)
-		return res
-	} else if joinGroupIndex < leaveGroupIndex && IsJoin == false {
-		log.Println("cannot leave group before join")
-		if joinGroupIndex != -1 {
-			res = append(res, JOIN_GROUP)
-			return res
-		}
-		return res
-	}
-	return res
-}
-**/
-
 //UDPServer is the udp server thread function
 func UDPServer(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
