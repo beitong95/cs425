@@ -98,7 +98,14 @@ var CandidateID string
 var MasterIP string = ""
 
 //mp2
-var CurrentStatus = "RUNNING"
+/**
+New nodes cannot join after master fails
+Normal Nodes' CurrentStatus: Node unjoin -> Node join -> Node election -> Node join  
+Default Master Node's CurrentStatus: Original Master -> Fail
+New Master's CurrentStatus:  Node unjoin -> Node join -> Node election -> Master
+
+**/
+var CurrentStatus = "Node Unjoin"
 
 var History *tui.Box
 

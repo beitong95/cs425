@@ -148,14 +148,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	IntroIP = introIP[0]
-	introPort, err := config.Port()
+	IntroIP = introIP[0] // 172.22.156.12
+	introPort, err := config.Port() // 1234
 	if err != nil {
 		panic(err)
 	}
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsMaster = true
 		IsJoin = true
+		CurrentStatus = "Original Master" // In this state, the master has join the group and acts as the introducer
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000

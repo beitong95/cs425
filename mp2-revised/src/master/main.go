@@ -133,5 +133,5 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
-	ServerRun("1238")
+	ServerRun(constant.MasterHTTPServerPort)
 }
