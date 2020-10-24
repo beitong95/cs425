@@ -102,6 +102,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.GetFile(filename1, filename2)
 		case "put":
 			Write2Shell(cmd)
+			go client.PutFile(filename1, filename2)
 		case "delete":
 			Write2Shell(cmd)
 		case "ls":
@@ -164,8 +165,10 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 			helper.PrintMembershipListAsTable(MembershipList)
 		case "get":
 			fmt.Println(cmd)
+			go client.GetFile(filename1, filename2)
 		case "put":
 			fmt.Println(cmd)
+			go client.PutFile(filename1, filename2)
 		case "delete":
 			fmt.Println(cmd)
 		case "ls":
