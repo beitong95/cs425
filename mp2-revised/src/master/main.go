@@ -3,9 +3,7 @@ package master
 import (
 	_ "errors"
 	"sync"
-	"strconv"
-	. "structs"
-	"fmt"
+	"constant"
 )
 
 /**
@@ -137,11 +135,9 @@ func Recover(ip string, list []string) {
 
 func Run() {
 	File2VmMap = make(map[string][]string)
-	File2VmMap["1.txt"] = []string{"2","3","4","5"}
-	i, err := strconv.Atoi(MyPort)
-	if err != nil {
-		panic(err)
-	}
-	serverPort := fmt.Sprint(int(i) + 3)
-	ServerRun(serverPort)
+	File2VmMap["1.txt"] = []string{"172.22.156.12:1234",
+									"172.22.156.12:2020",
+									"172.22.156.12:3030",
+									"172.22.156.12:4040"}
+	ServerRun(constant.MasterHTTPServerPort)
 }

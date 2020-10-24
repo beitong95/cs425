@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	. "structs"
 )
 
 func CreateFile() {
-	err := os.Mkdir(constant.Dir, 0777)
-	fmt.Println(err)
+	os.Mkdir(constant.Dir + "files_" + MyPort, 0777)
 	FileList = []string{}
 }
 

@@ -11,6 +11,7 @@ import (
 	"sync"
 	"helper"
 	"log"
+	"client"
 )
 
 var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para"}
@@ -65,7 +66,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	input.OnSubmit(func(e *tui.Entry) {
 		// rejoin cmd
 		_cmd := e.Text()[2:]
-		cmd, _, _ := ParseCmd(input, _cmd, commands)
+		cmd, filename1, filename2 := ParseCmd(input, _cmd, commands)
 		
 		if cmd == "" {
 			// wrong command
@@ -98,6 +99,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			Write2Shell(getHelp())
 		case "get":
 			Write2Shell(cmd)
+			go client.GetFile(filename1, filename2)
 		case "put":
 			Write2Shell(cmd)
 		case "delete":

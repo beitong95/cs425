@@ -1,9 +1,7 @@
 package datanode
 
 import (
-	"fmt"
-	"strconv"
-	. "structs"
+	"constant"
 )
 
 /**
@@ -20,10 +18,5 @@ import (
 var FileList []string
 
 func Run() {
-	i, err := strconv.Atoi(MyPort)
-	if err != nil {
-		panic(err)
-	}
-	serverPort := fmt.Sprint(int(i) + 1)
-	ServerRun(serverPort)
+	ServerRun(constant.DatanodeHTTPServerPort)
 }

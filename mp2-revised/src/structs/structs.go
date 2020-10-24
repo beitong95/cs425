@@ -7,6 +7,8 @@ import (
 	"github.com/marcusolsson/tui-go"
 	"time"
 	"fmt"
+	"strings"
+	"strconv"
 )
 
 //Membership struct
@@ -124,3 +126,42 @@ func Write2Shell(text string) {
 	}
 }
 var IsMaster = false
+
+
+func IP2MasterHTTPServerIP(oldIp string) string {
+	ip := strings.Split(oldIp, ":")[0]
+	oldPort := strings.Split(oldIp, ":")[1]
+	oldPortInt, er := strconv.Atoi(oldPort)
+	if er != nil {
+		panic(er)
+	}
+	newPort := fmt.Sprintf("%v", oldPortInt + 3)
+	newIP := ip + ":" +newPort
+	return newIP
+
+}
+
+func IP2DatanodeHTTPServerIP(oldIp string) string{
+	ip := strings.Split(oldIp, ":")[0]
+	oldPort := strings.Split(oldIp, ":")[1]
+	oldPortInt, er := strconv.Atoi(oldPort)
+	if er != nil {
+		panic(er)
+	}
+	newPort := fmt.Sprintf("%v", oldPortInt + 1)
+	newIP := ip + ":" +newPort
+	return newIP
+}
+
+func IP2DatanodeUploadIP(oldIp string) string{
+	ip := strings.Split(oldIp, ":")[0]
+	oldPort := strings.Split(oldIp, ":")[1]
+	oldPortInt, er := strconv.Atoi(oldPort)
+	if er != nil {
+		panic(er)
+	}
+	newPort := fmt.Sprintf("%v", oldPortInt + 2)
+	newIP := ip + ":" +newPort
+	return newIP
+
+}

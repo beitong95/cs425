@@ -16,6 +16,7 @@ import (
 	"sync"
 	"time"
 	"constant"
+	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -124,6 +125,19 @@ func main() {
 	//Ceil C*logN*Tgossip ;C = 1
 	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
 	MyPort = *myPortPtr
+
+	//setup local test ports
+	//Delete for released version
+	MyPortInt, er := strconv.Atoi(MyPort)
+	if er != nil {
+		panic(er)
+	}
+	constant.MasterHTTPServerPort = fmt.Sprint(int(MyPortInt) + 3)
+	constant.DatanodeHTTPServerPort = fmt.Sprint(int(MyPortInt) + 1)
+	constant.DatanodeHTTPServerUploadPort = fmt.Sprint(int(MyPortInt) + 2)
+	//Delete for released version
+
+
 	isAll2All := *isStartWithAll2AllPtr
 	if isAll2All == true {
 		CurrentProtocol = "All2All"
