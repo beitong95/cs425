@@ -88,7 +88,7 @@ func CreateCurrentStatusBox() (*tui.Box, *tui.Label) {
 	currentStatusBoxLabel:= tui.NewLabel("")
 	currentStatusBoxLabel.SetSizePolicy(tui.Expanding, tui.Expanding)
 	currentStatusBox:= tui.NewVBox(currentStatusBoxLabel)
-	currentStatusBox.SetTitle("Protocol")
+	currentStatusBox.SetTitle("Status")
 	currentStatusBox.SetBorder(true)
 	return currentStatusBox, currentStatusBoxLabel 
 }

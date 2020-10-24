@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"networking"
 	"sync"
+	. "structs"
 )
 
 var ClientMap map[string]string = make(map[string]string)
@@ -61,7 +62,6 @@ func ServerRun(port string) {
 // }
 
 func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
-	fmt.Println(req)
 	file, ok := req.URL.Query()["file"]
 	if !ok {
 		log.Println("Get IPs Url Param 'key' is missing")
@@ -71,12 +71,15 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 	for {
 		MW.Lock()
 		if WriteCounter == 0 {
+			Write2Shell("Now Approve This Read")
+			//Question: reader ++ ?
 			MW.Unlock()
 			break
 		}
 		MW.Unlock()
 	}
 	filename := file[0]
+	Write2Shell("Master receive GET request for file: " + filename)
 	var res []byte
 	var err error
 	if val, ok := File2VmMap[filename]; ok {
@@ -84,11 +87,14 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+		for _,v := range val {
+			Write2Shell("Master sends IPS: " + v)
+		}
 	} else {
 		res = []byte("[]")
+		Write2Shell("File does not exist")
 	}
 	w.Write(res)
-	fmt.Println(filename)
 }
 
 func HandlePut(w http.ResponseWriter, req *http.Request) {
@@ -111,7 +117,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	w.Write(res)
 	fmt.Println(filename)
 }
-
 func HandleGet(w http.ResponseWriter, req *http.Request) {
 	ids, ok := req.URL.Query()["id"]
 	if !ok {
@@ -123,6 +128,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	ClientMap[id] = "Get"
 	CM.Unlock()
 	//detect if can read
+	// Question: wrong reader writer logic
 	for {
 		MW.Lock()
 		if WriteCounter == 0 {
@@ -154,6 +160,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			CM.Unlock()
 			break
 		}
+		// Question add else if ClientMap[id] == "Node Fail" exit
 		CM.Unlock()
 	}
 }

@@ -15,6 +15,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"constant"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -33,9 +34,6 @@ import (
 	Logger.Info: Basic info Logger, like MyID, Introducer IP. We can also log when a go routine starts
 	Logger.Debug: Detailed info like the value of a counter or something
 **/
-//TODO: add more log in UDPServer.go
-//TODO: current bandwidth is just the payload size
-//TODO: test MP0 and MP1 together
 
 func init_Logger(isAppendLog bool, logLevel string) {
 	/** some possible settings
@@ -104,6 +102,7 @@ func main() {
 	configFilePtr := flag.String("config", "../../config.json", "Location of Config File")
 	myPortPtr := flag.String("port", "1234", "Port used for Debug on one machine")
 	logLevelPtr := flag.String("logLevel", "debug", "log level: debug, info, warning, mute")
+	dirPtr := flag.String("dir", "", "dir for saving files")
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
 	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time; Remove the record from the membershiplist")
@@ -118,6 +117,9 @@ func main() {
 	//if master master.ServerRun(myPort)
 
 	//step2 setup all flags and parameters
+	if *dirPtr != "" {
+		constant.Dir = *dirPtr
+	}
 	Ttimeout = Tfail - Tgossip
 	//Ceil C*logN*Tgossip ;C = 1
 	Tall2all = (int(math.Log(float64(VMMaxCount))) + 1) * Tgossip
@@ -146,14 +148,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	IntroIP = introIP[0]
-	introPort, err := config.Port()
+	IntroIP = introIP[0] // 172.22.156.12
+	introPort, err := config.Port() // 1234
 	if err != nil {
 		panic(err)
 	}
 	if MyIP == introIP[0] && MyPort == introPort {
 		IsMaster = true
 		IsJoin = true
+		CurrentStatus = "Original Master" // In this state, the master has join the group and acts as the introducer
 	}
 	millis := time.Now().UnixNano() / 1000000
 	secs := millis / 1000

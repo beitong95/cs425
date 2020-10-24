@@ -2,8 +2,10 @@ package master
 
 import (
 	_ "errors"
-	"structs"
 	"sync"
+	"strconv"
+	. "structs"
+	"fmt"
 )
 
 /**
@@ -134,5 +136,10 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
-	ServerRun(structs.MyPort)
+	i, err := strconv.Atoi(MyPort)
+	if err != nil {
+		panic(err)
+	}
+	serverPort := fmt.Sprint(int(i) + 3)
+	ServerRun(serverPort)
 }
