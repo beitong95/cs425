@@ -170,9 +170,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			panic(err)
 		}
 		// print ips
-		for _,v := range val {
-			Write2Shell("Master sends IPS: " + v)
-		}
+		Write2Shell("Master sends IPS: " + string(res))
 	} else {
 		res = []byte("[]")
 		Write2Shell("File does not exist")
@@ -183,35 +181,40 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	//exit 1: receive "Done" -> get success
 	//exit 2: receive "Bad"  -> get fail
 	//exit 3: timer timeout	 -> timeout
-	Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v",id))
-	for {
-		CM.Lock()
-		if ClientMap[id] == "Done" {
-			w.Write([]byte("OK"))
-			//change readcounter to 0
-			MR.Lock()
-			ReadCounter--
-			MR.Unlock()
-			CM.Unlock()
-			break
-		} else if ClientMap[id] == "Bad" {
-			w.Write([]byte("Bad"))
-			//change readcounter to 0
-			MR.Lock()
-			ReadCounter--
-			MR.Unlock()
-			CM.Unlock()
-			break
-		} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterGetTimeout * time.Second {
-			Write2Shell("Timeout id: " + fmt.Sprintf("%v",id))
-			CM.Unlock()
-			break
-		} 
+	//Question local variable?
+	go func() {
+		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v",id))
+		for {
+			CM.Lock()
+			if ClientMap[id] == "Done" {
+				Write2Shell("Get success ACK from id: " + fmt.Sprintf("%v",id))
+				w.Write([]byte("OK"))
+				//change readcounter to 0
+				MR.Lock()
+				ReadCounter--
+				MR.Unlock()
+				CM.Unlock()
+				break
+			} else if ClientMap[id] == "Bad" {
+				Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v",id))
+				w.Write([]byte("Bad"))
+				//change readcounter to 0
+				MR.Lock()
+				ReadCounter--
+				MR.Unlock()
+				CM.Unlock()
+				break
+			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterGetTimeout * time.Second {
+				Write2Shell("Timeout id: " + fmt.Sprintf("%v",id))
+				CM.Unlock()
+				break
+			} 
 
-		// exit 1 compare time 15 mins 
-		// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
-		CM.Unlock()
-	}
+			// exit 1 compare time 15 mins 
+			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
+			CM.Unlock()
+		}
+	}()
 }
 
 func HandleClientACK(w http.ResponseWriter, req *http.Request) {

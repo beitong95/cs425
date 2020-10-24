@@ -35,6 +35,7 @@ func DownloadFileFromDatanode(filename string, localfilename string, ipPort stri
 	url := "http://" + ipPort + "/" + filename
 	Write2Shell("Downloading file from: " + url)
 	rsp, err := http.Get(url)
+	Write2Shell("get http.Get return")
 	if err != nil {
 		return "Connection error", err
 	}
@@ -46,6 +47,7 @@ func DownloadFileFromDatanode(filename string, localfilename string, ipPort stri
 			return "File not found", errors.New("networking: file not found")
 		} else {
 			file := strings.NewReader(string(buffer))
+			// store in main folder
 			destFile, err := os.Create("./" + localfilename)
 			if err != nil {
 				log.Printf("Create file failed: %s\n", err)
@@ -59,6 +61,7 @@ func DownloadFileFromDatanode(filename string, localfilename string, ipPort stri
 			return "OK", nil
 		}
 	}
+	// store in main folder
 	destFile, err := os.Create("./" + localfilename)
 	if err != nil {
 		log.Printf("Create file failed: %s\n", err)
@@ -100,19 +103,18 @@ func GetFile(filename string, localfilename string) {
 	getFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
-	url := "http://" + MasterIP + "/get?id=" + ID + "&file=" + filename 
+	newIP := IP2MasterHTTPServerIP(MasterIP)
+	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename 
+	Write2Shell("Getfile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
+	Write2Shell(string(body))
 	var IPs []string
-	err := json.Unmarshal([]byte(body), &IPs)
+	IPs = []string{}
+	err := json.Unmarshal(body, &IPs)
 	if err != nil {
-		Logger.Error("Unmarshal error in GetFile")
-	}
-	//no return ips, send bad ack to master
-	if len(IPs) == 0 {
-		url = "http://" + MasterIP + "/clientBad?id=" + ID
-		networking.HTTPsend(url)
+		Write2Shell("Unmarshal error in GetFile")
 	}
 	Write2Shell("Received IPs: ")
 	for _,v := range IPs {
@@ -120,25 +122,27 @@ func GetFile(filename string, localfilename string) {
 	}
 
 	//step3. download files from the list 
-	
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		newIp := IP2DatanodeHTTPServerIP(ip)
 		status, _ := DownloadFileFromDatanode(filename, localfilename, newIp)
 		if status == "OK" {
 			getFailFlag = false
-			url = "http://" + MasterIP + "/clientACK?id=" + ID
+			url = "http://" + newIP + "/clientACK?id=" + ID
 			networking.HTTPsend(url)
-			return
+			break
 		}
 	}
 
+	//step4. check if get successes, print the reuslt to shell. 
+	// The user can resend the command manully.
 	if getFailFlag == true {
+		url = "http://" + newIP + "/clientBad?id=" + ID
+		networking.HTTPsend(url)
 		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
 	} else {
 		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
 	}
-	// command end
 }
 
 func PutFile(filename string, remotefilename string) {

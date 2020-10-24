@@ -5,11 +5,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	. "structs"
 )
 
 func CreateFile() {
-	os.Mkdir(constant.Dir + "files_" + MyPort, 0777)
+	os.Mkdir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort, 0777)
 	FileList = []string{}
 }
 
