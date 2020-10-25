@@ -68,6 +68,7 @@ func Election() string {
 			// receive filelist from target ip
 			if id != MyID {
 				var target = strings.Split(id,"*")[0]
+				// get filelist from target ip
 				var filelist = 
 				Recover(target,filelist)
 			}
