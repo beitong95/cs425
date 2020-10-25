@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 	"master"
+	"networking"
 )
 
 // bandwidth function
@@ -65,16 +66,60 @@ func Election() string {
 				sendMsgToID(id, "Im new master")
 			}
 		}
+
+		Write2Shell("VM2File before")
+		for _,v := range Vm2fileMap{
+			tmp := ""
+			for _,k := range v {
+				tmp += k 
+				tmp += "; "
+			}
+			Write2Shell(tmp)
+		}
+
 		for id,_ := range MembershipList {
 			// receive filelist from target ip
-			if id != MyID {
-				var target = strings.Split(id,"*")[0]
-				// get filelist from target ip
-				// beitong tian todo 
-				var filelist = []string{}
+			var target = strings.Split(id,"*")[0]
+			// get filelist from target ip
+			targetIp := IP2DatanodeUploadIP(target)
+			url := "http://" + targetIp + "/recover"
+			body := networking.HTTPsend(url)
+			var filelist = []string{}
+			err := json.Unmarshal([]byte(body), &filelist)
+			if err != nil {
+				Write2Shell("Unmarshal error in Recover")
+			}
+			Write2Shell("file list from : " + target)
+			for _,v := range filelist {
+				Write2Shell(v)
+			}
+			if len(filelist) > 0 {
 				master.Recover(target,filelist)
 			}
 		}
+		Write2Shell("VM2File after")
+		for _,v := range Vm2fileMap{
+			tmp := ""
+			for _,k := range v {
+				tmp += k 
+				tmp += "; "
+			}
+			Write2Shell(tmp)
+		}
+		//next replica
+		MF.Lock()
+		for filename,v := range File2VmMap {
+			if len(v) < 4 {
+				// rereplica
+				for count := 4-len(v); count >0 ; count--{
+					go master.Rereplica(filename)
+				}
+			}
+		}
+		MF.Unlock()
+
+
+
 		MasterIP = strings.Split(CandidateID, "*")[0]
 		//? if Master should be updated here
 		Master = true

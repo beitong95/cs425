@@ -13,6 +13,8 @@ import (
 	"os"
 	. "structs"
 	"time"
+	"encoding/json"
+	"fmt"
 )
 
 var c *http.Client = &http.Client{Timeout: time.Second * 3}
@@ -200,6 +202,37 @@ func HTTPlistenRereplica() {
 		}
 	}
 	http.HandleFunc("/rereplica", Rereplica)
+}
+
+func List() []string {
+	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort) 
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	var output []string
+	for _, entry := range c {
+		output = append(output, entry.Name())
+	}
+	return output
+}
+
+func HTTPlistenRecover() {
+	Recover := func(w http.ResponseWriter, r *http.Request) {
+		list := List()
+		var res []byte
+		var err error
+		if len(list) == 0 {
+			res = []byte("[]")
+		} else {
+			res, err = json.Marshal(list)
+			if err != nil {
+				Write2Shell("Unmarshal error in HTTPlistenRecover")
+			}
+		}
+		w.Write(res)
+	}
+	http.HandleFunc("/recover", Recover)
 }
 
 func HTTPstart(port string) {
