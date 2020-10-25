@@ -1,6 +1,7 @@
 package client
 
 import (
+	"datanode"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -316,7 +317,10 @@ func Ls(remotefilename string) {
 		}
 	}
 }
-
-// func StoreFile() {
-
-// }
+func Store() {
+	list := datanode.List()
+	Write2Shell("This VM contain files:")
+	for _, val := range list {
+		Write2Shell(val)
+	}
+}

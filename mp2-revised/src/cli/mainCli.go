@@ -112,6 +112,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.Ls(filename1)
 		case "store":
 			Write2Shell(cmd)
+			go client.Store()
 		case "exit":
 			Write2Shell(cmd)
 			time.Sleep(time.Duration(500) * time.Millisecond)
