@@ -384,6 +384,7 @@ func listenUDP() {
 	}
 	for {
 		if !IsJoin {
+			time.Sleep(1 * time.Second)
 			continue
 		}
 		handleConnection(*conn)
