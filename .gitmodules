@@ -25,6 +25,6 @@
 [submodule "src/github.com/sirupsen/logrus"]
 	path = src/github.com/sirupsen/logrus
 	url = https://github.com/sirupsen/logrus.git
-[submodule "src/github.com/juju"]
-	path = src/github.com/juju
+[submodule "src/github.com/juju/ratelimit"]
+	path = src/github.com/juju/ratelimit
 	url = https://github.com/juju/ratelimit.git
