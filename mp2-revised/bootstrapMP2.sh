@@ -18,6 +18,8 @@ sed -i "/\b\(VMNUMBER\)\b/d" ~/.bashrc
 VM=`uname -n | sed -n 's/^.*g04-\(\S*\)\.cs.*$/\1/p'`
 echo "export VMNUMBER='vm'$VM" >> ~/.bashrc
 
+echo "alias cleanRemoteFiles='rm -rf /home/beitong2/cs425/mp2-revised/files/*'" >> ~/.bashrc
+
 source ~/.bashrc
 
 echo "Current GOPATH: "
