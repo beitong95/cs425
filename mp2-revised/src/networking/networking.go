@@ -2,6 +2,7 @@ package networking
 
 import (
 	"bytes"
+	"constant"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -132,24 +133,6 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	}
 	return body
 }
-func HTTPlistenDelete(BaseDeletePath string) {
-	Delete := func(w http.ResponseWriter, r *http.Request) {
-		file, ok := r.URL.Query()["file"]
-		if !ok {
-			log.Println("Get IPs Url Param 'key' is missing")
-			return
-		}
-		filename := file[0]
-		err := os.Remove(BaseDeletePath + filename)
-		if err != nil {
-			w.Write([]byte("Write Failed"))
-
-		} else {
-			w.Write([]byte("OK"))
-		}
-	}
-	http.HandleFunc("/deletefile", Delete)
-}
 func HTTPlistenDownload(BaseUploadPath string) {
 	Download := func(w http.ResponseWriter, r *http.Request) {
 		formFile, header, err := r.FormFile("uploadfile")
@@ -179,7 +162,66 @@ func HTTPlistenDownload(BaseUploadPath string) {
 	}
 	http.HandleFunc("/putfile", Download)
 }
+
+func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
+	url := "http://" + ipPort + "/putfile"
+	Write2Shell("Upload file to url:" + url)
+	body := HTTPuploadFile(url, filename, remotefilename)
+	Write2Shell("Url: " + url + " Status: " + string(body))
+	return string(body)
+}
+
+func HTTPlistenRereplica() {
+	Rereplica := func(w http.ResponseWriter, r *http.Request) {
+		// get filename
+		filenames, ok := r.URL.Query()["file"]
+		if !ok {
+			Logger.Error("Handle rereplica but the key is missing")
+			return
+		}
+		filename := filenames[0]
+
+		// get desitnation
+		destinations, ok := r.URL.Query()["destination"]
+		if !ok {
+			Logger.Error("Handle rereplica but the key is missing")
+			return
+		}
+		destination := destinations[0]
+
+		//send
+		filenameWithPath := constant.Dir + "files_" + constant.DatanodeHTTPServerPort + "/" + filename
+		ipPort := IP2DatanodeUploadIP(destination)
+		status := UploadFileToDatanode(filenameWithPath, filename, ipPort)
+		if status != "OK" {
+			w.Write([]byte("Bad"))
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/rereplica", Rereplica)
+}
+
 func HTTPstart(port string) {
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+func HTTPlistenDelete(BaseDeletePath string) {
+	Delete := func(w http.ResponseWriter, r *http.Request) {
+		file, ok := r.URL.Query()["file"]
+		if !ok {
+			log.Println("Get IPs Url Param 'key' is missing")
+			return
+		}
+		filename := file[0]
+		err := os.Remove(BaseDeletePath + filename)
+		if err != nil {
+			w.Write([]byte("Write Failed"))
+
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/deletefile", Delete)
 }

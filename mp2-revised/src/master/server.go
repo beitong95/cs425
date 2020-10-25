@@ -11,7 +11,7 @@ import (
 	"sync"
 	"time"
 )
-
+// track status
 var ClientMap map[string]string = make(map[string]string)
 var CM sync.Mutex
 
@@ -27,44 +27,7 @@ func ServerRun(port string) {
 
 }
 
-// func HandleGetIPsPut(w http.ResponseWriter, req *http.Request) {
-// 	file, ok := req.URL.Query()["file"]
-// 	if !ok {
-// 		log.Println("Get IPs Url Param 'key' is missing")
-// 		return
-// 	}
-// 	//detect if can give write ips
-// 	for {
-// 		MW.Lock()
-// 		MR.Lock()
-// 		if ReadCounter == 0 && WriteCounter == 0 {
-// 			MW.Unlock()
-// 			MR.Unlock()
-// 			break
-// 		}
-// 		MW.Unlock()
-// 		MR.Unlock()
-// 	}
-// 	filename := file[0]
-// 	var res []byte
-// 	var err error
-// 	if val, ok := File2VmMap[filename]; ok {
-// 		res, err = json.Marshal(val)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 	} else {
-// 		val := Hash2Ips()
-// 		res, err = json.Marshal(val)
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 	}
-// 	w.Write(res)
-// 	fmt.Println(filename)
-
-// }
-
+//TODELETE: can be deleted
 func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 	file, ok := req.URL.Query()["file"]
 	if !ok {
@@ -328,18 +291,18 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
-				MR.Lock()
+				MW.Lock()
 				WriteCounter--
-				MR.Unlock()
+				MW.Unlock()
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
 				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
-				MR.Lock()
+				MW.Lock()
 				WriteCounter--
-				MR.Unlock()
+				MW.Unlock()
 				CM.Unlock()
 				break
 			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
@@ -355,6 +318,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	}()
 
 }
+
 
 func HandleGet(w http.ResponseWriter, req *http.Request) {
 	// record current time for exit3
