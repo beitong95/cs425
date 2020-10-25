@@ -163,13 +163,13 @@ func Rereplica(filename string) {
 
 func Recover(ip string, list []string) {
 	MV.Lock()
+	MF.Lock()
 	Vm2fileMap[ip] = list
-	MV.Unlock()
 	for i := 0; i < len(list); i++ {
-		MF.Lock()
 		File2VmMap[list[i]] = append(File2VmMap[list[i]], ip)
-		MF.Unlock()
 	}
+	MF.Unlock()
+	MV.Unlock()
 	return
 }
 
