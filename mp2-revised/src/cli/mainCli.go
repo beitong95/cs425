@@ -1,22 +1,23 @@
 package cli
 
 import (
-	"os"
-	"github.com/marcusolsson/tui-go"
 	"bufio"
+	"client"
 	"fmt"
-	"strings"
-	. "structs"
-	"time"
-	"sync"
 	"helper"
 	"log"
-	"client"
+	"os"
+	"strings"
+	. "structs"
+	"sync"
+	"time"
+
+	"github.com/marcusolsson/tui-go"
 )
 
 var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para"}
 
-func getHelp() string{
+func getHelp() string {
 	return `help                            -> help inFormation
 			mp2
 			get sdfsfilename localfilename  -> read file from HDFS
@@ -36,17 +37,17 @@ func getHelp() string{
 }
 
 var (
-	input *tui.Entry
-	shell *tui.Box
-	bandwidthBox *tui.Box
-	bandwidthBoxLabel *tui.Label
-	protocolBox *tui.Box
-	protocolBoxLabel *tui.Label
-	currentStatusBox *tui.Box
+	input                 *tui.Entry
+	shell                 *tui.Box
+	bandwidthBox          *tui.Box
+	bandwidthBoxLabel     *tui.Label
+	protocolBox           *tui.Box
+	protocolBoxLabel      *tui.Label
+	currentStatusBox      *tui.Box
 	currentStatusBoxLabel *tui.Label
-	membershipBox *tui.Box 
-	membershipBoxLabel *tui.Label
-	ui tui.UI
+	membershipBox         *tui.Box
+	membershipBoxLabel    *tui.Label
+	ui                    tui.UI
 )
 
 // Cli command line function
@@ -59,7 +60,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	membershipBox, membershipBoxLabel = CreateMembershipBox()
 	allStatusBox := tui.NewHBox(bandwidthBox, protocolBox, currentStatusBox)
 	root := tui.NewVBox(membershipBox, allStatusBox, shell)
-	ui,_ = tui.New(root)	
+	ui, _ = tui.New(root)
 	done := make(chan string)
 
 	// shell logic
@@ -67,7 +68,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		// rejoin cmd
 		_cmd := e.Text()[2:]
 		cmd, filename1, filename2 := ParseCmd(input, _cmd, commands)
-		
+
 		if cmd == "" {
 			// wrong command
 			return
@@ -90,11 +91,11 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			}
 			Write2Shell(s)
 		case "para":
-			Write2Shell("Tgossip: " + fmt.Sprintf("%v",Tgossip))
-			Write2Shell("Tall2all: " + fmt.Sprintf("%v",Tall2all))
-			Write2Shell("Tfail: " + fmt.Sprintf("%v",Tfail))
-			Write2Shell("Tclean: " + fmt.Sprintf("%v",Tclean))
-			Write2Shell("B: " + fmt.Sprintf("%v",B))
+			Write2Shell("Tgossip: " + fmt.Sprintf("%v", Tgossip))
+			Write2Shell("Tall2all: " + fmt.Sprintf("%v", Tall2all))
+			Write2Shell("Tfail: " + fmt.Sprintf("%v", Tfail))
+			Write2Shell("Tclean: " + fmt.Sprintf("%v", Tclean))
+			Write2Shell("B: " + fmt.Sprintf("%v", B))
 		case "help":
 			Write2Shell(getHelp())
 		case "get":
@@ -105,6 +106,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.PutFile(filename1, filename2)
 		case "delete":
 			Write2Shell(cmd)
+			go client.DeleteFile(filename1)
 		case "ls":
 			Write2Shell(cmd)
 		case "store":
@@ -115,7 +117,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			ui.Quit()
 			done <- "Done"
 			os.Exit(1)
-			}
+		}
 	})
 
 	ui.SetKeybinding("Esc", func() {
@@ -128,8 +130,8 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	<-done
 }
 
-
 var reader *bufio.Reader
+
 // Cli command line function
 func CliSimple(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
@@ -150,7 +152,7 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 
 		switch cmd {
 		case "help":
-			fmt.Println(strings.Replace(getHelp(),"\t","",-1))
+			fmt.Println(strings.Replace(getHelp(), "\t", "", -1))
 		case "all2all":
 			c <- CHANGE_TO_ALL2ALL
 		case "gossip":
@@ -170,9 +172,10 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 			fmt.Println(cmd)
 			go client.PutFile(filename1, filename2)
 		case "delete":
-			fmt.Println(cmd)
+
+			go client.DeleteFile(filename1)
 		case "ls":
-			fmt.Println(cmd)
+			// go client.Ls(filename1)
 		case "store":
 			fmt.Println(cmd)
 		case "exit":
