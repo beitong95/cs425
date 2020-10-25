@@ -64,7 +64,17 @@ func Election() string {
 				sendMsgToID(id, "Im new master")
 			}
 		}
+		for id,_ := range MembershipList {
+			// receive filelist from target ip
+			if id != MyID {
+				var target = strings.Split(id,"*")[0]
+				var filelist = 
+				Recover(target,filelist)
+			}
+		}
 		MasterIP = strings.Split(CandidateID, "*")[0]
+		//? if Master should be updated here
+		Master = true
 		IsMaster = true
 	} else {
 		sendMsgToID(CandidateID, "Ack")
@@ -110,7 +120,6 @@ func selectFailedID(ticker *time.Ticker) {
 					FailedNodes[id] = 1
 					// test for election
 					delete(MembershipList, id)
-					// if im master, update 2 maps
 					if Master {
 						// failedIP + Port
 						var failedIP = strings.Split(id, "*")[0]
@@ -132,7 +141,9 @@ func selectFailedID(ticker *time.Ticker) {
 					if id == CandidateID {
 						CandidateFail = true
 					}
-
+					for _,file := range Vm2fileMap[strings.Split(id,"*")[0]] {
+						Rereplica(filename)
+					}
 					//go deleteIDAfterTcleanup(id)
 					if currentFailTime1, ok := BroadcastAll[id]; ok {
 						if currentFailTime1 < diff {

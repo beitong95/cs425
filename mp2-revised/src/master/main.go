@@ -90,7 +90,7 @@ func find(filename string, ip string) bool {
 // Notes: we need rereplica 
 // 1) after new master elected, files have no more 4 replicas
 // 2) after one datanode failed, all files stored in this datanode
-func rereplica(filename string) {
+func Rereplica(filename string) {
 	MV.Lock()
 	var replica = ""
 	for ip := range Vm2fileMap {
@@ -101,6 +101,9 @@ func rereplica(filename string) {
 			replica = ip
 		}
 	}
+	MV.Unlock()
+	// put file to replica
+	MV.Lock()
 	Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
 	MV.Unlock()
 	MF.Lock()
