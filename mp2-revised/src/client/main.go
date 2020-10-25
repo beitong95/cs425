@@ -295,9 +295,20 @@ func DeleteFile(remotefilename string) {
 
 }
 
-// func LsFile() {
+func Ls(remotefilename string) {
+	ID := fmt.Sprint(time.Now().UnixNano())
+	newIP := IP2MasterHTTPServerIP(MasterIP)
+	url := "http://" + newIP + "/ls?id=" + ID + "&file=" + remotefilename
+	Write2Shell("Ls file url: " + url)
+	body := networking.HTTPsend(url)
+	Write2Shell(string(body))
+	var IPs = []string{}
+	err := json.Unmarshal(body, &IPs)
+	if err != nil {
+		Write2Shell("Unmarshal error in DeleteFile")
+	}
 
-// }
+}
 
 // func StoreFile() {
 

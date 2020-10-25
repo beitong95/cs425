@@ -109,6 +109,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.DeleteFile(filename1)
 		case "ls":
 			Write2Shell(cmd)
+			go client.Ls(filename1)
 		case "store":
 			Write2Shell(cmd)
 		case "exit":
