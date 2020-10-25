@@ -543,18 +543,16 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 	// fail detector thread
 	go selectFailedID(tickerDetectFail)
 	// main loop
+	t1 := time.Now()
 	for {
-		t1 := time.Now()
+		t2 := time.Now()
+		diff := t2.Sub(t1)
+		t1 = t2
+		Logger.Info("gossip period time" + diff.String())
 		<-ticker.C
 		// here a new gossip period starts
 
 		// step0: check if gossip period is long enough to run the code in each gossip period?
-		t2 := time.Now()
-		diff := t2.Sub(t1)
-		// beitongtian debug
-		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
-			Logger.Error("gossip period time too short " + fmt.Sprintf("%f", float32(diff/time.Millisecond)))
-		}
 		gossipCounter = gossipCounter + 1
 
 		// step 1: change to other protocol if needed
