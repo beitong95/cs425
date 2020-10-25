@@ -4,6 +4,7 @@ import (
 	_ "errors"
 	"constant"
 	. "structs"
+	"networking"
 )
 
 /**
@@ -91,24 +92,71 @@ func find(filename string, ip string) bool {
 // 1) after new master elected, files have no more 4 replicas
 // 2) after one datanode failed, all files stored in this datanode
 func Rereplica(filename string) {
+	Write2Shell("Start rereplica " + filename)
+	var replicas = []string{}
+	var sources = []string{}
 	MV.Lock()
-	var replica = ""
-	for ip := range Vm2fileMap {
+	for ip := range Vm2fileMap{
+		Write2Shell(ip)
 		var found = find(filename, ip)
-		if replica == "" && !found {
-			replica = ip
-		} else if len(Vm2fileMap[ip]) < len(Vm2fileMap[replica]) && !found {
-			replica = ip
+		if !found {
+			replicas = append(replicas, ip)
+		} else if found {
+			sources = append(sources, ip)
 		}
 	}
+	
 	MV.Unlock()
 	// put file to replica
-	MV.Lock()
-	Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
-	MV.Unlock()
-	MF.Lock()
-	File2VmMap[filename] = append(File2VmMap[filename], replica)
-	MF.Unlock()
+	// send rereplica request
+	rereplicaFailFlag := true
+	for _,source := range sources {
+		if rereplicaFailFlag == false {
+			break
+		}
+		for _,replica := range replicas {
+			if rereplicaFailFlag == false {
+				break
+			}
+			Write2Shell("replica " + replica)
+
+			for {
+				MW.Lock()
+				MR.Lock()
+				if ReadCounter == 0 && WriteCounter == 0 {
+					WriteCounter++
+					MR.Unlock()
+					MW.Unlock()
+					break
+				}
+				MR.Unlock()
+				MW.Unlock()
+			}
+
+			sourceIp := IP2DatanodeUploadIP(source)
+			url := "http://" + sourceIp + "/rereplica?file=" + filename + "&destination=" + replica
+			body := networking.HTTPsend(url)
+			if string(body) == "OK" {
+				rereplicaFailFlag = false
+				Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Success!")
+				MV.Lock()
+				Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
+				MV.Unlock()
+				MF.Lock()
+				File2VmMap[filename] = append(File2VmMap[filename], replica)
+				MF.Unlock()
+			} else if string(body) == "Bad" {
+				Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Fail!")
+				continue
+			}
+			MW.Lock()
+			WriteCounter--
+			MW.Unlock()
+		}
+	}
+	if rereplicaFailFlag == true {
+		Write2Shell("Rereplica file " + filename + " Fail! We cannot reach the required rereplica factor = 3")
+	}
 }
 
 func Recover(ip string, list []string) {

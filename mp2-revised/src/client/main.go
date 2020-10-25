@@ -146,13 +146,6 @@ func GetFile(filename string, localfilename string) {
 	}
 }
 
-func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
-	url := "http://" + ipPort + "/putfile"
-	Write2Shell("Upload file to url:" + url)
-	body := networking.HTTPuploadFile(url, filename, remotefilename) 
-	Write2Shell("Url: " + url + " Status: " +string(body))
-	return string(body)
-}
 
 func PutFile(filename string, remotefilename string) {
 	putFailFlag := true
@@ -192,7 +185,7 @@ func PutFile(filename string, remotefilename string) {
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
-		status := UploadFileToDatanode(filename, remotefilename, destinationIp)
+		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
 		if status == "OK" {
 			successCounter++
 		} else {
@@ -222,14 +215,6 @@ func PutFile(filename string, remotefilename string) {
 
 }
 
-// func UpdateFile(filename string, MasterIP string) {
-// 	IPs, err := getDestnationFromMaster(filename, MasterIP)
-// 	for _,v := range IPs {
-// 		err := networking.FTPsend(filename, v)
-// 	}
-// 	// wait for master's ACK
-
-// }
 
 // func DeleteFile(filename string, MasterIP string) {
 // 	IPs, err := getDestnationFromMaster(filename, MasterIP)
