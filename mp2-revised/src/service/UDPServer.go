@@ -70,6 +70,7 @@ func Election() string {
 			if id != MyID {
 				var target = strings.Split(id,"*")[0]
 				// get filelist from target ip
+				// beitong tian todo 
 				var filelist = []string{}
 				master.Recover(target,filelist)
 			}
@@ -505,6 +506,7 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 		// step0: check if gossip period is long enough to run the code in each gossip period?
 		t2 := time.Now()
 		diff := t2.Sub(t1)
+		// beitongtian debug
 		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
 			Logger.Error("gossip period time too short " + fmt.Sprintf("%f", float32(diff/time.Millisecond)))
 		}
