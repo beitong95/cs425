@@ -2,7 +2,7 @@ package networking
 
 import (
 	"bytes"
-	"github.com/juju/ratelimit"
+//	"github.com/juju/ratelimit"
 	"constant"
 	"encoding/json"
 	"errors"
