@@ -136,13 +136,16 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		formFile, header, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Printf("Get form file failed: %s\n", err)
+			//TODO: w.write add return status
+			w.Write([]byte("error"))
 			return
 		}
 		defer formFile.Close()
 
-		destFile, err := os.Create("./" + header.Filename)
+		destFile, err := os.Create(BaseUploadPath + header.Filename)
 		if err != nil {
 			log.Printf("Create failed: %s\n", err)
+			w.Write([]byte("error"))
 			return
 		}
 		defer destFile.Close()
@@ -150,8 +153,10 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		_, err = io.Copy(destFile, formFile)
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
+			w.Write([]byte("error"))
 			return
 		}
+		w.Write([]byte("OK"))
 	}
 	http.HandleFunc("/putfile", Download)
 }

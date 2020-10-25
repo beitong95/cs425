@@ -140,7 +140,7 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 		fmt.Print("-> ")
 		_cmd, _ := reader.ReadString('\n')
 
-		cmd, _, _ := ParseCmdSimple(_cmd, commands)
+		cmd, filename1, filename2 := ParseCmdSimple(_cmd, commands)
 		if cmd == "" {
 			// wrong command
 			continue

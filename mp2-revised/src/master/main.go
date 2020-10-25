@@ -2,8 +2,8 @@ package master
 
 import (
 	_ "errors"
-	"sync"
 	"constant"
+	. "structs"
 )
 
 /**
@@ -24,21 +24,6 @@ TODO:
 
 **/
 
-var Vm2fileMap map[string][]string
-
-var File2VmMap map[string][]string
-
-var MW sync.Mutex
-
-var MR sync.Mutex
-
-var MF sync.Mutex
-
-var MV sync.Mutex
-
-var ReadCounter int = 0
-
-var WriteCounter int = 0
 
 func FindMaxLen(ips []string) (int, string) {
 	var output = ""
@@ -80,12 +65,14 @@ func Hash2Ips(filename string) []string {
 			fourIps = fourIps[:i]
 			break
 		}
-		Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]], filename)
+		//Vm2fileMap[fourIps[i]] = append(Vm2fileMap[fourIps[i]], filename)
 	}
 	MV.Unlock()
+	/**
 	MF.Lock()
 	File2VmMap[filename] = fourIps
 	MF.Unlock()
+	**/
 	return fourIps
 }
 
@@ -134,10 +121,5 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
-	File2VmMap = make(map[string][]string)
-	File2VmMap["1.txt"] = []string{"172.22.156.12:1234",
-									"172.22.156.12:2020",
-									"172.22.156.12:3030",
-									"172.22.156.12:4040"}
 	ServerRun(constant.MasterHTTPServerPort)
 }

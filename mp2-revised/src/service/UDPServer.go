@@ -11,7 +11,6 @@ import (
 	. "structs"
 	"sync"
 	"time"
-	. "master"
 )
 
 // bandwidth function
@@ -233,6 +232,13 @@ func mergeMemberShipList(recievedMemberShipList map[string]Membership) {
 			} else if _, ok := LeaveNodes[key]; ok {
 				// refuse accept leaved node
 			} else {
+				newIp := strings.Split(key, "*")[0]
+				if IsMaster == true {
+					MV.Lock()
+					Vm2fileMap[newIp] = []string{}
+					Logger.Info(Vm2fileMap)
+					MV.Unlock()
+				}
 				helper.LogJoiner(Logger, MyVM, key)
 				MembershipList[key] = receivedMembership
 			}

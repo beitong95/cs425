@@ -179,6 +179,14 @@ func main() {
 	MasterIP = IntroIP + ":1234"
 	heartBeat := millis
 	MembershipList[MyID] = Membership{HeartBeat: heartBeat, FailedTime: -1}
+	Vm2fileMap = make(map[string][]string)
+	File2VmMap = make(map[string][]string)
+	if IsMaster == true {
+		MV.Lock()
+		Vm2fileMap[MasterIP] = []string{}
+		Logger.Info(Vm2fileMap)
+		MV.Unlock()
+	}
 
 
 	//step4 Start UDPServer thread
