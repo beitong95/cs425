@@ -307,7 +307,14 @@ func Ls(remotefilename string) {
 	if err != nil {
 		Write2Shell("Unmarshal error in DeleteFile")
 	}
-
+	if len(IPs) == 0 {
+		Write2Shell("no VMs hold such file")
+	} else {
+		Write2Shell(remotefilename + "existed in:")
+		for _, ip := range IPs {
+			Write2Shell(ip)
+		}
+	}
 }
 
 // func StoreFile() {

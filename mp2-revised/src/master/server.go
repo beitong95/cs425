@@ -11,6 +11,7 @@ import (
 	"sync"
 	"time"
 )
+
 // track status
 var ClientMap map[string]string = make(map[string]string)
 var CM sync.Mutex
@@ -20,7 +21,7 @@ func ServerRun(port string) {
 	networking.HTTPlisten("/put", HandlePut)
 	networking.HTTPlisten("/get", HandleGet) //client will send /put?id=1
 	networking.HTTPlisten("/delete", HandleDelete)
-	networking.HTTPlisten("ls", HandleLs)
+	networking.HTTPlisten("/ls", HandleLs)
 	networking.HTTPlisten("/clientACK", HandleClientACK) // client will send /clientACK?id=1
 	networking.HTTPlisten("/clientBad", HandleClientBad) //client will send /clientBad?id=1
 	networking.HTTPstart(port)
@@ -319,7 +320,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 
 }
 
-
 func HandleGet(w http.ResponseWriter, req *http.Request) {
 	// record current time for exit3
 	start := time.Now()
@@ -420,12 +420,6 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 }
 
 func HandleLs(w http.ResponseWriter, req *http.Request) {
-	ids, ok := req.URL.Query()["id"]
-	if !ok {
-		log.Println("Client Ack Url Param 'key' is missing")
-		return
-	}
-	id := ids[0]
 	file, ok := req.URL.Query()["file"]
 	if !ok {
 		Logger.Error("Get IPs Url Param 'key' is missing")
