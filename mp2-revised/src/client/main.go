@@ -317,6 +317,7 @@ func Ls(remotefilename string) {
 	}
 }
 
+//xinhang todo
 // func StoreFile() {
 
 // }
