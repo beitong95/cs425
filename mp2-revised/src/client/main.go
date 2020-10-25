@@ -34,9 +34,9 @@ import (
 **/
 func DownloadFileFromDatanode(filename string, localfilename string, ipPort string) (string, error) {
 	url := "http://" + ipPort + "/" + filename
-	Write2Shell("Downloading file from: " + url)
+	//Write2Shell("Downloading file from: " + url)
 	rsp, err := http.Get(url)
-	Write2Shell("get http.Get return")
+	//Write2Shell("get http.Get return")
 	if err != nil {
 		return "Connection error", err
 	}
@@ -101,6 +101,7 @@ func GetIPsPutFromMaster(filename string) ([]string, error) {
 }
 
 func GetFile(filename string, localfilename string) {
+	t1 := time.Now()
 	getFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
@@ -110,17 +111,19 @@ func GetFile(filename string, localfilename string) {
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
-	Write2Shell(string(body))
+	//Write2Shell(string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
 	if err != nil {
 		Write2Shell("Unmarshal error in GetFile")
 	}
+	/**
 	Write2Shell("Received IPs: ")
 	for _, v := range IPs {
 		Write2Shell(v)
-	}
+	} 
+	**/
 
 	//step3. download files from the list
 	for _, ip := range IPs {
@@ -128,6 +131,9 @@ func GetFile(filename string, localfilename string) {
 		newIp := IP2DatanodeHTTPServerIP(ip)
 		status, _ := DownloadFileFromDatanode(filename, localfilename, newIp)
 		if status == "OK" {
+			t2 := time.Now()
+			diff := t2.Sub(t1)
+			Write2Shell("Get: " + filename + " time: " + diff.String())
 			getFailFlag = false
 			url = "http://" + newIP + "/clientACK?id=" + ID
 			networking.HTTPsend(url)
@@ -148,9 +154,9 @@ func GetFile(filename string, localfilename string) {
 
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
-	Write2Shell("Upload file to url:" + url)
+	//Write2Shell("Upload file to url:" + url)
 	body := networking.HTTPuploadFile(url, filename, remotefilename)
-	Write2Shell("Url: " + url + " Status: " + string(body))
+	//Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 
@@ -163,12 +169,13 @@ func DeleteFileFromDatanode(remotefilename string, ipPort string) string {
 }
 
 func PutFile(filename string, remotefilename string) {
+	t1 := time.Now()
 	putFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/put?id=" + ID + "&file=" + remotefilename
-	Write2Shell("Getfile url: " + url)
+	//Write2Shell("Putfile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
@@ -188,12 +195,13 @@ func PutFile(filename string, remotefilename string) {
 		return
 	}
 
+	/**
 	Write2Shell("Received IPs: ")
 	// should always return 4 ips`
 	for _, v := range IPs {
 		Write2Shell(v)
 	}
-
+	**/
 	//step 3. upload files to vms in the list
 	successCounter := 0
 	failedIPs := []string{}
@@ -222,6 +230,9 @@ func PutFile(filename string, remotefilename string) {
 			Write2Shell(v)
 		}
 	} else {
+		t2 := time.Now()
+		diff := t2.Sub(t1)
+		Write2Shell("Put: " + filename + " time: " + diff.String())
 		url = "http://" + newIP + "/clientACK?id=" + ID
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Success")

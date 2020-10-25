@@ -98,7 +98,7 @@ func Rereplica(filename string) {
 	var sources = []string{}
 	MV.Lock()
 	for ip := range Vm2fileMap{
-		Write2Shell(ip)
+		//Write2Shell(ip)
 		var found = find(filename, ip)
 		if !found {
 			replicas = append(replicas, ip)
@@ -119,7 +119,7 @@ func Rereplica(filename string) {
 			if rereplicaFailFlag == false {
 				break
 			}
-			Write2Shell("replica " + replica)
+			//Write2Shell("replica " + replica)
 
 			for {
 				MW.Lock()

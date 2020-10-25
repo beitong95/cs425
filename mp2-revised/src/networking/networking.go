@@ -167,9 +167,9 @@ func HTTPlistenDownload(BaseUploadPath string) {
 
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
-	Write2Shell("Upload file to url:" + url)
+	//Write2Shell("Upload file to url:" + url)
 	body := HTTPuploadFile(url, filename, remotefilename)
-	Write2Shell("Url: " + url + " Status: " + string(body))
+	//Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 

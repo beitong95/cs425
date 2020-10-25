@@ -66,7 +66,7 @@ func Election() string {
 				sendMsgToID(id, "Im new master")
 			}
 		}
-
+		/**
 		Write2Shell("VM2File before")
 		for _,v := range Vm2fileMap{
 			tmp := ""
@@ -76,7 +76,7 @@ func Election() string {
 			}
 			Write2Shell(tmp)
 		}
-
+		**/
 		for id,_ := range MembershipList {
 			// receive filelist from target ip
 			var target = strings.Split(id,"*")[0]
@@ -89,14 +89,17 @@ func Election() string {
 			if err != nil {
 				Write2Shell("Unmarshal error in Recover")
 			}
+			/**
 			Write2Shell("file list from : " + target)
 			for _,v := range filelist {
 				Write2Shell(v)
 			}
+			**/
 			if len(filelist) > 0 {
 				master.Recover(target,filelist)
 			}
 		}
+		/**
 		Write2Shell("VM2File after")
 		for _,v := range Vm2fileMap{
 			tmp := ""
@@ -106,6 +109,7 @@ func Election() string {
 			}
 			Write2Shell(tmp)
 		}
+		**/
 		//next replica
 		MF.Lock()
 		for filename,v := range File2VmMap {

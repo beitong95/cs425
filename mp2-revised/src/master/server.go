@@ -55,9 +55,11 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 		if err != nil {
 			panic(err)
 		}
+		/**
 		for _, v := range val {
 			Write2Shell("Master sends IPS: " + v)
 		}
+		**/
 	} else {
 		res = []byte("[]")
 		Write2Shell("File does not exist")
