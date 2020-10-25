@@ -3,7 +3,9 @@ package networking
 import (
 	"bytes"
 	"constant"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -13,8 +15,6 @@ import (
 	"os"
 	. "structs"
 	"time"
-	"encoding/json"
-	"fmt"
 )
 
 var c *http.Client = &http.Client{Timeout: time.Second * 3}
@@ -86,11 +86,11 @@ func HTTPsend(url string) []byte {
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
+	resp.Body.Close()
 	return body
 }
 
@@ -133,6 +133,7 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	if err != nil {
 		panic(err)
 	}
+	resp.Body.Close()
 	return body
 }
 func HTTPlistenDownload(BaseUploadPath string) {
@@ -205,7 +206,7 @@ func HTTPlistenRereplica() {
 }
 
 func List() []string {
-	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort) 
+	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort)
 	if err != nil {
 		fmt.Println(err)
 		return nil
