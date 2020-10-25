@@ -11,6 +11,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"master"
 )
 
 // bandwidth function
@@ -69,8 +70,8 @@ func Election() string {
 			if id != MyID {
 				var target = strings.Split(id,"*")[0]
 				// get filelist from target ip
-				var filelist = 
-				Recover(target,filelist)
+				var filelist = []string{}
+				master.Recover(target,filelist)
 			}
 		}
 		MasterIP = strings.Split(CandidateID, "*")[0]
@@ -114,38 +115,46 @@ func selectFailedID(ticker *time.Ticker) {
 			if id != MyID {
 				diff := time.Now().UnixNano()/1000000 - member.HeartBeat
 				_, ok := LeaveNodes[id]
+				// detect fail
 				if diff > int64(Ttimeout) && MembershipList[id].HeartBeat != -1 && !ok {
-					//fmt.Println(id + "might failed")
+					Write2Shell("Detect fail node: " + id)
 					helper.LogFail(Logger, MyVM, id, MembershipList[id].HeartBeat, diff)
 					MembershipList[id] = Membership{-1, diff}
 					FailedNodes[id] = 1
 					// test for election
 					delete(MembershipList, id)
-					if Master {
-						// failedIP + Port
+					//replica file stored in this node to other nodes
+					if Master == true {
+						//MV.Lock()
 						var failedIP = strings.Split(id, "*")[0]
 						MV.Lock()
+						copyVM2fileMap := append([]string{}, Vm2fileMap[failedIP]...)
 						var filenames = Vm2fileMap[failedIP]
 						delete(Vm2fileMap,failedIP)
 						MV.Unlock()
 						for _,filename := range filenames {
 							removeIP(filename,failedIP)
 						}
+
+						for _,file := range copyVM2fileMap {
+							//MV.Unlock()
+							Write2Shell(file)
+							go master.Rereplica(file)
+							//MV.Lock()
+						}
+						//MV.Unlock()
 					}
-					//replica file stored in this node to other nodes
-					//fmt.Println(MembershipList)
+					// detect master fails
 					if strings.Contains(id, MasterIP) {
 						Master = false
 						Write2Shell("begin election")
 						go runElection()
 					}
+					// detect candidate fails; we need to select new candidate
 					if id == CandidateID {
 						CandidateFail = true
 					}
-					for _,file := range Vm2fileMap[strings.Split(id,"*")[0]] {
-						Rereplica(filename)
-					}
-					//go deleteIDAfterTcleanup(id)
+					// Deleteable?	
 					if currentFailTime1, ok := BroadcastAll[id]; ok {
 						if currentFailTime1 < diff {
 							BroadcastAll[id] = diff
