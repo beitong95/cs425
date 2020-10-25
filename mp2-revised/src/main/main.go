@@ -3,6 +3,7 @@ package main
 import (
 	"cli"
 	"config"
+	"constant"
 	"datanode"
 	"flag"
 	"fmt"
@@ -12,11 +13,10 @@ import (
 	"math"
 	"os"
 	"service"
+	"strconv"
 	. "structs"
 	"sync"
 	"time"
-	"constant"
-	"strconv"
 
 	log "github.com/sirupsen/logrus"
 )
@@ -87,6 +87,7 @@ func init_Logger(isAppendLog bool, logLevel string) {
 }
 func checkIfMasterThenRunMasterLogic() {
 	for {
+		time.Sleep(1 * time.Second)
 		if IsMaster {
 			go master.Run()
 			break
@@ -96,7 +97,7 @@ func checkIfMasterThenRunMasterLogic() {
 
 func main() {
 	//Define Flags
-	isStartWithAll2AllPtr := flag.Bool("all2all", true,  "start with all 2 all at the beginning")
+	isStartWithAll2AllPtr := flag.Bool("all2all", true, "start with all 2 all at the beginning")
 	isMuteCliPtr := flag.Bool("muteCli", false, "mute the command line interaction")
 	isSimpleCliPtr := flag.Bool("simpleCli", false, "use simple cli")
 	isAppendLogPtr := flag.Bool("append", false, "append log rather than start a new log")
@@ -137,7 +138,6 @@ func main() {
 	constant.DatanodeHTTPServerUploadPort = fmt.Sprint(int(MyPortInt) + 2)
 	//Delete for released version
 
-
 	isAll2All := *isStartWithAll2AllPtr
 	if isAll2All == true {
 		CurrentProtocol = "All2All"
@@ -162,7 +162,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	IntroIP = introIP[0] // 172.22.156.12
+	IntroIP = introIP[0]            // 172.22.156.12
 	introPort, err := config.Port() // 1234
 	if err != nil {
 		panic(err)
@@ -187,7 +187,6 @@ func main() {
 		Logger.Info(Vm2fileMap)
 		MV.Unlock()
 	}
-
 
 	//step4 Start UDPServer thread
 	//C1 is the channel for CLI command
