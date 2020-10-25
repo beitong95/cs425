@@ -203,7 +203,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				Logger.Info(Vm2fileMap)
 
 
-				Write2Shell("Get success ACK from id: " + fmt.Sprintf("%v",id))
+				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v",id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
 				MR.Lock()
@@ -212,7 +212,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v",id))
+				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v",id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MR.Lock()
