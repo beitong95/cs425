@@ -121,9 +121,9 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	}
 	defer srcFile.Close()
 // juju hold 10M max 10M
-	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
-	//_, err = io.Copy(formFile, srcFile)
-	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
+	//bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
+	_, err = io.Copy(formFile, srcFile)
+	//_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
 	if err != nil {
 		Logger.Fatal("Write to form file falied: %s\n", err)
 	}

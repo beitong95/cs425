@@ -380,6 +380,7 @@ func listenUDP() {
 		return
 	}
 	conn, err := net.ListenUDP("udp", udpAddr)
+	defer conn.Close()
 	if err != nil {
 		panic(err)
 	}
