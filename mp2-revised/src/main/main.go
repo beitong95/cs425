@@ -96,7 +96,7 @@ func checkIfMasterThenRunMasterLogic() {
 
 func main() {
 	//Define Flags
-	isStartWithAll2AllPtr := flag.Bool("all2all", false,  "start with all 2 all at the beginning")
+	isStartWithAll2AllPtr := flag.Bool("all2all", true,  "start with all 2 all at the beginning")
 	isMuteCliPtr := flag.Bool("muteCli", false, "mute the command line interaction")
 	isSimpleCliPtr := flag.Bool("simpleCli", false, "use simple cli")
 	isAppendLogPtr := flag.Bool("append", false, "append log rather than start a new log")

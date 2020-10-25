@@ -530,7 +530,11 @@ func piggybackCommand(cmd int) {
 func UDPServer(wg *sync.WaitGroup, c chan int) {
 	defer wg.Done()
 	//ticker for gossip and all2all period; ClogN * gossip = all2all
-	ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
+	if CurrentProtocol == "Gossip" {
+		ticker := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
+	} else {
+		ticker := time.NewTicker(time.Duration(Tall2all) * time.Millisecond)
+	}
 	//ticker for fail detect period; gossip = all2all
 	tickerDetectFail := time.NewTicker(time.Duration(Tgossip) * time.Millisecond)
 	//command from CLI
