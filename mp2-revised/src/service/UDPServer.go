@@ -482,7 +482,7 @@ func UDPServer(wg *sync.WaitGroup, c chan int) {
 		t2 := time.Now()
 		diff := t2.Sub(t1)
 		if float32(diff/time.Millisecond) < float32(float32(Tgossip)*0.05) {
-			Logger.Fatal("gossip period time too short")
+			Logger.Error("gossip period time too short" + fmt.Sprintf("%v", float32(diff/time.Millisecond)))
 		}
 		gossipCounter = gossipCounter + 1
 
