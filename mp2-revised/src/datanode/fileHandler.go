@@ -62,7 +62,7 @@ func Delete(fileName string) {
 }
 
 func List() []string {
-	var c, err = ioutil.ReadDir(constant.Dir)
+	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort) 
 	if err != nil {
 		fmt.Println(err)
 		return nil
