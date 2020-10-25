@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"time"
+	. "structs"
 )
 
 var c *http.Client = &http.Client{Timeout: time.Second * 3}
@@ -108,22 +109,22 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	writer := multipart.NewWriter(buf)
 	formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
 	if err != nil {
-		log.Fatalf("Create form file failed: %s\n", err)
+		Logger.Fatal("Create form file failed: %s\n", err)
 	}
 	srcFile, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("%Open source file failed: s\n", err)
+		Logger.Fatal("%Open source file failed: s\n", err)
 	}
 	defer srcFile.Close()
 	_, err = io.Copy(formFile, srcFile)
 	if err != nil {
-		log.Fatalf("Write to form file falied: %s\n", err)
+		Logger.Fatal("Write to form file falied: %s\n", err)
 	}
 	contentType := writer.FormDataContentType()
 	writer.Close()
 	resp, err := http.Post(url, contentType, buf)
 	if err != nil {
-		log.Fatalf("Post failed: %s\n", err)
+		Logger.Fatal("Post failed: %s\n", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
