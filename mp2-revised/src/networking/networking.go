@@ -206,3 +206,22 @@ func HTTPstart(port string) {
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, nil))
 }
+
+func HTTPlistenDelete(BaseDeletePath string) {
+	Delete := func(w http.ResponseWriter, r *http.Request) {
+		file, ok := r.URL.Query()["file"]
+		if !ok {
+			log.Println("Get IPs Url Param 'key' is missing")
+			return
+		}
+		filename := file[0]
+		err := os.Remove(BaseDeletePath + filename)
+		if err != nil {
+			w.Write([]byte("Write Failed"))
+
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/deletefile", Delete)
+}
