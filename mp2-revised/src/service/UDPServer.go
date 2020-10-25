@@ -124,17 +124,20 @@ func selectFailedID(ticker *time.Ticker) {
 					// test for election
 					delete(MembershipList, id)
 					//replica file stored in this node to other nodes
-					if Master == true {
+					if IsMaster == true {
 						//MV.Lock()
 						var failedIP = strings.Split(id, "*")[0]
 						MV.Lock()
 						copyVM2fileMap := append([]string{}, Vm2fileMap[failedIP]...)
+						Logger.Info(copyVM2fileMap)
 						var filenames = Vm2fileMap[failedIP]
 						delete(Vm2fileMap,failedIP)
+						Logger.Info(Vm2fileMap)
 						MV.Unlock()
 						for _,filename := range filenames {
 							removeIP(filename,failedIP)
 						}
+						Logger.Info(File2VmMap)
 
 						for _,file := range copyVM2fileMap {
 							//MV.Unlock()

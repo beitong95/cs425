@@ -82,6 +82,7 @@ func find(filename string, ip string) bool {
 	var ips = File2VmMap[filename]
 	for i := 0; i < len(ips); i++ {
 		if ips[i] == ip {
+			MF.Unlock()
 			return true
 		}
 	}
@@ -157,6 +158,7 @@ func Rereplica(filename string) {
 	if rereplicaFailFlag == true {
 		Write2Shell("Rereplica file " + filename + " Fail! We cannot reach the required rereplica factor = 3")
 	}
+	Logger.Info(Vm2fileMap)
 }
 
 func Recover(ip string, list []string) {
