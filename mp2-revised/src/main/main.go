@@ -96,7 +96,7 @@ func checkIfMasterThenRunMasterLogic() {
 
 func main() {
 	//Define Flags
-	isStartWithAll2AllPtr := flag.Bool("all2all", false, "start with all 2 all at the beginning")
+	isStartWithAll2AllPtr := flag.Bool("all2all", true, "start with all 2 all at the beginning")
 	isMuteCliPtr := flag.Bool("muteCli", false, "mute the command line interaction")
 	isSimpleCliPtr := flag.Bool("simpleCli", false, "use simple cli")
 	isAppendLogPtr := flag.Bool("append", false, "append log rather than start a new log")
@@ -105,7 +105,7 @@ func main() {
 	logLevelPtr := flag.String("logLevel", "debug", "log level: debug, info, warning, mute")
 	dirPtr := flag.String("dir", "", "dir for saving files")
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
-	flag.IntVar(&Tfail, "fail", 3300, "Fail Time")
+	flag.IntVar(&Tfail, "fail", 5000, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time; Remove the record from the membershiplist")
 	flag.IntVar(&LossRate, "loss", 0, "message loss rate 1-100")
 	//Parse and save flags

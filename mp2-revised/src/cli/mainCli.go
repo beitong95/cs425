@@ -99,19 +99,14 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		case "help":
 			Write2Shell(getHelp())
 		case "get":
-			Write2Shell(cmd)
 			go client.GetFile(filename1, filename2)
 		case "put":
-			Write2Shell(cmd)
 			go client.PutFile(filename1, filename2)
 		case "delete":
-			Write2Shell(cmd)
 			go client.DeleteFile(filename1)
 		case "ls":
-			Write2Shell(cmd)
 			go client.Ls(filename1)
 		case "store":
-			Write2Shell(cmd)
 			go client.Store()
 		case "exit":
 			Write2Shell(cmd)
@@ -174,12 +169,11 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 			fmt.Println(cmd)
 			go client.PutFile(filename1, filename2)
 		case "delete":
-
 			go client.DeleteFile(filename1)
 		case "ls":
-			// go client.Ls(filename1)
+			go client.Ls(filename1)
 		case "store":
-			fmt.Println(cmd)
+			go client.Store()
 		case "exit":
 			os.Exit(1)
 		}
