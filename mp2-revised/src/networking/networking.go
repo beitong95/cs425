@@ -10,8 +10,8 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"time"
 	. "structs"
+	"time"
 )
 
 var c *http.Client = &http.Client{Timeout: time.Second * 3}
@@ -131,6 +131,24 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 		panic(err)
 	}
 	return body
+}
+func HTTPlistenDelete(BaseDeletePath string) {
+	Delete := func(w http.ResponseWriter, r *http.Request) {
+		file, ok := r.URL.Query()["file"]
+		if !ok {
+			log.Println("Get IPs Url Param 'key' is missing")
+			return
+		}
+		filename := file[0]
+		err := os.Remove(BaseDeletePath + filename)
+		if err != nil {
+			w.Write([]byte("Write Failed"))
+
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/deletefile", Delete)
 }
 func HTTPlistenDownload(BaseUploadPath string) {
 	Download := func(w http.ResponseWriter, r *http.Request) {

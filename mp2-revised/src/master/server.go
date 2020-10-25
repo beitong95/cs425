@@ -20,6 +20,7 @@ func ServerRun(port string) {
 	networking.HTTPlisten("/put", HandlePut)
 	networking.HTTPlisten("/get", HandleGet) //client will send /put?id=1
 	networking.HTTPlisten("/delete", HandleDelete)
+	networking.HTTPlisten("ls", HandleLs)
 	networking.HTTPlisten("/clientACK", HandleClientACK) // client will send /clientACK?id=1
 	networking.HTTPlisten("/clientBad", HandleClientBad) //client will send /clientBad?id=1
 	networking.HTTPstart(port)
@@ -452,6 +453,46 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			CM.Unlock()
 		}
 	}()
+}
+
+func HandleLs(w http.ResponseWriter, req *http.Request) {
+	ids, ok := req.URL.Query()["id"]
+	if !ok {
+		log.Println("Client Ack Url Param 'key' is missing")
+		return
+	}
+	id := ids[0]
+	file, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("Get IPs Url Param 'key' is missing")
+		return
+	}
+	filename := file[0]
+	Write2Shell("Master receive LS request for file: " + filename)
+	for {
+		MR.Lock()
+		MW.Lock()
+		if WriteCounter == 0 {
+			ReadCounter++
+			MW.Unlock()
+			MR.Unlock()
+			break
+		}
+		MW.Unlock()
+		MR.Unlock()
+	}
+	MF.Lock()
+	val := File2VmMap[filename]
+	MF.Unlock()
+	res, err := json.Marshal(val)
+	if err != nil {
+		Logger.Error("LS json Marshal error")
+	}
+	MR.Lock()
+	ReadCounter--
+	MR.Unlock()
+	w.Write(res)
+
 }
 
 func HandleClientACK(w http.ResponseWriter, req *http.Request) {
