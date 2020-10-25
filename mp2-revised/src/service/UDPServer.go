@@ -5,14 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"helper"
+	"master"
 	"math/rand"
 	"net"
+	"networking"
 	"strings"
 	. "structs"
 	"sync"
 	"time"
-	"master"
-	"networking"
 )
 
 // bandwidth function
@@ -53,7 +53,7 @@ func runElection() {
 	for Election() != "Succeed" {
 
 	}
-	Write2Shell("new master is "+MasterIP)
+	Write2Shell("new master is " + MasterIP)
 }
 func Election() string {
 	CandidateID = findMin(MembershipList)
@@ -71,15 +71,15 @@ func Election() string {
 		for _,v := range Vm2fileMap{
 			tmp := ""
 			for _,k := range v {
-				tmp += k 
+				tmp += k
 				tmp += "; "
 			}
 			Write2Shell(tmp)
 		}
 		**/
-		for id,_ := range MembershipList {
+		for id, _ := range MembershipList {
 			// receive filelist from target ip
-			var target = strings.Split(id,"*")[0]
+			var target = strings.Split(id, "*")[0]
 			// get filelist from target ip
 			targetIp := IP2DatanodeUploadIP(target)
 			url := "http://" + targetIp + "/recover"
@@ -96,7 +96,7 @@ func Election() string {
 			}
 			**/
 			if len(filelist) > 0 {
-				master.Recover(target,filelist)
+				master.Recover(target, filelist)
 			}
 		}
 		/**
@@ -104,7 +104,7 @@ func Election() string {
 		for _,v := range Vm2fileMap{
 			tmp := ""
 			for _,k := range v {
-				tmp += k 
+				tmp += k
 				tmp += "; "
 			}
 			Write2Shell(tmp)
@@ -112,17 +112,15 @@ func Election() string {
 		**/
 		//next replica
 		MF.Lock()
-		for filename,v := range File2VmMap {
+		for filename, v := range File2VmMap {
 			if len(v) < 4 {
 				// rereplica
-				for count := 4-len(v); count >0 ; count--{
+				for count := 4 - len(v); count > 0; count-- {
 					go master.Rereplica(filename)
 				}
 			}
 		}
 		MF.Unlock()
-
-
 
 		MasterIP = strings.Split(CandidateID, "*")[0]
 		//? if Master should be updated here
@@ -147,9 +145,9 @@ func removeIP(filename string, target string) {
 	var output = []string{}
 	MF.Lock()
 	var list = File2VmMap[filename]
-	for _,str := range list {
+	for _, str := range list {
 		if str != target {
-			output = append(output,str)
+			output = append(output, str)
 		}
 	}
 	File2VmMap[filename] = output
@@ -181,15 +179,15 @@ func selectFailedID(ticker *time.Ticker) {
 						copyVM2fileMap := append([]string{}, Vm2fileMap[failedIP]...)
 						Logger.Info(copyVM2fileMap)
 						var filenames = Vm2fileMap[failedIP]
-						delete(Vm2fileMap,failedIP)
+						delete(Vm2fileMap, failedIP)
 						Logger.Info(Vm2fileMap)
 						MV.Unlock()
-						for _,filename := range filenames {
-							removeIP(filename,failedIP)
+						for _, filename := range filenames {
+							removeIP(filename, failedIP)
 						}
 						Logger.Info(File2VmMap)
 
-						for _,file := range copyVM2fileMap {
+						for _, file := range copyVM2fileMap {
 							//MV.Unlock()
 							Write2Shell(file)
 							go master.Rereplica(file)
@@ -207,7 +205,7 @@ func selectFailedID(ticker *time.Ticker) {
 					if id == CandidateID {
 						CandidateFail = true
 					}
-					// Deleteable?	
+					// Deleteable?
 					if currentFailTime1, ok := BroadcastAll[id]; ok {
 						if currentFailTime1 < diff {
 							BroadcastAll[id] = diff
@@ -399,6 +397,7 @@ func sendMsgToID(id string, msg string) {
 	}
 	ip := strings.Split(id, "*")[0]
 	conn, err := net.Dial("udp", ip)
+	defer conn.Close()
 	if err != nil {
 		fmt.Println(err)
 	}
