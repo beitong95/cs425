@@ -107,6 +107,48 @@ func HTTPfileServer(port string, dir string) {
 	log.Fatal(http.ListenAndServe(port, fs))
 }
 
+//HTTPuploadFiles try
+// return sucess num
+func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int {
+	buf := new(bytes.Buffer)
+	writer := multipart.NewWriter(buf)
+	formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
+	if err != nil {
+		Logger.Fatal("Create form file failed: %s\n", err)
+	}
+	srcFile, err := os.Open(filename)
+	if err != nil {
+		Logger.Fatal("%Open source file failed: s\n", err)
+	}
+	defer srcFile.Close()
+// juju hold 10 M max 10M
+//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
+	_, err = io.Copy(formFile, srcFile)
+//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
+	if err != nil {
+		Logger.Fatal("Write to form file falied: %s\n", err)
+	}
+	contentType := writer.FormDataContentType()
+	defer writer.Close()
+	successCount := 0
+	for _,url := range urls{
+		resp, err := http.Post(url, contentType, buf)
+		if err != nil {
+			Logger.Fatal("Post failed: %s\n", err)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		resp.Body.Close()
+		if string(body) == "OK" {
+			successCount++
+		}
+		break
+	}
+	return successCount
+}
+
 //HTTPuploadFile
 func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	buf := new(bytes.Buffer)
@@ -173,6 +215,7 @@ func HTTPlistenDownload(BaseUploadPath string) {
 	http.HandleFunc("/putfile", Download)
 }
 
+//for rereplica
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
 	//Write2Shell("Upload file to url:" + url)

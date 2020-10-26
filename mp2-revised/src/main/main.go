@@ -106,7 +106,7 @@ func main() {
 	logLevelPtr := flag.String("logLevel", "debug", "log level: debug, info, warning, mute")
 	dirPtr := flag.String("dir", "", "dir for saving files")
 	flag.IntVar(&Tgossip, "gossip", 300, "Gossip Period")
-	flag.IntVar(&Tfail, "fail", 5000, "Fail Time")
+	flag.IntVar(&Tfail, "fail", 10000, "Fail Time")
 	flag.IntVar(&Tclean, "clean", 3000, "Cleanup Time; Remove the record from the membershiplist")
 	flag.IntVar(&LossRate, "loss", 0, "message loss rate 1-100")
 	//Parse and save flags

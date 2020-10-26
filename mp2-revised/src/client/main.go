@@ -204,17 +204,28 @@ func PutFile(filename string, remotefilename string) {
 	**/
 	//step 3. upload files to vms in the list
 	successCounter := 0
-	failedIPs := []string{}
+//	failedIPs := []string{}
+
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
 		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
+		time.Sleep(3 * time.Second)
 		if status == "OK" {
 			successCounter++
 		} else {
-			failedIPs = append(failedIPs, destinationIp)
+	//		failedIPs = append(failedIPs, destinationIp)
 		}
 	}
+/**
+	urls := []string{}
+	for _, ip := range IPs {
+		destinationIp := IP2DatanodeUploadIP(ip)
+		urls = append(urls, "http://" + destinationIp + "/putfile")
+	}
+	successCounter = networking.HTTPuploadFiles(urls, filename, remotefilename)
+**/
+
 	if successCounter == len(IPs) {
 		putFailFlag = false
 	}
@@ -225,10 +236,12 @@ func PutFile(filename string, remotefilename string) {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
+/**
 		Write2Shell("Failed destination IPs:")
 		for _, v := range failedIPs {
 			Write2Shell(v)
 		}
+**/
 	} else {
 		t2 := time.Now()
 		diff := t2.Sub(t1)
