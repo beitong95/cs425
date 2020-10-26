@@ -120,17 +120,17 @@ func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int 
 		Logger.Fatal("%Open source file failed: s\n", err)
 	}
 	defer srcFile.Close()
-// juju hold 10 M max 10M
-//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
+	// juju hold 10 M max 10M
+	//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)
 	_, err = io.Copy(formFile, srcFile)
-//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
+	//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
 	if err != nil {
 		Logger.Fatal("Write to form file falied: %s\n", err)
 	}
 	contentType := writer.FormDataContentType()
 	defer writer.Close()
 	successCount := 0
-	for _,url := range urls{
+	for _, url := range urls {
 		resp, err := http.Post(url, contentType, buf)
 		if err != nil {
 			Logger.Fatal("Post failed: %s\n", err)
@@ -148,17 +148,15 @@ func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int 
 	return successCount
 }
 
-
-
 //HTTPuploadFile
 func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
-//	buf := new(bytes.Buffer)
+	//	buf := new(bytes.Buffer)
 	r, w := io.Pipe()
 	writer := multipart.NewWriter(w)
 
 	go func() {
-		defer writer.Close()
 		defer w.Close()
+		defer writer.Close()
 
 		formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
 		if err != nil {
@@ -166,7 +164,6 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 		}
 
 		srcFile, err := os.Open(filename)
-
 
 		if err != nil {
 			Logger.Fatal("%Open source file failed: s\n", err)
@@ -213,9 +210,9 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		defer destFile.Close()
 
 		// juju hold 30 M max 30M
-	//	bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)	
+		//	bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)
 		_, err = io.Copy(destFile, formFile)
-	//	_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
+		//	_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
 			w.Write([]byte("error"))
