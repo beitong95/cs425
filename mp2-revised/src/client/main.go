@@ -209,7 +209,9 @@ func PutFile(filename string, remotefilename string) {
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
+		Write2Shell("Try to send the file")
 		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
+		Write2Shell("Finish send the file")
 		//time.Sleep(3 * time.Second)
 		if status == "OK" {
 			successCounter++
