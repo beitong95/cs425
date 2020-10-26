@@ -33,4 +33,13 @@ git submodule update --init --recursive
 #name='vm'$a'.test.log'
 #cp src/finder/machine.test.log $name
 
+
+echo "creating test files"
+dd if=/dev/urandom of=/home/beitong2/cs425/mp2-revised/src/main/1m.txt bs=1000000 count=1
+dd if=/dev/urandom of=/home/beitong2/cs425/mp2-revised/src/main/100m.txt bs=1000000 count=100
+dd if=/dev/urandom of=/home/beitong2/cs425/mp2-revised/src/main/200m.txt bs=1000000 count=200
+dd if=/dev/urandom of=/home/beitong2/cs425/mp2-revised/src/main/500m.txt bs=1000000 count=500
+dd if=/dev/urandom of=/home/beitong2/cs425/mp2-revised/src/main/1g.txt bs=1000000 count=1000
+
+
 echo "Done."
