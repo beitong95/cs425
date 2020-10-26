@@ -208,11 +208,13 @@ func PutFile(filename string, remotefilename string) {
 		return
 	}
 
+/**
 	Write2Shell("Received IPs: ")
 	// should always return 4 ips`
 	for _, v := range IPs {
 		Write2Shell(v)
 	}
+**/
 	//step 3. upload files to vms in the list
 	successCounter := 0
 //	failedIPs := []string{}
