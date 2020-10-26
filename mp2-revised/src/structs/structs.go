@@ -107,7 +107,7 @@ Default Master Node's CurrentStatus: Original Master -> Fail
 New Master's CurrentStatus:  Node unjoin -> Node join -> Node election -> Master
 
 **/
-var CurrentStatus = "Node Unjoin"
+var CurrentStatus = "Node"
 
 var History *tui.Box
 

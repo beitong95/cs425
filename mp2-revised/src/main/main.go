@@ -89,6 +89,7 @@ func checkIfMasterThenRunMasterLogic() {
 	for {
 		time.Sleep(1 * time.Second)
 		if IsMaster {
+			CurrentStatus = "Master" 
 			go master.Run()
 			break
 		}
