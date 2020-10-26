@@ -165,13 +165,27 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 // juju hold 10 M max 10M
 //	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
 	_, err = io.Copy(formFile, srcFile)
+	Write2Shell("finish create formFile")
 //	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
 	if err != nil {
 		Logger.Fatal("Write to form file falied: %s\n", err)
 	}
 	contentType := writer.FormDataContentType()
 	writer.Close()
+	Write2Shell("start post")
+	exitFlag := false
+	go func() {
+		for {
+			Write2Shell("posting")
+			time.Sleep(1*time.Second)
+			if exitFlag == true {
+				break
+			}
+		}
+	}()
 	resp, err := http.Post(url, contentType, buf)
+	exitFlag = true
+	Write2Shell("end post")
 	if err != nil {
 		Logger.Fatal("Post failed: %s\n", err)
 	}
