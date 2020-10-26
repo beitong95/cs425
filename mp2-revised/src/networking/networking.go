@@ -2,7 +2,7 @@ package networking
 
 import (
 	"bytes"
-	//"github.com/juju/ratelimit"
+	"github.com/juju/ratelimit"
 	"constant"
 	"encoding/json"
 	"errors"
@@ -159,7 +159,10 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		}
 		defer destFile.Close()
 
-		_, err = io.Copy(destFile, formFile)
+		// juju hold 30 M max 30M
+		bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)	
+		//_, err = io.Copy(destFile, formFile)
+		_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
 			w.Write([]byte("error"))
