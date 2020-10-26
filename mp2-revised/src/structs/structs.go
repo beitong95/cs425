@@ -180,3 +180,6 @@ var MV sync.Mutex
 var ReadCounter int = 0
 
 var WriteCounter int = 0
+
+
+var TimeBroadcastUDP time.Time

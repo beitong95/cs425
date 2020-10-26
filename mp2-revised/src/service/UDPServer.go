@@ -405,8 +405,14 @@ func sendMsgToID(id string, msg string) {
 	fmt.Fprintf(conn, msg+"\n")
 }
 
+
+
 // the name should be multicast UDP
 func broadcastUDP() {
+	timenow := time.Now()	
+	diff := timenow.Sub(TimeBroadcastUDP)
+	TimeBroadcastUDP = timenow
+	Logger.Info("broadcastUDPInterval: " + diff.String())
 	if !IsJoin {
 		return
 	}

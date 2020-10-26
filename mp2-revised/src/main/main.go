@@ -195,6 +195,7 @@ func main() {
 	wg.Add(1)
 	go checkIfMasterThenRunMasterLogic()
 	go datanode.Run()
+	TimeBroadcastUDP = time.Now()
 	go service.UDPServer(&wg, C1)
 	Logger.Info("Start UDPServer go routine")
 
