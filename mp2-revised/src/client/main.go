@@ -154,9 +154,9 @@ func GetFile(filename string, localfilename string) {
 
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
-	//Write2Shell("Upload file to url:" + url)
+	Write2Shell("Upload file to url:" + url)
 	body := networking.HTTPuploadFile(url, filename, remotefilename)
-	//Write2Shell("Url: " + url + " Status: " + string(body))
+	Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 
@@ -169,6 +169,20 @@ func DeleteFileFromDatanode(remotefilename string, ipPort string) string {
 }
 
 func PutFile(filename string, remotefilename string) {
+/**
+	counter := 0
+	exitFlag := false
+	go func() {
+		for {
+			Write2Shell("puting file" + fmt.Sprintf("%v", counter))
+			counter += 1
+			time.Sleep(1*time.Second)
+			if exitFlag == true {
+				break
+			}
+		}
+	}()
+**/
 	t1 := time.Now()
 	putFailFlag := true
 	//step 1. get id and create url
@@ -179,7 +193,6 @@ func PutFile(filename string, remotefilename string) {
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
-	Write2Shell(string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
@@ -195,13 +208,11 @@ func PutFile(filename string, remotefilename string) {
 		return
 	}
 
-	/**
 	Write2Shell("Received IPs: ")
 	// should always return 4 ips`
 	for _, v := range IPs {
 		Write2Shell(v)
 	}
-	**/
 	//step 3. upload files to vms in the list
 	successCounter := 0
 //	failedIPs := []string{}
@@ -209,9 +220,9 @@ func PutFile(filename string, remotefilename string) {
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
-		Write2Shell("Try to send the file")
+	//	Write2Shell("Try to send the file")
 		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
-		Write2Shell("Finish send the file")
+	//	Write2Shell("Finish send the file")
 		//time.Sleep(3 * time.Second)
 		if status == "OK" {
 			successCounter++
@@ -252,6 +263,7 @@ func PutFile(filename string, remotefilename string) {
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Success")
 	}
+//	exitFlag = true
 
 }
 

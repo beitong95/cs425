@@ -2,7 +2,6 @@ package networking
 
 import (
 	"bytes"
-	"github.com/juju/ratelimit"
 	"constant"
 	"encoding/json"
 	"errors"
@@ -149,43 +148,41 @@ func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int 
 	return successCount
 }
 
+
+
 //HTTPuploadFile
 func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
-	buf := new(bytes.Buffer)
-	writer := multipart.NewWriter(buf)
-	formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
-	if err != nil {
-		Logger.Fatal("Create form file failed: %s\n", err)
-	}
-	srcFile, err := os.Open(filename)
-	if err != nil {
-		Logger.Fatal("%Open source file failed: s\n", err)
-	}
-	defer srcFile.Close()
-// juju hold 10 M max 10M
-//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)	
-	_, err = io.Copy(formFile, srcFile)
-	Write2Shell("finish create formFile")
-//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
-	if err != nil {
-		Logger.Fatal("Write to form file falied: %s\n", err)
-	}
-	contentType := writer.FormDataContentType()
-	writer.Close()
-	Write2Shell("start post")
-	exitFlag := false
+//	buf := new(bytes.Buffer)
+	r, w := io.Pipe()
+	writer := multipart.NewWriter(w)
+
 	go func() {
-		for {
-			Write2Shell("posting")
-			time.Sleep(1*time.Second)
-			if exitFlag == true {
-				break
-			}
+		defer writer.Close()
+		defer w.Close()
+
+		formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
+		if err != nil {
+			Logger.Fatal("Create form file failed: %s\n", err)
+		}
+
+		srcFile, err := os.Open(filename)
+
+
+		if err != nil {
+			Logger.Fatal("%Open source file failed: s\n", err)
+		}
+
+		defer srcFile.Close()
+		_, err = io.Copy(formFile, srcFile)
+		if err != nil {
+			Logger.Fatal("Write to form file falied: %s\n", err)
 		}
 	}()
-	resp, err := http.Post(url, contentType, buf)
-	exitFlag = true
-	Write2Shell("end post")
+
+	contentType := writer.FormDataContentType()
+
+	resp, err := http.Post(url, contentType, r)
+
 	if err != nil {
 		Logger.Fatal("Post failed: %s\n", err)
 	}
@@ -216,9 +213,9 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		defer destFile.Close()
 
 		// juju hold 30 M max 30M
-		bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)	
-		//_, err = io.Copy(destFile, formFile)
-		_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
+	//	bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)	
+		_, err = io.Copy(destFile, formFile)
+	//	_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
 			w.Write([]byte("error"))
