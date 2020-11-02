@@ -3,12 +3,11 @@ package client_test
 import (
 	"client"
 	"fmt"
-	"structs"
 	"testing"
 )
 
 func TestGetIps(t *testing.T) {
-	client.GetIPsFromMaster("1.txt")
+	client.GetIPsFromMaster("1.txt", "127.0.0.1")
 
 }
 
@@ -31,8 +30,7 @@ func TestDownloadFile(t *testing.T) {
 }
 
 func TestGetFile(t *testing.T) {
-	structs.MasterIP = "10.180.129.247:1234"
-	go client.GetFile("1.txt", "22")
-	go client.GetFile("1.txt", "33")
-	client.PutFile("joke", "joke.test")
+	go client.GetFile("1.txt", "22", "127.0.0.1")
+	go client.GetFile("1.txt", "33", "127.0.0.1")
+	client.PutFile("joke", "joke.test", "127.0.0.1")
 }

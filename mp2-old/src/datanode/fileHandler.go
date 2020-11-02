@@ -8,7 +8,8 @@ import (
 )
 
 func CreateFile() {
-	os.Mkdir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort, 0777)
+	err := os.Mkdir(constant.Dir, 0777)
+	fmt.Println(err)
 	FileList = []string{}
 }
 
@@ -62,7 +63,7 @@ func Delete(fileName string) {
 }
 
 func List() []string {
-	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort) 
+	var c, err = ioutil.ReadDir(constant.Dir)
 	if err != nil {
 		fmt.Println(err)
 		return nil

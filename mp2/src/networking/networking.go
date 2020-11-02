@@ -5,6 +5,7 @@ import (
 	"constant"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -12,6 +13,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	. "structs"
 	"time"
 )
 
@@ -79,82 +81,16 @@ func UDPlisten(port string, callback func(message []byte) error) error {
 		callback(buffer[0:n])
 	}
 }
-
-// UDP messages
-// client to master
-func EncodeUDPMessageClient2Master(list *constant.UDPMessageClient2Master) ([]byte, error) {
-	message, err := json.Marshal(list)
-	return message, err
-}
-func DecodeUDPMessageClient2Master(message []byte) (*constant.UDPMessageClient2Master, error) {
-	list := &constant.UDPMessageClient2Master{}
-	err := json.Unmarshal(message, list)
-
-	return list, err
-}
-
-// master to client
-func EncodeUDPMessageMaster2Client(list *constant.UDPMessageMaster2Client) ([]byte, error) {
-	message, err := json.Marshal(list)
-	return message, err
-}
-func DecodeUDPMessageMaster2Client(message []byte) (*constant.UDPMessageMaster2Client, error) {
-	list := &constant.UDPMessageMaster2Client{}
-	err := json.Unmarshal(message, list)
-
-	return list, err
-}
-
-// datanode to master
-func EncodeUDPMessageDatanode2Master(list *constant.UDPMessageDatanode2Master) ([]byte, error) {
-	message, err := json.Marshal(list)
-	return message, err
-}
-func DecodeUDPMessageDatanode2Master(message []byte) (*constant.UDPMessageDatanode2Master, error) {
-	list := &constant.UDPMessageDatanode2Master{}
-	err := json.Unmarshal(message, list)
-
-	return list, err
-}
-
-// func TCPsend(ip string, port string, message []byte) {
-
-// }
-
-// func TCPlisten(port string, callback func(message []byte)) {
-// 	port = ":" + port
-// 	handleConnection := func(conn TCPconn) {
-// 		for{
-// 			buffer := make([]byte, 4096)
-// 			n, err := conn.Read(buffer)
-// 			if err != nil{
-// 				panic(err)
-// 			}
-// 			callback(buffer[0:n])
-// 		}
-// 	}
-// 	ln, err := net.Listen("tcp", port)
-// 	if err != nil {
-// 		panic(err)
-// 	}
-// 	for {
-// 		conn, err := ln.Accept()
-// 		if err != nil {
-// 			panic(err)
-// 		}
-// 		go handleConnection(conn)
-// 	}
-// }
 func HTTPsend(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
 		panic(err)
 	}
-	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
+	resp.Body.Close()
 	return body
 }
 
@@ -170,33 +106,88 @@ func HTTPfileServer(port string, dir string) {
 	log.Fatal(http.ListenAndServe(port, fs))
 }
 
-//HTTPuploadFile
-func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
+//HTTPuploadFiles try
+// return sucess num
+func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int {
 	buf := new(bytes.Buffer)
 	writer := multipart.NewWriter(buf)
 	formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
 	if err != nil {
-		log.Fatalf("Create form file failed: %s\n", err)
+		Logger.Fatal("Create form file failed: %s\n", err)
 	}
 	srcFile, err := os.Open(filename)
 	if err != nil {
-		log.Fatalf("%Open source file failed: s\n", err)
+		Logger.Fatal("%Open source file failed: s\n", err)
 	}
 	defer srcFile.Close()
+	// juju hold 10 M max 10M
+	//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)
 	_, err = io.Copy(formFile, srcFile)
+	//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
 	if err != nil {
-		log.Fatalf("Write to form file falied: %s\n", err)
+		Logger.Fatal("Write to form file falied: %s\n", err)
 	}
 	contentType := writer.FormDataContentType()
-	writer.Close()
-	resp, err := http.Post(url, contentType, buf)
+	defer writer.Close()
+	successCount := 0
+	for _, url := range urls {
+		resp, err := http.Post(url, contentType, buf)
+		if err != nil {
+			Logger.Fatal("Post failed: %s\n", err)
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		resp.Body.Close()
+		if string(body) == "OK" {
+			successCount++
+		}
+		break
+	}
+	return successCount
+}
+
+//HTTPuploadFile
+func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
+	//	buf := new(bytes.Buffer)
+	r, w := io.Pipe()
+	writer := multipart.NewWriter(w)
+
+	go func() {
+		defer w.Close()
+		defer writer.Close()
+
+		formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
+		if err != nil {
+			Logger.Fatal("Create form file failed: %s\n", err)
+		}
+
+		srcFile, err := os.Open(filename)
+
+		if err != nil {
+			Logger.Fatal("%Open source file failed: s\n", err)
+		}
+
+		defer srcFile.Close()
+		_, err = io.Copy(formFile, srcFile)
+		if err != nil {
+			Logger.Fatal("Write to form file falied: %s\n", err)
+		}
+	}()
+
+	contentType := writer.FormDataContentType()
+
+	resp, err := http.Post(url, contentType, r)
+
 	if err != nil {
-		log.Fatalf("Post failed: %s\n", err)
+		Logger.Fatal("Post failed: %s\n", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
+	resp.Body.Close()
 	return body
 }
 func HTTPlistenDownload(BaseUploadPath string) {
@@ -204,26 +195,125 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		formFile, header, err := r.FormFile("uploadfile")
 		if err != nil {
 			log.Printf("Get form file failed: %s\n", err)
+			//TODO: w.write add return status
+			w.Write([]byte("error"))
 			return
 		}
 		defer formFile.Close()
 
-		destFile, err := os.Create("./" + header.Filename)
+		destFile, err := os.Create(BaseUploadPath + header.Filename)
 		if err != nil {
 			log.Printf("Create failed: %s\n", err)
+			w.Write([]byte("error"))
 			return
 		}
 		defer destFile.Close()
 
+		// juju hold 30 M max 30M
+		//	bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)
 		_, err = io.Copy(destFile, formFile)
+		//	_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
+			w.Write([]byte("error"))
 			return
 		}
+		w.Write([]byte("OK"))
 	}
-	http.HandleFunc("/put", Download)
+	http.HandleFunc("/putfile", Download)
 }
+
+//for rereplica
+func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
+	url := "http://" + ipPort + "/putfile"
+	//Write2Shell("Upload file to url:" + url)
+	body := HTTPuploadFile(url, filename, remotefilename)
+	//Write2Shell("Url: " + url + " Status: " + string(body))
+	return string(body)
+}
+
+func HTTPlistenRereplica() {
+	Rereplica := func(w http.ResponseWriter, r *http.Request) {
+		// get filename
+		filenames, ok := r.URL.Query()["file"]
+		if !ok {
+			Logger.Error("Handle rereplica but the key is missing")
+			return
+		}
+		filename := filenames[0]
+
+		// get desitnation
+		destinations, ok := r.URL.Query()["destination"]
+		if !ok {
+			Logger.Error("Handle rereplica but the key is missing")
+			return
+		}
+		destination := destinations[0]
+
+		//send
+		filenameWithPath := constant.Dir + "files_" + constant.DatanodeHTTPServerPort + "/" + filename
+		ipPort := IP2DatanodeUploadIP(destination)
+		status := UploadFileToDatanode(filenameWithPath, filename, ipPort)
+		if status != "OK" {
+			w.Write([]byte("Bad"))
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/rereplica", Rereplica)
+}
+
+func List() []string {
+	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	var output []string
+	for _, entry := range c {
+		output = append(output, entry.Name())
+	}
+	return output
+}
+
+func HTTPlistenRecover() {
+	Recover := func(w http.ResponseWriter, r *http.Request) {
+		list := List()
+		var res []byte
+		var err error
+		if len(list) == 0 {
+			res = []byte("[]")
+		} else {
+			res, err = json.Marshal(list)
+			if err != nil {
+				Write2Shell("Unmarshal error in HTTPlistenRecover")
+			}
+		}
+		w.Write(res)
+	}
+	http.HandleFunc("/recover", Recover)
+}
+
 func HTTPstart(port string) {
 	port = ":" + port
 	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+func HTTPlistenDelete(BaseDeletePath string) {
+	Delete := func(w http.ResponseWriter, r *http.Request) {
+		file, ok := r.URL.Query()["file"]
+		if !ok {
+			log.Println("Get IPs Url Param 'key' is missing")
+			return
+		}
+		filename := file[0]
+		err := os.Remove(BaseDeletePath + filename)
+		if err != nil {
+			w.Write([]byte("Write Failed"))
+
+		} else {
+			w.Write([]byte("OK"))
+		}
+	}
+	http.HandleFunc("/deletefile", Delete)
 }
