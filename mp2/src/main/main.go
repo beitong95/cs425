@@ -62,7 +62,7 @@ func init_Logger(isAppendLog bool, logLevel string) {
 	homeDir := os.Getenv("HOME")
 	vmNumber := os.Getenv("VMNUMBER")
 	MyVM = vmNumber
-	logFileDir := homeDir + "/cs425/mp2-revised/log/"
+	logFileDir := homeDir + "/cs425/mp2/log/"
 	if _, err := os.Stat(logFileDir); os.IsNotExist(err) {
 		os.Mkdir(logFileDir, 0755)
 	}
