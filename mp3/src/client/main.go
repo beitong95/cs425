@@ -16,21 +16,7 @@ import (
 )
 
 /**
- Finished parts:
- 1. connect to master
- 2. detect master fail
- 3. reconnect master if master fails
- 4. kick out prompt
- 5. kick out and rejoin
-
  TODO:
- 1. get
- 2. put
- 3. abort current command when master fails
- 4. resend current command if current command fails
- 5. command queue or command mutual exclusion
- ( command queue: allow user input multi commands in a short time.
-   command mutual exclusion: user cannot type new command until current command finishs)
 **/
 func DownloadFileFromDatanode(filename string, localfilename string, ipPort string) (string, error) {
 	url := "http://" + ipPort + "/" + filename
@@ -363,4 +349,22 @@ func Store() {
 	for _, val := range list {
 		Write2Shell(val)
 	}
+}
+
+
+func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefix string, input_file string, _cmd string) {
+	// we assume the maple_exe has already been stored in sdfs
+	// we assume the input files have already been stored sdfs
+	newIP := IP2MasterHTTPServerIP(MasterIP)
+	url := "http://" + newIP + "/maple?exe=" + maple_exe + "&num=" + num_maples + "&prefix=" + sdfs_intermediate_filename_prefix + "&file=" + input_file 
+	Write2Shell("maple url: " + url)
+	body := networking.HTTPsend(url)
+	Write2Shell("maple body: " + string(body))
+	if string(body) == "OK" {
+		Write2Shell(_cmd + " success")
+	} else{
+		Write2Shell(_cmd + " fail")
+	}
+
+
 }

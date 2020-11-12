@@ -10,6 +10,7 @@ import (
 	. "structs"
 	"sync"
 	"time"
+	"strconv"
 )
 
 // track status
@@ -24,6 +25,8 @@ func ServerRun(port string) {
 	networking.HTTPlisten("/ls", HandleLs)
 	networking.HTTPlisten("/clientACK", HandleClientACK) // client will send /clientACK?id=1
 	networking.HTTPlisten("/clientBad", HandleClientBad) //client will send /clientBad?id=1
+	networking.HTTPlisten("/maple", HandleMaple) //client will send /clientBad?id=1
+	networking.HTTPlisten("/juice", HandleJuice) //client will send /clientBad?id=1
 	networking.HTTPstart(port)
 
 }
@@ -479,4 +482,177 @@ func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	ClientMap[id] = "Bad"
 	CM.Unlock()
 	w.Write([]byte("OK"))
+}
+
+func HandleMaple(w http.ResponseWriter, req *http.Request) {
+	// record current time for exit3
+
+	//handle maple
+	//step1. get all parameters
+	exes, ok := req.URL.Query()["exe"]
+	if !ok {
+		Logger.Error("Handle Maple Url Param 'exe' is missing")
+		return
+	}
+	exe := exes[0]
+	Write2Shell("maple exe: " + exe)
+
+	nums, ok := req.URL.Query()["num"]
+	if !ok {
+		Logger.Error("Handle Maple Url Param 'num' is missing")
+		return
+	}
+	num, _:= strconv.Atoi(nums[0])
+	Write2Shell("num: " + fmt.Sprintf("%v",num))
+
+	prefixs, ok := req.URL.Query()["prefix"]
+	if !ok {
+		Logger.Error("Handle Maple Url Param 'prefix' is missing")
+		return
+	}
+	prefix := prefixs[0]
+	Write2Shell("prefix: " + prefix)
+
+
+	files, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("Handle Maple Url Param 'file' is missing")
+		return
+	}
+	file := files[0]
+	Write2Shell("file: " + file)
+
+	Write2Shell("Maple start")
+
+
+	//step2. get, partition and put maple source files
+	if num <= 0 {
+		res := "maple num smaller than zero"
+		w.Write([]byte(res))
+		return
+	}
+
+	if file == "" {
+		res := "source file is empty"
+		w.Write([]byte(res))
+		return
+	}
+	// get the file to local filesytem
+
+
+
+	/**
+
+	// step4. handle reader and writer logic
+	// if we cannot write now, we stop here for further permission
+	for {
+		MW.Lock()
+		MR.Lock()
+		if ReadCounter == 0 && WriteCounter == 0 {
+			WriteCounter++
+			MR.Unlock()
+			MW.Unlock()
+			break
+		}
+		MR.Unlock()
+		MW.Unlock()
+	}
+
+	// step5 send ips back to client
+	var res []byte
+	var err error
+	val, ok := File2VmMap[filename]
+	list := []string{}
+	if !ok {
+		//new file. hash2IP
+		list = Hash2Ips(filename)
+		res, err = json.Marshal(list)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// the file exists
+		if len(val) < 4 {
+			res = []byte("[]")
+		} else if len(val) >= 4 {
+			res, err = json.Marshal(val)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	Write2Shell("Master sends IPS: " + string(res))
+	w.Write(res)
+
+	//step6. master wait ACK from client
+	//exit 1: receive "Done" -> get success
+	//exit 2: receive "Bad"  -> get fail
+	//exit 3: timer timeout	 -> timeout
+	//Question local variable?
+
+	go func() {
+		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		for {
+			CM.Lock()
+			if ClientMap[id] == "Done" {
+
+				MF.Lock()
+				if !ok {
+					File2VmMap[filename] = list
+				} else {
+					File2VmMap[filename] = val
+				}
+				MF.Unlock()
+				Logger.Info(File2VmMap)
+
+				MV.Lock()
+
+				if !ok {
+					for _, v := range list {
+						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+					}
+				} else {
+					for _, v := range val {
+						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+					}
+				}
+				MV.Unlock()
+				Logger.Info(Vm2fileMap)
+
+				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("OK"))
+				//change readcounter to 0
+				MW.Lock()
+				WriteCounter--
+				MW.Unlock()
+				CM.Unlock()
+				break
+			} else if ClientMap[id] == "Bad" {
+				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("Bad"))
+				//change readcounter to 0
+				MW.Lock()
+				WriteCounter--
+				MW.Unlock()
+				CM.Unlock()
+				break
+			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
+				CM.Unlock()
+				break
+			}
+
+			// exit 1 compare time 5 mins
+			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
+			CM.Unlock()
+		}
+	}()
+	**/
+
+}
+
+func HandleJuice(w http.ResponseWriter, req *http.Request) {
+	Write2Shell("TODO handle maple")
+	res := "Fail"
+	w.Write([]byte(res))
 }

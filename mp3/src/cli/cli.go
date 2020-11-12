@@ -149,6 +149,9 @@ func ParseCmd(input *tui.Entry, cmd string, commands []string) (string, string, 
 		mainCmd = cmds[0]
 		filename1 = cmds[1]
 		filename2 = cmds[2]
+	} else if len(cmds) == 5 {
+		//mp3
+		return cmds[0], "", ""	
 	} else {
 		Write2Shell("bad command format")
 		return "","",""
@@ -184,7 +187,10 @@ func ParseCmdSimple(cmd string, commands []string) (string,string,string) {
 			mainCmd = cmds[0]
 			filename1 = cmds[1]
 			filename2 = cmds[2]
-		} else {
+		} else if len(cmds) == 5 {
+			//mp3
+			return cmds[0], "", ""
+		} else {	
 			fmt.Println("bad command format")
 			return "","",""
 		}

@@ -15,10 +15,13 @@ import (
 	"github.com/marcusolsson/tui-go"
 )
 
-var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para"}
+var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para", "maple", "juice"}
 
 func getHelp() string {
 	return `help                            -> help inFormation
+			mp3
+			maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory>
+			juice todo
 			mp2
 			get sdfsfilename localfilename  -> read file from HDFS
 			put localfilename sdfsfilename  -> write file to HDFS
@@ -67,6 +70,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 	input.OnSubmit(func(e *tui.Entry) {
 		// rejoin cmd
 		_cmd := e.Text()[2:]
+		// mp2
 		cmd, filename1, filename2 := ParseCmd(input, _cmd, commands)
 
 		if cmd == "" {
@@ -108,6 +112,19 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.Ls(filename1)
 		case "store":
 			go client.Store()
+		case "maple":
+			cmds := strings.Fields(_cmd)
+			if len(cmds) != 5 {
+				Write2Shell("Wrong maple cmd")
+			} else {
+				maple_exe := cmds[1]
+				num_maples := cmds[2]
+				sdfs_intermediate_filename_prefix := cmds[3]
+				sdfs_src_directory := cmds[4]
+				go client.Maple(maple_exe, num_maples, sdfs_intermediate_filename_prefix, sdfs_src_directory, _cmd)
+			}
+		case "juice":
+			Write2Shell("TODO")
 		case "exit":
 			Write2Shell(cmd)
 			time.Sleep(time.Duration(500) * time.Millisecond)
@@ -174,6 +191,19 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 			go client.Ls(filename1)
 		case "store":
 			go client.Store()
+		case "maple":
+			cmds := strings.Fields(_cmd)
+			if len(cmds) != 5 {
+				fmt.Println("Wrong maple cmd")
+			} else {
+				maple_exe := cmds[1]
+				num_maples := cmds[2]
+				sdfs_intermediate_filename_prefix := cmds[3]
+				sdfs_src_directory := cmds[4]
+				go client.Maple(maple_exe, num_maples, sdfs_intermediate_filename_prefix, sdfs_src_directory, _cmd)
+			}
+		case "juice":
+			fmt.Println("TODO")
 		case "exit":
 			os.Exit(1)
 		}
