@@ -1,4 +1,5 @@
 package config
+// copy from mp0 sample
 
 import (
 	"encoding/json"

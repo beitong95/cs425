@@ -8,24 +8,16 @@ import (
 )
 
 /**
-Finished:
-1. detect inactive client
-2. handle client connection
-3. maintain client membershiplist
-4. handle datanode connection
-5. detect datanode fail
-6. maintain datanode membershiplist
-
 TODO:
-1. master read in client commands and put them in queue
-2. master process those commands, allow parallel read or single write (because we use a queue, there is no starving problem)
-3. given a file name locate the 4 copies' ips
-4. handle datanode fail, create an rereplica algorithm
-5. maintain vm2file and file2vm
 
 **/
 
-
+/*
+Function name: FindMaxLen
+Description: find the fullest VM (actually we should use the real size of all files rather than the count of all files)
+Input: ips []string
+OutPut: index, maxlength
+*/
 func FindMaxLen(ips []string) (int, string) {
 	var output = ""
 	var idx = 0
@@ -40,6 +32,12 @@ func FindMaxLen(ips []string) (int, string) {
 	return idx, output
 }
 
+/*
+Function name: Hash2Ips
+Description: find 4 VMs' IPs to store a new file
+Input: filename
+OutPut: 4 ips
+*/
 func Hash2Ips(filename string) []string {
 	// assert filename is name of new file!
 	var fourIps = []string{"", "", "", ""}
@@ -77,6 +75,12 @@ func Hash2Ips(filename string) []string {
 	return fourIps
 }
 
+/*
+Function name: find
+Description: find if a specific vm has a specific file
+Input: filename, ip of the vm
+OutPut: true or false
+*/
 func find(filename string, ip string) bool {
 	MF.Lock()
 	var ips = File2VmMap[filename]
@@ -89,7 +93,15 @@ func find(filename string, ip string) bool {
 	MF.Unlock()
 	return false
 }
-// Notes: we need rereplica 
+
+
+/*
+Function name: Rereplica
+Description: rereplica a file in HDFS
+Input: filename 
+OutPut: nil
+Related: UDPServer faildetector
+*/
 // 1) after new master elected, files have no more 4 replicas
 // 2) after one datanode failed, all files stored in this datanode
 func Rereplica(filename string) {
@@ -97,8 +109,8 @@ func Rereplica(filename string) {
 	var replicas = []string{}
 	var sources = []string{}
 	MV.Lock()
+	// find available VMS (1) sources: who have the file (2) replicas: where we can store the file 
 	for ip := range Vm2fileMap{
-		//Write2Shell(ip)
 		var found = find(filename, ip)
 		if !found {
 			replicas = append(replicas, ip)
@@ -110,7 +122,9 @@ func Rereplica(filename string) {
 	MV.Unlock()
 	// put file to replica
 	// send rereplica request
+	// Ask one vm send a file to another vm
 	rereplicaFailFlag := true
+	// two for loops, find all combinations of sources and replica destinations
 	for _,source := range sources {
 		if rereplicaFailFlag == false {
 			break
@@ -119,8 +133,6 @@ func Rereplica(filename string) {
 			if rereplicaFailFlag == false {
 				break
 			}
-			//Write2Shell("replica " + replica)
-
 			for {
 				MW.Lock()
 				MR.Lock()
@@ -140,6 +152,7 @@ func Rereplica(filename string) {
 			if string(body) == "OK" {
 				rereplicaFailFlag = false
 				Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Success!")
+				// master update metadata
 				MV.Lock()
 				Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
 				MV.Unlock()
@@ -161,6 +174,13 @@ func Rereplica(filename string) {
 	Logger.Info(Vm2fileMap)
 }
 
+/*
+Function name: Recover
+Description: recover the metadata file2vm and vm2file after election
+Input: a datanode ip, local files stored on that datanode
+OutPut: nil
+Related: UDPServer faildetector
+*/
 func Recover(ip string, list []string) {
 	MV.Lock()
 	MF.Lock()

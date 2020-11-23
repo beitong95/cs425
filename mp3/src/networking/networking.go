@@ -1,7 +1,6 @@
 package networking
 
 import (
-	"bytes"
 	"constant"
 	"encoding/json"
 	"errors"
@@ -15,10 +14,18 @@ import (
 	"os"
 	. "structs"
 	"time"
+	"helper"
+	"strings"
 )
 
 var c *http.Client = &http.Client{Timeout: time.Second * 3}
 
+/*
+Function name: GetLocalIP
+Description: get local machine ip
+Input: 
+OutPut: local ip address
+*/
 func GetLocalIP() (string, error) {
 	addrs, _ := net.InterfaceAddrs()
 	for _, addr := range addrs {
@@ -41,6 +48,14 @@ func GetLocalIP() (string, error) {
 	return "", errors.New("Cannot find IP address, please check network connection")
 }
 
+// UDP services
+
+/*
+Function name: UDPsend
+Description: send udp message to a vm 
+Input: ip, port(udp port), message
+OutPut: err
+*/
 func UDPsend(ip string, port string, message []byte) error {
 	addr, err := net.ResolveUDPAddr("udp", ip+":"+port)
 	if err != nil {
@@ -58,6 +73,12 @@ func UDPsend(ip string, port string, message []byte) error {
 	return nil
 }
 
+/*
+Function name: UDPlisten
+Description: start to receive udp message on a port, and use the callback function to process the message
+Input: port(udp port), call back function
+OutPut: err
+*/
 func UDPlisten(port string, callback func(message []byte) error) error {
 	port = ":" + port
 	addr, err := net.ResolveUDPAddr("udp", port)
@@ -81,6 +102,16 @@ func UDPlisten(port string, callback func(message []byte) error) error {
 		callback(buffer[0:n])
 	}
 }
+
+
+// HTTP services
+
+/*
+Function name: HTTPsend
+Description: send http message to a vm and get the body 
+Input: url(contain ip, port and endpoint, and key value pairs)
+OutPut: body
+*/
 func HTTPsend(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
@@ -94,63 +125,19 @@ func HTTPsend(url string) []byte {
 	return body
 }
 
-//HTTPlisten function
+// HTTP service used by master
+// here we need to unify the http services in master and datanode
+
+// listen to a endpoint and execute the call back function 
 func HTTPlisten(endpoint string, handler func(w http.ResponseWriter, req *http.Request)) {
 	http.HandleFunc(endpoint, handler)
 }
+// all callback functions are defined in master/server.go
 
-//HTTPfileServer
-func HTTPfileServer(port string, dir string) {
-	fs := http.FileServer(http.Dir(dir))
-	port = ":" + port
-	log.Fatal(http.ListenAndServe(port, fs))
-}
+// HTTP service used by client(put/get/delete)
 
-//HTTPuploadFiles try
-// return sucess num
-func HTTPuploadFiles(urls []string, filename string, uploadFilename string) int {
-	buf := new(bytes.Buffer)
-	writer := multipart.NewWriter(buf)
-	formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
-	if err != nil {
-		Logger.Fatal("Create form file failed: %s\n", err)
-	}
-	srcFile, err := os.Open(filename)
-	if err != nil {
-		Logger.Fatal("%Open source file failed: s\n", err)
-	}
-	defer srcFile.Close()
-	// juju hold 10 M max 10M
-	//	bucket := ratelimit.NewBucketWithRate(10000*1024, 10000*1024)
-	_, err = io.Copy(formFile, srcFile)
-	//	_, err = io.Copy(formFile, ratelimit.Reader(srcFile, bucket))
-	if err != nil {
-		Logger.Fatal("Write to form file falied: %s\n", err)
-	}
-	contentType := writer.FormDataContentType()
-	defer writer.Close()
-	successCount := 0
-	for _, url := range urls {
-		resp, err := http.Post(url, contentType, buf)
-		if err != nil {
-			Logger.Fatal("Post failed: %s\n", err)
-		}
-		body, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			panic(err)
-		}
-		resp.Body.Close()
-		if string(body) == "OK" {
-			successCount++
-		}
-		break
-	}
-	return successCount
-}
-
-//HTTPuploadFile
+// upload a single file to a datanode, use pipe
 func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
-	//	buf := new(bytes.Buffer)
 	r, w := io.Pipe()
 	writer := multipart.NewWriter(w)
 
@@ -190,6 +177,80 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	resp.Body.Close()
 	return body
 }
+
+// a wrapper to upload file
+func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
+	url := "http://" + ipPort + "/putfile"
+	Write2Shell("Upload file to url:" + url)
+	body := HTTPuploadFile(url, filename, remotefilename)
+	Write2Shell("Url: " + url + " Status: " + string(body))
+	return string(body)
+}
+
+// download a single file to local disk
+func DownloadFileFromDatanode(filename string, localfilename string, ipPort string) (string, error) {
+	url := "http://" + ipPort + "/" + filename
+	//Write2Shell("Downloading file from: " + url)
+	rsp, err := http.Get(url)
+	//Write2Shell("get http.Get return")
+	if err != nil {
+		return "Connection error", err
+	}
+	if rsp.Header["Content-Length"][0] == "19" {
+		fmt.Println("Possible empty")
+		buffer := make([]byte, 19)
+		rsp.Body.Read(buffer)
+		if string(buffer) == "404 page not found\n" {
+			return "File not found", errors.New("networking: file not found")
+		} else {
+			file := strings.NewReader(string(buffer))
+			// store in main folder
+			destFile, err := os.Create("./" + localfilename)
+			if err != nil {
+				log.Printf("Create file failed: %s\n", err)
+				return "Create Failed", err
+			}
+			_, err = io.Copy(destFile, file)
+			if err != nil {
+				log.Printf("Write file failed: %s\n", err)
+				return "Write error", err
+			}
+			return "OK", nil
+		}
+	}
+	// store in main folder
+	destFile, err := os.Create("./" + localfilename)
+	if err != nil {
+		log.Printf("Create file failed: %s\n", err)
+		return "Create Failed", err
+	}
+	_, err = io.Copy(destFile, rsp.Body)
+	if err != nil {
+		log.Printf("Write file failed: %s\n", err)
+		return "Write error", err
+	}
+	return "OK", nil
+}
+
+// delete a file just send a request
+func DeleteFileFromDatanode(remotefilename string, ipPort string) string {
+	url := "http://" + ipPort + "/deletefile?file=" + remotefilename
+	Write2Shell("Delete file from url:" + url)
+	body := HTTPsend(url)
+	Write2Shell("Url: " + url + " Status: " + string(body))
+	return string(body)
+}
+
+// HTTP services used by datanode
+
+// handle get
+func HTTPfileServer(port string, dir string) {
+	fs := http.FileServer(http.Dir(dir))
+	port = ":" + port
+	log.Fatal(http.ListenAndServe(port, fs))
+}
+
+// handle put
 func HTTPlistenDownload(BaseUploadPath string) {
 	Download := func(w http.ResponseWriter, r *http.Request) {
 		formFile, header, err := r.FormFile("uploadfile")
@@ -209,10 +270,7 @@ func HTTPlistenDownload(BaseUploadPath string) {
 		}
 		defer destFile.Close()
 
-		// juju hold 30 M max 30M
-		//	bucket := ratelimit.NewBucketWithRate(30000*1024, 30000*1024)
 		_, err = io.Copy(destFile, formFile)
-		//	_, err = io.Copy(destFile, ratelimit.Reader(formFile, bucket))
 		if err != nil {
 			log.Printf("Write file failed: %s\n", err)
 			w.Write([]byte("error"))
@@ -223,15 +281,7 @@ func HTTPlistenDownload(BaseUploadPath string) {
 	http.HandleFunc("/putfile", Download)
 }
 
-//for rereplica
-func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
-	url := "http://" + ipPort + "/putfile"
-	//Write2Shell("Upload file to url:" + url)
-	body := HTTPuploadFile(url, filename, remotefilename)
-	//Write2Shell("Url: " + url + " Status: " + string(body))
-	return string(body)
-}
-
+// handle rereplica
 func HTTPlistenRereplica() {
 	Rereplica := func(w http.ResponseWriter, r *http.Request) {
 		// get filename
@@ -263,22 +313,10 @@ func HTTPlistenRereplica() {
 	http.HandleFunc("/rereplica", Rereplica)
 }
 
-func List() []string {
-	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	var output []string
-	for _, entry := range c {
-		output = append(output, entry.Name())
-	}
-	return output
-}
-
+// handle recover
 func HTTPlistenRecover() {
 	Recover := func(w http.ResponseWriter, r *http.Request) {
-		list := List()
+		list := helper.List()
 		var res []byte
 		var err error
 		if len(list) == 0 {
@@ -294,11 +332,7 @@ func HTTPlistenRecover() {
 	http.HandleFunc("/recover", Recover)
 }
 
-func HTTPstart(port string) {
-	port = ":" + port
-	log.Fatal(http.ListenAndServe(port, nil))
-}
-
+//handle delete
 func HTTPlistenDelete(BaseDeletePath string) {
 	Delete := func(w http.ResponseWriter, r *http.Request) {
 		file, ok := r.URL.Query()["file"]
@@ -317,3 +351,14 @@ func HTTPlistenDelete(BaseDeletePath string) {
 	}
 	http.HandleFunc("/deletefile", Delete)
 }
+
+// start all http.HandleFunc()
+func HTTPstart(port string) {
+	port = ":" + port
+	log.Fatal(http.ListenAndServe(port, nil))
+}
+
+
+// TODO:
+// 1. master networking.HTTPlisten -> http.handlefunc() -> callback -> networking.HTTPstart -> http.ListenAndServe
+// 2. datanode: networking.HTTPlistenDownload() -> http.handlefunc() -> callback -> networking.HTTPstart -> http.ListenAndServe

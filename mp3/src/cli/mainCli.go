@@ -11,7 +11,6 @@ import (
 	. "structs"
 	"sync"
 	"time"
-
 	"github.com/marcusolsson/tui-go"
 )
 

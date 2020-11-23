@@ -1,10 +1,11 @@
-package datanode
+package helper
 
 import (
 	"constant"
 	"fmt"
 	"io/ioutil"
 	"os"
+	. "structs"
 )
 
 func CreateFile() {
@@ -12,6 +13,7 @@ func CreateFile() {
 	FileList = []string{}
 }
 
+// not use
 func Get(fileName string) ([]byte, string) {
 	data, err := ioutil.ReadFile(fileName)
 	if err != nil {
@@ -21,6 +23,7 @@ func Get(fileName string) ([]byte, string) {
 	return data, "Found"
 }
 
+// not use
 func Put(fileName string, buf []byte) {
 	if _, err := os.Stat(constant.Dir); os.IsNotExist(err) {
 		// File does not exist
@@ -51,6 +54,7 @@ func remove(filename string) []string {
 	return FileList
 }
 
+// not used 
 func Delete(fileName string) {
 	var path = constant.Dir + "/" + fileName
 	err := os.Remove(path)

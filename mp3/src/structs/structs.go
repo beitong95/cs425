@@ -183,3 +183,6 @@ var WriteCounter int = 0
 
 
 var TimeBroadcastUDP time.Time
+
+//local file lists
+var FileList []string

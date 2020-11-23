@@ -1,67 +1,24 @@
 package client
 
 import (
-	"datanode"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
-	"log"
-	"net/http"
 	"networking"
-	"os"
-	"strings"
 	. "structs"
 	"time"
+	"helper"
 )
 
 /**
  TODO:
 **/
-func DownloadFileFromDatanode(filename string, localfilename string, ipPort string) (string, error) {
-	url := "http://" + ipPort + "/" + filename
-	//Write2Shell("Downloading file from: " + url)
-	rsp, err := http.Get(url)
-	//Write2Shell("get http.Get return")
-	if err != nil {
-		return "Connection error", err
-	}
-	if rsp.Header["Content-Length"][0] == "19" {
-		fmt.Println("Possible empty")
-		buffer := make([]byte, 19)
-		rsp.Body.Read(buffer)
-		if string(buffer) == "404 page not found\n" {
-			return "File not found", errors.New("networking: file not found")
-		} else {
-			file := strings.NewReader(string(buffer))
-			// store in main folder
-			destFile, err := os.Create("./" + localfilename)
-			if err != nil {
-				log.Printf("Create file failed: %s\n", err)
-				return "Create Failed", err
-			}
-			_, err = io.Copy(destFile, file)
-			if err != nil {
-				log.Printf("Write file failed: %s\n", err)
-				return "Write error", err
-			}
-			return "OK", nil
-		}
-	}
-	// store in main folder
-	destFile, err := os.Create("./" + localfilename)
-	if err != nil {
-		log.Printf("Create file failed: %s\n", err)
-		return "Create Failed", err
-	}
-	_, err = io.Copy(destFile, rsp.Body)
-	if err != nil {
-		log.Printf("Write file failed: %s\n", err)
-		return "Write error", err
-	}
-	return "OK", nil
-}
 
+/*
+Function name: GetIPsFromMaster
+Description: send get ips request to master and parse the returned body
+Input: filename string
+OutPut: ips []string
+*/
 func GetIPsFromMaster(filename string) ([]string, error) {
 	url := "http://" + MasterIP + "/getips?file=" + filename
 	body := networking.HTTPsend(url)
@@ -74,18 +31,13 @@ func GetIPsFromMaster(filename string) ([]string, error) {
 	return ipList, nil
 }
 
-func GetIPsPutFromMaster(filename string) ([]string, error) {
-	url := "http://" + MasterIP + "/getipsput?file=" + filename
-	body := networking.HTTPsend(url)
-	var ipList []string
-	err := json.Unmarshal([]byte(body), &ipList)
-	if err != nil {
-		return []string{}, err
-	}
-	fmt.Println(ipList)
-	return ipList, nil
-}
-
+/*
+Function name: GetFile
+Description: client get file from HDFS
+Input: filename string, localfilename string
+OutPut: nil
+Related: HandleGet, DownloadFileFromDatanode
+*/
 func GetFile(filename string, localfilename string) {
 	t1 := time.Now()
 	getFailFlag := true
@@ -93,29 +45,22 @@ func GetFile(filename string, localfilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename
-	Write2Shell("Getfile url: " + url)
+	Write2Shell("GetFile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
-	//Write2Shell(string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
 	if err != nil {
 		Write2Shell("Unmarshal error in GetFile")
 	}
-	/**
-	Write2Shell("Received IPs: ")
-	for _, v := range IPs {
-		Write2Shell(v)
-	} 
-	**/
 
 	//step3. download files from the list
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		newIp := IP2DatanodeHTTPServerIP(ip)
-		status, _ := DownloadFileFromDatanode(filename, localfilename, newIp)
+		status, _ := networking.DownloadFileFromDatanode(filename, localfilename, newIp)
 		if status == "OK" {
 			t2 := time.Now()
 			diff := t2.Sub(t1)
@@ -138,44 +83,21 @@ func GetFile(filename string, localfilename string) {
 	}
 }
 
-func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
-	url := "http://" + ipPort + "/putfile"
-	Write2Shell("Upload file to url:" + url)
-	body := networking.HTTPuploadFile(url, filename, remotefilename)
-	Write2Shell("Url: " + url + " Status: " + string(body))
-	return string(body)
-}
-
-func DeleteFileFromDatanode(remotefilename string, ipPort string) string {
-	url := "http://" + ipPort + "/deletefile?file=" + remotefilename
-	Write2Shell("Delete file from url:" + url)
-	body := networking.HTTPsend(url)
-	Write2Shell("Url: " + url + " Status: " + string(body))
-	return string(body)
-}
-
+/*
+Function name: PutFile
+Description: client put file from HDFS
+Input: filename string, remotefilename string
+OutPut: nil
+Related: HandlePut, UploadFileToDatanode
+*/
 func PutFile(filename string, remotefilename string) {
-/**
-	counter := 0
-	exitFlag := false
-	go func() {
-		for {
-			Write2Shell("puting file" + fmt.Sprintf("%v", counter))
-			counter += 1
-			time.Sleep(1*time.Second)
-			if exitFlag == true {
-				break
-			}
-		}
-	}()
-**/
 	t1 := time.Now()
 	putFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/put?id=" + ID + "&file=" + remotefilename
-	//Write2Shell("Putfile url: " + url)
+	Write2Shell("Putfile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
@@ -194,38 +116,18 @@ func PutFile(filename string, remotefilename string) {
 		return
 	}
 
-/**
-	Write2Shell("Received IPs: ")
-	// should always return 4 ips`
-	for _, v := range IPs {
-		Write2Shell(v)
-	}
-**/
 	//step 3. upload files to vms in the list
 	successCounter := 0
-//	failedIPs := []string{}
 
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
-	//	Write2Shell("Try to send the file")
 		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
-	//	Write2Shell("Finish send the file")
-		//time.Sleep(3 * time.Second)
 		if status == "OK" {
 			successCounter++
 		} else {
-	//		failedIPs = append(failedIPs, destinationIp)
 		}
 	}
-/**
-	urls := []string{}
-	for _, ip := range IPs {
-		destinationIp := IP2DatanodeUploadIP(ip)
-		urls = append(urls, "http://" + destinationIp + "/putfile")
-	}
-	successCounter = networking.HTTPuploadFiles(urls, filename, remotefilename)
-**/
 
 	if successCounter == len(IPs) {
 		putFailFlag = false
@@ -237,12 +139,6 @@ func PutFile(filename string, remotefilename string) {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
-/**
-		Write2Shell("Failed destination IPs:")
-		for _, v := range failedIPs {
-			Write2Shell(v)
-		}
-**/
 	} else {
 		t2 := time.Now()
 		diff := t2.Sub(t1)
@@ -251,10 +147,15 @@ func PutFile(filename string, remotefilename string) {
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Success")
 	}
-//	exitFlag = true
-
 }
 
+/*
+Function name: DeleteFile
+Description: client delete file from HDFS(similiar to put file)
+Input: remotefilename string
+OutPut: nil
+Related: HandleDelete
+*/
 func DeleteFile(remotefilename string) {
 	putFailFlag := true
 	//step 1. get id and create url
@@ -273,6 +174,7 @@ func DeleteFile(remotefilename string) {
 		Write2Shell("Unmarshal error in DeleteFile")
 	}
 
+	// no such file or not enough vms (4)
 	if len(IPs) == 0 {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
@@ -280,12 +182,7 @@ func DeleteFile(remotefilename string) {
 		Write2Shell("Reason: IPs lenght == 0")
 		return
 	}
-
-	Write2Shell("Received IPs: ")
 	// should always return 4 ips`
-	for _, v := range IPs {
-		Write2Shell(v)
-	}
 
 	//step 3. delete files to vms in the list
 	successCounter := 0
@@ -293,7 +190,7 @@ func DeleteFile(remotefilename string) {
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		destinationIp := IP2DatanodeUploadIP(ip)
-		status := DeleteFileFromDatanode(remotefilename, destinationIp)
+		status := networking.DeleteFileFromDatanode(remotefilename, destinationIp)
 		if status == "OK" {
 			successCounter++
 		} else {
@@ -322,6 +219,13 @@ func DeleteFile(remotefilename string) {
 
 }
 
+/*
+Function name: Ls
+Description: client query locations of a file in HDFS
+Input: remotefilename string
+OutPut: nil
+Related: HandleLs
+*/
 func Ls(remotefilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
@@ -343,15 +247,28 @@ func Ls(remotefilename string) {
 		}
 	}
 }
+
+/*
+Function name: Store
+Description: client list all local files
+Input:
+OutPut: nil
+*/
 func Store() {
-	list := datanode.List()
+	list := helper.List()
 	Write2Shell("This VM contain files:")
 	for _, val := range list {
 		Write2Shell(val)
 	}
 }
 
-
+/*
+Function name: Maple
+Description: client execute the maple step
+Input: 
+OutPut: 
+Related: 
+*/
 func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefix string, input_file string, _cmd string) {
 	// we assume the maple_exe has already been stored in sdfs
 	// we assume the input files have already been stored sdfs
@@ -365,6 +282,15 @@ func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefi
 	} else{
 		Write2Shell(_cmd + " fail")
 	}
+}
 
-
+/*
+Function name: Juice
+Description: client execute the juice step
+Input: 
+OutPut: 
+Related: 
+*/
+func Juice(){
+	Write2Shell("TODO")
 }

@@ -1,6 +1,7 @@
 package master
 
 import (
+	"client"
 	"constant"
 	"encoding/json"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 var ClientMap map[string]string = make(map[string]string)
 var CM sync.Mutex
 
+// Start HTTP Server
 func ServerRun(port string) {
 	networking.HTTPlisten("/getips", HandleGetIPs)
 	networking.HTTPlisten("/put", HandlePut)
@@ -31,7 +33,7 @@ func ServerRun(port string) {
 
 }
 
-//TODELETE: can be deleted
+//TODELETE: can be deleted. Because we handle getips request in handle get/put/delete 
 func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 	file, ok := req.URL.Query()["file"]
 	if !ok {
@@ -70,261 +72,13 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 	w.Write(res)
 }
 
-func HandleDelete(w http.ResponseWriter, req *http.Request) {
-	start := time.Now()
-
-	//handle delete
-	//step1. get "DELETE" request id.
-	//step2. start tracking this request's state
-	ids, ok := req.URL.Query()["id"]
-	if !ok {
-		Logger.Error("Handle DELETE Url Param 'key' is missing")
-		return
-	}
-	id := ids[0]
-	CM.Lock()
-	ClientMap[id] = "Delete"
-	CM.Unlock()
-	Write2Shell("Master receive DELETE request id: " + fmt.Sprintf("%v", id))
-
-	//step3. get "DELETE" request file name
-	file, ok := req.URL.Query()["file"]
-	if !ok {
-		Logger.Error("DELETE IPs Url Param 'key' is missing")
-		return
-	}
-	filename := file[0]
-	Write2Shell("Master receive DELETE request for file: " + filename)
-
-	// step4. handle reader and writer logic
-	// if we cannot write now, we stop here for further permission
-	for {
-		MW.Lock()
-		MR.Lock()
-		if ReadCounter == 0 && WriteCounter == 0 {
-			WriteCounter++
-			MR.Unlock()
-			MW.Unlock()
-			break
-		}
-		MR.Unlock()
-		MW.Unlock()
-	}
-
-	// step5 send ips back to client
-	var res []byte
-	val, ok := File2VmMap[filename]
-	Write2Shell("File VMs: " + fmt.Sprint(val))
-	var err error
-	if !ok {
-		//no such file
-		res = []byte("[]")
-	} else {
-		// the file exists
-		res, err = json.Marshal(val)
-		if err != nil {
-			panic(err)
-		}
-	}
-	Write2Shell("Master sends IPS: " + string(res))
-	w.Write(res)
-
-	//step6. master wait ACK from client
-
-	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
-		for {
-			CM.Lock()
-			if ClientMap[id] == "Done" {
-				MF.Lock()
-				if !ok {
-					//no such file
-				} else {
-					delete(File2VmMap, filename)
-				}
-				MF.Unlock()
-				Logger.Info(File2VmMap)
-
-				if !ok {
-					//no such file
-				} else {
-					MV.Lock()
-					for _, v := range val { //each vm should delete this file
-						for i := 0; i < len(Vm2fileMap[v]); i++ {
-							if Vm2fileMap[v][i] == filename {
-								Vm2fileMap[v] = append(Vm2fileMap[v][:i], Vm2fileMap[v][i+1:]...)
-							}
-						}
-					}
-					MV.Unlock()
-				}
-				Logger.Info(Vm2fileMap)
-
-				Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("OK"))
-				//change readcounter to 0
-				MR.Lock()
-				WriteCounter--
-				MR.Unlock()
-				CM.Unlock()
-				break
-			} else if ClientMap[id] == "Bad" {
-				Write2Shell("DELETE fail ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("Bad"))
-				//change readcounter to 0
-				MR.Lock()
-				WriteCounter--
-				MR.Unlock()
-				CM.Unlock()
-				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
-				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
-				CM.Unlock()
-				break
-			}
-
-			// exit 1 compare time 5 mins
-			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
-			CM.Unlock()
-		}
-	}()
-
-}
-
-func HandlePut(w http.ResponseWriter, req *http.Request) {
-	// record current time for exit3
-	start := time.Now()
-
-	//handle put
-	//step1. get "PUT" request id.
-	//step2. start tracking this request's state
-	ids, ok := req.URL.Query()["id"]
-	if !ok {
-		Logger.Error("Handle PUT Url Param 'key' is missing")
-		return
-	}
-	id := ids[0]
-	CM.Lock()
-	ClientMap[id] = "Put"
-	CM.Unlock()
-	Write2Shell("Master receive PUT request id: " + fmt.Sprintf("%v", id))
-
-	//step3. get "PUT" request file name
-	file, ok := req.URL.Query()["file"]
-	if !ok {
-		Logger.Error("PUT IPs Url Param 'key' is missing")
-		return
-	}
-	filename := file[0]
-	Write2Shell("Master receive PUT request for file: " + filename)
-
-	// step4. handle reader and writer logic
-	// if we cannot write now, we stop here for further permission
-	for {
-		MW.Lock()
-		MR.Lock()
-		if ReadCounter == 0 && WriteCounter == 0 {
-			WriteCounter++
-			MR.Unlock()
-			MW.Unlock()
-			break
-		}
-		MR.Unlock()
-		MW.Unlock()
-	}
-
-	// step5 send ips back to client
-	var res []byte
-	var err error
-	val, ok := File2VmMap[filename]
-	list := []string{}
-	if !ok {
-		//new file. hash2IP
-		list = Hash2Ips(filename)
-		res, err = json.Marshal(list)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		// the file exists
-		if len(val) < 4 {
-			res = []byte("[]")
-		} else if len(val) >= 4 {
-			res, err = json.Marshal(val)
-			if err != nil {
-				panic(err)
-			}
-		}
-	}
-	Write2Shell("Master sends IPS: " + string(res))
-	w.Write(res)
-
-	//step6. master wait ACK from client
-	//exit 1: receive "Done" -> get success
-	//exit 2: receive "Bad"  -> get fail
-	//exit 3: timer timeout	 -> timeout
-	//Question local variable?
-
-	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
-		for {
-			CM.Lock()
-			if ClientMap[id] == "Done" {
-
-				MF.Lock()
-				if !ok {
-					File2VmMap[filename] = list
-				} else {
-					File2VmMap[filename] = val
-				}
-				MF.Unlock()
-				Logger.Info(File2VmMap)
-
-				MV.Lock()
-
-				if !ok {
-					for _, v := range list {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				} else {
-					for _, v := range val {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				}
-				MV.Unlock()
-				Logger.Info(Vm2fileMap)
-
-				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("OK"))
-				//change readcounter to 0
-				MW.Lock()
-				WriteCounter--
-				MW.Unlock()
-				CM.Unlock()
-				break
-			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("Bad"))
-				//change readcounter to 0
-				MW.Lock()
-				WriteCounter--
-				MW.Unlock()
-				CM.Unlock()
-				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
-				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
-				CM.Unlock()
-				break
-			}
-
-			// exit 1 compare time 5 mins
-			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
-			CM.Unlock()
-		}
-	}()
-
-}
-
+/*
+Function name: HandleGet
+Description: master server handles client Get request
+Input: writer, request
+OutPut: nil
+Related: GetFile
+*/
 func HandleGet(w http.ResponseWriter, req *http.Request) {
 	// record current time for exit3
 	start := time.Now()
@@ -424,6 +178,291 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	}()
 }
 
+/*
+Function name: HandlePut
+Description: master server handles client Put request
+Input: writer, request
+OutPut: nil
+Related: PutFile
+*/
+func HandlePut(w http.ResponseWriter, req *http.Request) {
+	// record current time for exit3
+	start := time.Now()
+
+	//handle put
+	//step1. get "PUT" request id.
+	//step2. start tracking this request's state
+	ids, ok := req.URL.Query()["id"]
+	if !ok {
+		Logger.Error("Handle PUT Url Param 'key' is missing")
+		return
+	}
+	id := ids[0]
+	CM.Lock()
+	ClientMap[id] = "Put"
+	CM.Unlock()
+	Write2Shell("Master receive PUT request id: " + fmt.Sprintf("%v", id))
+
+	//step3. get "PUT" request file name
+	file, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("PUT IPs Url Param 'key' is missing")
+		return
+	}
+	filename := file[0]
+	Write2Shell("Master receive PUT request for file: " + filename)
+
+	// step4. handle reader and writer logic
+	// if we cannot write now, we stop here for further permission
+	for {
+		MW.Lock()
+		MR.Lock()
+		if ReadCounter == 0 && WriteCounter == 0 {
+			WriteCounter++
+			MR.Unlock()
+			MW.Unlock()
+			break
+		}
+		MR.Unlock()
+		MW.Unlock()
+	}
+
+	// step5 send ips back to client
+	var res []byte
+	var err error
+	val, ok := File2VmMap[filename]
+	list := []string{}
+	if !ok {
+		//new file. hash2IP
+		// TODO: cannot guarantee that we can get 4 ips
+		list = Hash2Ips(filename)
+		if len(list) < 4 {
+			Write2Shell("Client try to put a new file, but we cannot find 4 VMs to store this file")
+		}
+		res, err = json.Marshal(list)
+		if err != nil {
+			panic(err)
+		}
+	} else {
+		// the file exists
+		if len(val) < 4 {
+			Write2Shell("Client try to put a existed file, but we cannot find 4 VMs store this file.")
+			res = []byte("[]")
+		} else if len(val) >= 4 {
+			res, err = json.Marshal(val)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	Write2Shell("Master sends IPS: " + string(res))
+	w.Write(res)
+
+	//step6. master wait ACK from client
+	//exit 1: receive "Done" -> get success
+	//exit 2: receive "Bad"  -> get fail
+	//exit 3: timer timeout	 -> timeout
+	//Question local variable?
+
+	go func() {
+		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		for {
+			CM.Lock()
+			if ClientMap[id] == "Done" {
+
+				MF.Lock()
+				if !ok {
+					File2VmMap[filename] = list
+				} else {
+					File2VmMap[filename] = val
+				}
+				MF.Unlock()
+				Logger.Info(File2VmMap)
+
+				MV.Lock()
+
+				if !ok {
+					for _, v := range list {
+						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+					}
+				} else {
+					for _, v := range val {
+						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+					}
+				}
+				MV.Unlock()
+				Logger.Info(Vm2fileMap)
+
+				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("OK"))
+				//change readcounter to 0
+				MW.Lock()
+				WriteCounter--
+				MW.Unlock()
+				CM.Unlock()
+				break
+			} else if ClientMap[id] == "Bad" {
+				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("Bad"))
+				//change readcounter to 0
+				MW.Lock()
+				WriteCounter--
+				MW.Unlock()
+				CM.Unlock()
+				break
+			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
+				CM.Unlock()
+				break
+			}
+
+			// exit 1 compare time 5 mins
+			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
+			CM.Unlock()
+		}
+	}()
+
+}
+
+/*
+Function name: HandleDelete
+Description: master server handles client Delete request
+Input: writer, request
+OutPut: nil
+Related: DeleteFile
+*/
+func HandleDelete(w http.ResponseWriter, req *http.Request) {
+	start := time.Now()
+
+	//handle delete
+	//step1. get "DELETE" request id.
+	//step2. start tracking this request's state
+	ids, ok := req.URL.Query()["id"]
+	if !ok {
+		Logger.Error("Handle DELETE Url Param 'key' is missing")
+		return
+	}
+	id := ids[0]
+	CM.Lock()
+	ClientMap[id] = "Delete"
+	CM.Unlock()
+	Write2Shell("Master receive DELETE request id: " + fmt.Sprintf("%v", id))
+
+	//step3. get "DELETE" request file name
+	file, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("DELETE IPs Url Param 'key' is missing")
+		return
+	}
+	filename := file[0]
+	Write2Shell("Master receive DELETE request for file: " + filename)
+
+	// step4. handle reader and writer logic
+	// if we cannot write now, we stop here for further permission
+	for {
+		MW.Lock()
+		MR.Lock()
+		if ReadCounter == 0 && WriteCounter == 0 {
+			WriteCounter++
+			MR.Unlock()
+			MW.Unlock()
+			break
+		}
+		MR.Unlock()
+		MW.Unlock()
+	}
+
+	// step5 send ips back to client
+	var res []byte
+	val, ok := File2VmMap[filename]
+	Write2Shell("File VMs: " + fmt.Sprint(val))
+	var err error
+	if !ok {
+		//no such file
+		res = []byte("[]")
+	} else {
+		// the file exists
+		if len(val) < 4 {
+			res = []byte("[]")
+		} else {
+			res, err = json.Marshal(val)
+			if err != nil {
+				panic(err)
+			}
+		}
+	}
+	Write2Shell("Master sends IPS: " + string(res))
+	w.Write(res)
+
+	//step6. master wait ACK from client
+
+	go func() {
+		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		for {
+			CM.Lock()
+			if ClientMap[id] == "Done" {
+				MF.Lock()
+				if !ok {
+					//no such file
+				} else {
+					delete(File2VmMap, filename)
+				}
+				MF.Unlock()
+				Logger.Info(File2VmMap)
+
+				if !ok {
+					//no such file
+				} else {
+					MV.Lock()
+					for _, v := range val { //each vm should delete this file
+						for i := 0; i < len(Vm2fileMap[v]); i++ {
+							if Vm2fileMap[v][i] == filename {
+								Vm2fileMap[v] = append(Vm2fileMap[v][:i], Vm2fileMap[v][i+1:]...)
+							}
+						}
+					}
+					MV.Unlock()
+				}
+				Logger.Info(Vm2fileMap)
+
+				Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("OK"))
+				//change readcounter to 0
+				MR.Lock()
+				WriteCounter--
+				MR.Unlock()
+				CM.Unlock()
+				break
+			} else if ClientMap[id] == "Bad" {
+				Write2Shell("DELETE fail ACK from id: " + fmt.Sprintf("%v", id))
+				w.Write([]byte("Bad"))
+				//change readcounter to 0
+				MR.Lock()
+				WriteCounter--
+				MR.Unlock()
+				CM.Unlock()
+				break
+			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
+				CM.Unlock()
+				break
+			}
+
+			// exit 1 compare time 5 mins
+			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
+			CM.Unlock()
+		}
+	}()
+
+}
+
+/*
+Function name: HandleLs
+Description: master server handles client Ls request
+Input: writer, request
+OutPut: nil
+Related: Ls
+*/
 func HandleLs(w http.ResponseWriter, req *http.Request) {
 	file, ok := req.URL.Query()["file"]
 	if !ok {
@@ -458,6 +497,12 @@ func HandleLs(w http.ResponseWriter, req *http.Request) {
 
 }
 
+/*
+Function name: HandleClientACK
+Description: Handle client(last node in the put/get/delete loop) ACK. Change status of a put/get/delete request
+Input: writer, request
+OutPut: nil
+*/
 func HandleClientACK(w http.ResponseWriter, req *http.Request) {
 	ids, ok := req.URL.Query()["id"]
 	if !ok {
@@ -471,6 +516,12 @@ func HandleClientACK(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+/*
+Function name: HandleClientBad
+Description: Handle client(last node in the put/get/delete loop) Bad ACK. Change status of a put/get/delete request
+Input: writer, request
+OutPut: nil
+*/
 func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	ids, ok := req.URL.Query()["id"]
 	if !ok {
@@ -484,6 +535,13 @@ func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+/*
+Function name: HandleMaple
+Description: master server handles client Maple request
+Input: writer, request
+OutPut: nil
+Related: 
+*/
 func HandleMaple(w http.ResponseWriter, req *http.Request) {
 	// record current time for exit3
 
@@ -538,6 +596,8 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// get the file to local filesytem
+	// Try to use client api
+	client.PutFile("1m.txt","partition.txt");
 
 
 
@@ -651,6 +711,13 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 
 }
 
+/*
+Function name: HandleJuice
+Description: master server handles client Juice request
+Input: writer, request
+OutPut: nil
+Related: 
+*/
 func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	Write2Shell("TODO handle maple")
 	res := "Fail"

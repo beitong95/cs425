@@ -15,7 +15,6 @@ import (
 	4. send local storage status to master(restore the system status when master fails)
 	5. send ACK back to master to close the put\update\delete service loop
 **/
-var FileList []string
 
 func Run() {
 	ServerRun(constant.DatanodeHTTPServerPort)
