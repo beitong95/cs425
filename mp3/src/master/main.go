@@ -2,7 +2,7 @@ package master
 
 import (
 	_ "errors"
-	"constant"
+	. "structs"
 	. "structs"
 	"networking"
 )
@@ -194,5 +194,5 @@ func Recover(ip string, list []string) {
 }
 
 func Run() {
-	ServerRun(constant.MasterHTTPServerPort)
+	ServerRun(MasterHTTPServerPort)
 }

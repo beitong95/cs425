@@ -1,7 +1,7 @@
 package datanode
 
 import (
-	"constant"
+	. "structs"
 )
 
 /**
@@ -17,5 +17,5 @@ import (
 **/
 
 func Run() {
-	ServerRun(constant.DatanodeHTTPServerPort)
+	ServerRun(DatanodeHTTPServerPort)
 }

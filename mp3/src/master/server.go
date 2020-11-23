@@ -2,7 +2,7 @@ package master
 
 import (
 	"client"
-	"constant"
+	. "structs"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -165,7 +165,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				MR.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterGetTimeout*time.Second {
+			} else if elapsed := start.Sub(time.Now()); elapsed > MasterGetTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -310,7 +310,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				MW.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -442,7 +442,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				MR.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -696,7 +696,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 				MW.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > constant.MasterPutTimeout*time.Second {
+			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break

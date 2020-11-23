@@ -1,7 +1,7 @@
 package networking
 
 import (
-	"constant"
+	. "structs"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -301,7 +301,7 @@ func HTTPlistenRereplica() {
 		destination := destinations[0]
 
 		//send
-		filenameWithPath := constant.Dir + "files_" + constant.DatanodeHTTPServerPort + "/" + filename
+		filenameWithPath := Dir + "files_" + DatanodeHTTPServerPort + "/" + filename
 		ipPort := IP2DatanodeUploadIP(destination)
 		status := UploadFileToDatanode(filenameWithPath, filename, ipPort)
 		if status != "OK" {

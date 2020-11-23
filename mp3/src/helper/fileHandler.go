@@ -1,7 +1,7 @@
 package helper
 
 import (
-	"constant"
+	. "structs"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,7 +9,7 @@ import (
 )
 
 func CreateFile() {
-	os.Mkdir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort, 0777)
+	os.Mkdir(Dir + "files_" + DatanodeHTTPServerPort, 0777)
 	FileList = []string{}
 }
 
@@ -25,11 +25,11 @@ func Get(fileName string) ([]byte, string) {
 
 // not use
 func Put(fileName string, buf []byte) {
-	if _, err := os.Stat(constant.Dir); os.IsNotExist(err) {
+	if _, err := os.Stat(Dir); os.IsNotExist(err) {
 		// File does not exist
 		CreateFile()
 	}
-	var path = constant.Dir + "/" + fileName
+	var path = Dir + "/" + fileName
 	if _, err := os.Stat(path); !os.IsNotExist(err) {
 		// filename exists
 		Delete(fileName)
@@ -56,7 +56,7 @@ func remove(filename string) []string {
 
 // not used 
 func Delete(fileName string) {
-	var path = constant.Dir + "/" + fileName
+	var path = Dir + "/" + fileName
 	err := os.Remove(path)
 	if err != nil {
 		fmt.Println(err)
@@ -66,7 +66,7 @@ func Delete(fileName string) {
 }
 
 func List() []string {
-	var c, err = ioutil.ReadDir(constant.Dir + "files_" + constant.DatanodeHTTPServerPort) 
+	var c, err = ioutil.ReadDir(Dir + "files_" + DatanodeHTTPServerPort) 
 	if err != nil {
 		fmt.Println(err)
 		return nil

@@ -111,6 +111,7 @@ func Election() string {
 		}
 		**/
 		//next replica
+		// rereplica all files whose replica counts is below the replica factor
 		MF.Lock()
 		for filename, v := range File2VmMap {
 			if len(v) < 4 {

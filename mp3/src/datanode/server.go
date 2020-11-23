@@ -1,7 +1,7 @@
 package datanode
 
 import (
-	"constant"
+	. "structs"
 	"networking"
 	"helper"
 )
@@ -12,7 +12,7 @@ func ServerRun(serverPort string) {
 
 	// client puts; datanode downloads the file to local disk
 	// endpoint /putfile
-	networking.HTTPlistenDownload(constant.Dir + "files_" + constant.DatanodeHTTPServerPort + "/") 
+	networking.HTTPlistenDownload(Dir + "files_" + DatanodeHTTPServerPort + "/") 
 
 	// master sends rereplica request to source; source sends file to datanode; datanode downloads file to local disk
 	// endpoint /rereplica
@@ -24,11 +24,11 @@ func ServerRun(serverPort string) {
 
 	// client sends delete request to datanode; datanode deletes the file.
 	// endpoint /deletefile
-	networking.HTTPlistenDelete(constant.Dir + "files_" + constant.DatanodeHTTPServerPort + "/")
+	networking.HTTPlistenDelete(Dir + "files_" + DatanodeHTTPServerPort + "/")
 
 	// start above http services
-	go networking.HTTPstart(constant.DatanodeHTTPServerUploadPort) // start http server. main function: put, sub function: rereplica
+	go networking.HTTPstart(DatanodeHTTPServerUploadPort) // start http server. main function: put, sub function: rereplica
 
 	// client gets; datanode send the file to the client.
-	go networking.HTTPfileServer(serverPort, constant.Dir + "files_" + constant.DatanodeHTTPServerPort) //handle get files
+	go networking.HTTPfileServer(serverPort, Dir + "files_" + DatanodeHTTPServerPort) //handle get files
 }

@@ -3,7 +3,7 @@ package main
 import (
 	"cli"
 	"config"
-	"constant"
+	. "structs"
 	"datanode"
 	"flag"
 	"fmt"
@@ -121,7 +121,7 @@ func main() {
 
 	//step2 setup all flags and parameters
 	if *dirPtr != "" {
-		constant.Dir = *dirPtr
+		Dir = *dirPtr
 	}
 	Ttimeout = Tfail - Tgossip
 	//Ceil C*logN*Tgossip ;C = 1
@@ -134,9 +134,9 @@ func main() {
 	if er != nil {
 		panic(er)
 	}
-	constant.MasterHTTPServerPort = fmt.Sprint(int(MyPortInt) + 3)
-	constant.DatanodeHTTPServerPort = fmt.Sprint(int(MyPortInt) + 1)
-	constant.DatanodeHTTPServerUploadPort = fmt.Sprint(int(MyPortInt) + 2)
+	MasterHTTPServerPort = fmt.Sprint(int(MyPortInt) + 3)
+	DatanodeHTTPServerPort = fmt.Sprint(int(MyPortInt) + 1)
+	DatanodeHTTPServerUploadPort = fmt.Sprint(int(MyPortInt) + 2)
 	//Delete for released version
 
 	isAll2All := *isStartWithAll2AllPtr
