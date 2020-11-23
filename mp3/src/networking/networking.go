@@ -12,7 +12,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	. "structs"
 	"time"
 	"helper"
 	"strings"

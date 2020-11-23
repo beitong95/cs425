@@ -8,7 +8,6 @@ import (
 	"log"
 	"net/http"
 	"networking"
-	. "structs"
 	"sync"
 	"time"
 	"strconv"

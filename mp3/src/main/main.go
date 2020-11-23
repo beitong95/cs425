@@ -14,7 +14,6 @@ import (
 	"os"
 	"service"
 	"strconv"
-	. "structs"
 	"sync"
 	"time"
 

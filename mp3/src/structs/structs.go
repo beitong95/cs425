@@ -1,4 +1,5 @@
 package structs
+// global variables and structures 
 
 import (
 	"sync"

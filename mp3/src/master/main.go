@@ -3,7 +3,6 @@ package master
 import (
 	_ "errors"
 	. "structs"
-	. "structs"
 	"networking"
 )
 
