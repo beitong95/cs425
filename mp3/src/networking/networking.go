@@ -133,7 +133,7 @@ func HTTPlisten(endpoint string, handler func(w http.ResponseWriter, req *http.R
 }
 // all callback functions are defined in master/server.go
 
-// HTTP service used by client(put/get/delete)
+// HTTP services used by master and client 
 
 // upload a single file to a datanode, use pipe
 func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
@@ -180,6 +180,15 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 // a wrapper to upload file
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
+	Write2Shell("Upload file to url:" + url)
+	body := HTTPuploadFile(url, filename, remotefilename)
+	Write2Shell("Url: " + url + " Status: " + string(body))
+	return string(body)
+}
+
+// upload file to datanode
+func UploadFileToWorkers(filename string, remotefilename string, ipPort string) string {
+	url := "http://" + ipPort + "/mapleWorker"
 	Write2Shell("Upload file to url:" + url)
 	body := HTTPuploadFile(url, filename, remotefilename)
 	Write2Shell("Url: " + url + " Status: " + string(body))
@@ -250,6 +259,7 @@ func HTTPfileServer(port string, dir string) {
 }
 
 // handle put
+// use this as template for maple
 func HTTPlistenDownload(BaseUploadPath string) {
 	Download := func(w http.ResponseWriter, r *http.Request) {
 		formFile, header, err := r.FormFile("uploadfile")
@@ -350,6 +360,7 @@ func HTTPlistenDelete(BaseDeletePath string) {
 	}
 	http.HandleFunc("/deletefile", Delete)
 }
+
 
 // start all http.HandleFunc()
 func HTTPstart(port string) {

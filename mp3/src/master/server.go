@@ -1,7 +1,6 @@
 package master
 
 import (
-	"client"
 	. "structs"
 	"encoding/json"
 	"fmt"
@@ -11,12 +10,17 @@ import (
 	"sync"
 	"time"
 	"strconv"
+	"helper"
+	"strings"
+	"os"
+	"path/filepath"
 )
 
 // track status
 var ClientMap map[string]string = make(map[string]string)
 var CM sync.Mutex
-
+var MapleMap map[string]int = make(map[string]int)
+var MapleM sync.Mutex
 // Start HTTP Server
 func ServerRun(port string) {
 	networking.HTTPlisten("/getips", HandleGetIPs)
@@ -28,6 +32,7 @@ func ServerRun(port string) {
 	networking.HTTPlisten("/clientBad", HandleClientBad) //client will send /clientBad?id=1
 	networking.HTTPlisten("/maple", HandleMaple) //client will send /clientBad?id=1
 	networking.HTTPlisten("/juice", HandleJuice) //client will send /clientBad?id=1
+//	networking.HTTPlisten("/workerACK", HandleWorkerACK) // worker will send /workerACK?id=1
 	networking.HTTPstart(port)
 
 }
@@ -164,7 +169,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				MR.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > MasterGetTimeout*time.Second {
+			} else if elapsed := time.Now().Sub(start); elapsed > MasterGetTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -309,7 +314,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				MW.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
+			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -441,7 +446,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				MR.Unlock()
 				CM.Unlock()
 				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
+			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -534,6 +539,40 @@ func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+
+func UploadFileToWorkersWrapper(prefix string, filename string, destinationIp string) {
+	status := networking.UploadFileToWorkers(filename, filename, destinationIp)
+	// handle vm2file file2vm
+	MF.Lock()
+	// gurantee there is only one copy 
+	vm := File2VmMap[filename][0]
+	delete(File2VmMap, filename)
+	MF.Unlock()
+	MV.Lock()
+	// find index
+	index := 0
+	for i, f := range Vm2fileMap[vm]{
+		if f == filename {
+			index = i
+			break
+		}
+	}
+	Vm2fileMap[vm][index] = Vm2fileMap[vm][len(Vm2fileMap[vm])-1] 
+	Vm2fileMap[vm][len(Vm2fileMap[vm])-1] = ""   
+	Vm2fileMap[vm] = Vm2fileMap[vm][:len(Vm2fileMap[vm])-1]  
+	MV.Unlock()
+
+	if status == "OK" {
+		Write2Shell("Receive Worker OK")
+		// subtract 1 
+		MapleM.Lock()
+		MapleMap[prefix]--
+		Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
+		MapleM.Unlock()
+	} else {
+
+	}
+}
 /*
 Function name: HandleMaple
 Description: master server handles client Maple request
@@ -542,8 +581,7 @@ OutPut: nil
 Related: 
 */
 func HandleMaple(w http.ResponseWriter, req *http.Request) {
-	// record current time for exit3
-
+	// record current time for exit
 	//handle maple
 	//step1. get all parameters
 	exes, ok := req.URL.Query()["exe"]
@@ -568,8 +606,8 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	prefix := prefixs[0]
+	prefix = exe + "_" + prefix
 	Write2Shell("prefix: " + prefix)
-
 
 	files, ok := req.URL.Query()["file"]
 	if !ok {
@@ -582,7 +620,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 	Write2Shell("Maple start")
 
 
-	//step2. get, partition and put maple source files
+	//step2. partition source files
 	if num <= 0 {
 		res := "maple num smaller than zero"
 		w.Write([]byte(res))
@@ -594,121 +632,95 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(res))
 		return
 	}
-	// get the file to local filesytem
-	// Try to use client api
-	client.PutFile("1m.txt","partition.txt");
+	partitions, _ := helper.HashPartition(file,uint64(num), prefix)
+	MapleM.Lock()
+	MapleMap[prefix] = num
+	MapleM.Unlock()
 
+	// step3. send task to workers
+	remainPartitions := len(partitions)
+	exitFlag := false
+	for exitFlag != true {
+		copyMembershipList := []string{}
+		// get all available vm ip
+		MT.Lock()
+			for id, _ := range MembershipList {
+				copyMembershipList = append(copyMembershipList, id)
+			}
+		MT.Unlock()
+		fmt.Println(copyMembershipList)
+		for _, id := range copyMembershipList {
+			ip := strings.Split(id,"*")[0]
+			destinationIp := IP2DatanodeUploadIP(ip)
+			filename := partitions[remainPartitions-1]
 
-
-	/**
-
-	// step4. handle reader and writer logic
-	// if we cannot write now, we stop here for further permission
-	for {
-		MW.Lock()
-		MR.Lock()
-		if ReadCounter == 0 && WriteCounter == 0 {
-			WriteCounter++
-			MR.Unlock()
-			MW.Unlock()
-			break
-		}
-		MR.Unlock()
-		MW.Unlock()
-	}
-
-	// step5 send ips back to client
-	var res []byte
-	var err error
-	val, ok := File2VmMap[filename]
-	list := []string{}
-	if !ok {
-		//new file. hash2IP
-		list = Hash2Ips(filename)
-		res, err = json.Marshal(list)
-		if err != nil {
-			panic(err)
-		}
-	} else {
-		// the file exists
-		if len(val) < 4 {
-			res = []byte("[]")
-		} else if len(val) >= 4 {
-			res, err = json.Marshal(val)
-			if err != nil {
-				panic(err)
+			MF.Lock()
+			File2VmMap[filename] = []string{ip}
+			MF.Unlock()
+			MV.Lock()
+			Vm2fileMap[ip] = append(Vm2fileMap[ip], filename)
+			MV.Unlock()
+			// send exe with filename
+			go UploadFileToWorkersWrapper(prefix, filename, destinationIp)
+			remainPartitions--
+			if remainPartitions == 0 {
+				exitFlag = true
+				break
 			}
 		}
 	}
-	Write2Shell("Master sends IPS: " + string(res))
-	w.Write(res)
 
-	//step6. master wait ACK from client
+	// set barrier wait for those workers
+	// Worker ACK
 	//exit 1: receive "Done" -> get success
 	//exit 2: receive "Bad"  -> get fail
 	//exit 3: timer timeout	 -> timeout
-	//Question local variable?
+	MapleFalseFlag := true	
+	start := time.Now()
+	Write2Shell("Now waiting Workers ACKs")
 
-	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
-		for {
-			CM.Lock()
-			if ClientMap[id] == "Done" {
-
-				MF.Lock()
-				if !ok {
-					File2VmMap[filename] = list
-				} else {
-					File2VmMap[filename] = val
-				}
-				MF.Unlock()
-				Logger.Info(File2VmMap)
-
-				MV.Lock()
-
-				if !ok {
-					for _, v := range list {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				} else {
-					for _, v := range val {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				}
-				MV.Unlock()
-				Logger.Info(Vm2fileMap)
-
-				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("OK"))
-				//change readcounter to 0
-				MW.Lock()
-				WriteCounter--
-				MW.Unlock()
-				CM.Unlock()
-				break
-			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
-				w.Write([]byte("Bad"))
-				//change readcounter to 0
-				MW.Lock()
-				WriteCounter--
-				MW.Unlock()
-				CM.Unlock()
-				break
-			} else if elapsed := start.Sub(time.Now()); elapsed > MasterPutTimeout*time.Second {
-				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
-				CM.Unlock()
-				break
-			}
-
-			// exit 1 compare time 5 mins
-			// exit 2 Question add else if ClientMap[id] == "Node Fail" exit
-			CM.Unlock()
+	for {
+		time.Sleep(1 * time.Second)
+		MapleM.Lock()
+		if MapleMap[prefix] == 0 {
+			MapleFalseFlag = false
+			Write2Shell("Maple Success")
+			break
 		}
-	}()
-	**/
+		MapleM.Unlock()
+		if elapsed := time.Now().Sub(start); elapsed > MapleTimeout*time.Second {
+			Write2Shell("Timeout " + prefix)
+			break
+		}
 
+	}
+	MapleM.Unlock()
+
+	// at that time all maple results have been uploaded to HDFS.
+	// safe to delete partitions
+
+	// delete all files
+	Write2Shell("Removing files with prefix: " + prefix)
+	files, err := filepath.Glob(prefix + "*")
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	for _, f := range files {
+		if err := os.Remove(f); err != nil {
+			Logger.Fatal(err)
+		}
+	}
+
+	if MapleFalseFlag == true {
+		res := "Bad"
+		w.Write([]byte(res))
+	} else {
+		res := "OK"
+		w.Write([]byte(res))
+	}
+	return
 }
+
 
 /*
 Function name: HandleJuice
@@ -722,3 +734,50 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	res := "Fail"
 	w.Write([]byte(res))
 }
+
+/*
+Function name: HandleClientACK
+Description: Handle client(last node in the put/get/delete loop) ACK. Change status of a put/get/delete request
+Input: writer, request
+OutPut: nil
+*/
+// dont need that 
+/**
+func HandleWorkerACK(w http.ResponseWriter, req *http.Request) {
+	filenames, ok := req.URL.Query()["filename"]
+	if !ok {
+		log.Println("Client Ack Url Param 'key' is missing")
+		return
+	}
+
+	// filename
+	filename := filenames[0]
+	prefix := strings.Split(filename, "_")[0]
+	Write2Shell("Receive Worker ACK")
+	// subtract 1 
+	MapleM.Lock()
+	MapleMap[prefix]--
+	Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
+	MapleM.Unlock()
+	// handle vm2file file2vm
+	MF.Lock()
+	// gurantee there is only one copy 
+	vm := File2VmMap[filename][0]
+	delete(File2VmMap, filename)
+	MF.Unlock()
+	MV.Lock()
+	// find index
+	index := 0
+	for i, f := range Vm2fileMap[vm]{
+		if f == filename {
+			index = i
+			break
+		}
+	}
+	Vm2fileMap[vm][index] = Vm2fileMap[vm][len(Vm2fileMap[vm])-1] 
+	Vm2fileMap[vm][len(Vm2fileMap[vm])-1] = ""   
+	Vm2fileMap[vm] = Vm2fileMap[vm][:len(Vm2fileMap[vm])-1]  
+	MV.Unlock()
+	w.Write([]byte("OK"))
+}
+**/

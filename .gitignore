@@ -1,3 +1,7 @@
 *.log
 **/*/go
 *.txt
+files/
+pkg/
+bin/
+log/

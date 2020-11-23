@@ -196,3 +196,12 @@ var DatanodeHTTPServerPort = "1239" // local myport + 1
 var DatanodeHTTPServerUploadPort = "1240" //local myport + 2 
 const MasterGetTimeout = 300 // exit3 timeout 5 mins 
 const MasterPutTimeout = 300 // exit3 timeout 5 mins
+const MapleTimeout = 300
+type Worker struct {
+	MapleID string
+	File string
+	Status string
+}
+
+var ExePath = "/home/beitong2/cs425/mp3/src/main/"
+var MaplePath = "/home/beitong2/cs425/mp3/files/maplejuicefiles/"

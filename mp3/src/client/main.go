@@ -272,6 +272,7 @@ Related:
 func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefix string, input_file string, _cmd string) {
 	// we assume the maple_exe has already been stored in sdfs
 	// we assume the input files have already been stored sdfs
+	start := time.Now()
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/maple?exe=" + maple_exe + "&num=" + num_maples + "&prefix=" + sdfs_intermediate_filename_prefix + "&file=" + input_file 
 	Write2Shell("maple url: " + url)
@@ -282,6 +283,9 @@ func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefi
 	} else{
 		Write2Shell(_cmd + " fail")
 	}
+	delta := time.Now().Sub(start).String()
+	Write2Shell("Maple time: " +  delta)
+
 }
 
 /*
