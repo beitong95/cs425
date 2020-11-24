@@ -149,7 +149,7 @@ func ParseCmd(input *tui.Entry, cmd string, commands []string) (string, string, 
 		mainCmd = cmds[0]
 		filename1 = cmds[1]
 		filename2 = cmds[2]
-	} else if len(cmds) == 5 {
+	} else if len(cmds) == 5 || len(cmds) == 6 {
 		//mp3
 		return cmds[0], "", ""	
 	} else {
@@ -187,7 +187,7 @@ func ParseCmdSimple(cmd string, commands []string) (string,string,string) {
 			mainCmd = cmds[0]
 			filename1 = cmds[1]
 			filename2 = cmds[2]
-		} else if len(cmds) == 5 {
+		} else if len(cmds) == 5 || len(cmds) == 6 {
 			//mp3
 			return cmds[0], "", ""
 		} else {	

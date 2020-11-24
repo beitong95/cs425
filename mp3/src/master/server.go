@@ -730,7 +730,54 @@ OutPut: nil
 Related: 
 */
 func HandleJuice(w http.ResponseWriter, req *http.Request) {
-	Write2Shell("TODO handle maple")
+	// record current time for exit
+	// handle juice
+	// step1. get all parameters
+	exes, ok := req.URL.Query()["exe"]
+	if !ok {
+		Logger.Error("Handle Juice Url Param 'exe' is missing")
+		return
+	}
+	exe := exes[0]
+	Write2Shell("juice exe: " + exe)
+
+	nums, ok := req.URL.Query()["num"]
+	if !ok {
+		Logger.Error("Handle Juice Url Param 'num' is missing")
+		return
+	}
+	num, _:= strconv.Atoi(nums[0])
+	Write2Shell("num: " + fmt.Sprintf("%v",num))
+
+	prefixs, ok := req.URL.Query()["prefix"]
+	if !ok {
+		Logger.Error("Handle Juice Url Param 'prefix' is missing")
+		return
+	}
+	prefix := prefixs[0]
+	prefix = exe + "_" + prefix
+	Write2Shell("prefix: " + prefix)
+
+	files, ok := req.URL.Query()["file"]
+	if !ok {
+		Logger.Error("Handle Juice Url Param 'file' is missing")
+		return
+	}
+	destFile := files[0]
+	Write2Shell("dest file: " + destFile)
+
+	deletes, ok := req.URL.Query()["delete"]
+	if !ok {
+		Logger.Error("Handle Juice Url Param 'file' is missing")
+		return
+	}
+	delete := deletes[0]
+	Write2Shell("is delete: " + delete)
+	// convert it to int
+	isDelete,_ := strconv.Atoi(delete)
+	Write2Shell("Juice start")
+
+
 	res := "Fail"
 	w.Write([]byte(res))
 }

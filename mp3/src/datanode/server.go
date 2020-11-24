@@ -90,16 +90,18 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		outputMap := make(map[string]string)
 		for scanner.Scan() {
 			text := scanner.Text()
-			key := strings.Split(text,"\t")[0]
-			value := strings.Split(text, "\t")[1]
-			//Write2Shell(value)
-			cmd := exec.Command(exepath, value)
-			newValue, err := cmd.Output()
+			fields := strings.Fields(text)
+			key := fields[0]
+			value := fields[1]
+			cmd := exec.Command(exepath, key, value)
+			// TODO: here the newValue can be multi lines
+			output, err := cmd.Output()
 			if err != nil {
         		Logger.Fatal(err)
-    		}
-			//Write2Shell(string(newValue))
-			outputMap[key] = outputMap[key] + key + "\t" + string(newValue) + "\n"
+			}
+			fields = strings.Fields(string(output))
+			key = fields[0]
+			outputMap[key] = outputMap[key] + string(output) 
 		}
 		if err := scanner.Err(); err != nil {
 			Logger.Fatal(err)

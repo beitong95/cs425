@@ -295,6 +295,18 @@ Input:
 OutPut: 
 Related: 
 */
-func Juice(){
-	Write2Shell("TODO")
+func Juice(juice_exe string, num_juices string, sdfs_intermediate_filename_prefix string, destfile string, delete_input string, _cmd string) {
+	start := time.Now()
+	newIP := IP2MasterHTTPServerIP(MasterIP)
+	url := "http://" + newIP + "/juice?exe=" + juice_exe + "&num=" + num_juices + "&prefix=" + sdfs_intermediate_filename_prefix + "&file=" + destfile + "&delete=" + delete_input
+	Write2Shell("juice url: " + url)
+	body := networking.HTTPsend(url)
+	Write2Shell("juice body: " + string(body))
+	if string(body) == "OK" {
+		Write2Shell(_cmd + " success")
+	} else{
+		Write2Shell(_cmd + " fail")
+	}
+	delta := time.Now().Sub(start).String()
+	Write2Shell("Juice time: " +  delta)
 }

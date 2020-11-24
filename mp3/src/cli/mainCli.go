@@ -20,7 +20,7 @@ func getHelp() string {
 	return `help                            -> help inFormation
 			mp3
 			maple <maple_exe> <num_maples> <sdfs_intermediate_filename_prefix> <sdfs_src_directory>
-			juice todo
+			juice <juice_exe> <num_juices> <sdfs_intermediate_filename_prefix> <sdfs_dest_filename> <delete 0 1>
 			mp2
 			get sdfsfilename localfilename  -> read file from HDFS
 			put localfilename sdfsfilename  -> write file to HDFS
@@ -123,7 +123,17 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 				go client.Maple(maple_exe, num_maples, sdfs_intermediate_filename_prefix, sdfs_src_directory, _cmd)
 			}
 		case "juice":
-			Write2Shell("TODO")
+			cmds := strings.Fields(_cmd)
+			if len(cmds) != 6 {
+				Write2Shell("Wrong juice cmd")
+			} else {
+				juice_exe := cmds[1]
+				num_juices := cmds[2]
+				sdfs_intermediate_filename_prefix := cmds[3]
+				sdfs_dest_filename := cmds[4]
+				delete_input := cmds[5]
+				go client.Juice(juice_exe, num_juices, sdfs_intermediate_filename_prefix, sdfs_dest_filename, delete_input, _cmd)
+			}
 		case "exit":
 			Write2Shell(cmd)
 			time.Sleep(time.Duration(500) * time.Millisecond)
@@ -202,7 +212,17 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 				go client.Maple(maple_exe, num_maples, sdfs_intermediate_filename_prefix, sdfs_src_directory, _cmd)
 			}
 		case "juice":
-			fmt.Println("TODO")
+			cmds := strings.Fields(_cmd)
+			if len(cmds) != 6 {
+				Write2Shell("Wrong juice cmd")
+			} else {
+				juice_exe := cmds[1]
+				num_juices := cmds[2]
+				sdfs_intermediate_filename_prefix := cmds[3]
+				sdfs_dest_filename := cmds[4]
+				delete_input := cmds[5]
+				go client.Juice(juice_exe, num_juices, sdfs_intermediate_filename_prefix, sdfs_dest_filename, delete_input, _cmd)
+			}
 		case "exit":
 			os.Exit(1)
 		}
