@@ -127,3 +127,52 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 	}
 	return res, nil
 }
+
+/**
+Name: RangePartition
+Description: Range partition a file into several small files for map step given limited workers
+Input: filename string, worker count int
+Output: new filenames, error
+**/
+
+func RangePartition(filename string, partitionCount uint64,id string) ([]string, error) {
+	file, err := os.Open(filename) 
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	defer file.Close()
+	res := []string{}
+	var keys = []string{}
+	buffer := make(map[int][]string)
+	temp := make(map[string]string)
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		text := scanner.Text()
+		keys = append(keys,strings.Split(text," ")[0])
+		temp[strings.Split(text," ")[0]] = strings.Split(text," ")[1]
+	}
+	var num = len(keys) / int(partitionCount)
+	for i := 0; i < int(partitionCount); i++ {
+		if i == int(partitionCount) - 1 {
+			for _,key := range keys {
+				buffer[i] = append(buffer[i],key + " " + temp[key])
+			}
+			break
+		}
+		for _,key := range keys[0:num] {
+			buffer[i] = append(buffer[i],key + " " + temp[key])
+		}
+		keys = keys[num:]
+	}
+	for i := range buffer {
+		res = append(res, id + "_" + fmt.Sprint(i))
+	}
+	for i, s := range buffer {
+		content := strings.Join(s," ")
+		err := ioutil.WriteFile(res[i], []byte(content), 0644)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+	}
+	return res, err
+}
