@@ -13,6 +13,7 @@ import (
 	"io"
 	"strings"
 	"io/ioutil"
+	"strconv"
 )
 
 func ServerRun(serverPort string) {
@@ -144,7 +145,7 @@ func HTTPlistenJuice() {
 			return
 		}
 		prefix := prefixs[0] // exe_prefix
-		//exe := strings.Split(prefix, "_")[0]
+		exe := strings.Split(prefix, "_")[0]
 		prefix = strings.Split(prefix, "_")[1]
 
 		ids, ok := req.URL.Query()["id"]
@@ -152,8 +153,8 @@ func HTTPlistenJuice() {
 			Logger.Error("Handle Juice Url Param 'id' is missing")
 			return
 		}
-		id:= ids[0] // exe_prefix
-		//exe := strings.Split(prefix, "_")[0]
+		id:= ids[0] 
+		Write2Shell(id)
 
 		keyss, ok := req.URL.Query()["keys"]
 		if !ok {
@@ -170,11 +171,18 @@ func HTTPlistenJuice() {
 		// step 2. create a list for all to be downloaded files
 		
 		filenameList := []string{}
+		key2fileMap := make(map[string][]string) // we use this data structure to merge files
 		workerIDkeyList := strings.Split(keys,",")
 		workerIDkeyList = workerIDkeyList[:len(workerIDkeyList)-1]
 		for _, key := range workerIDkeyList{
 			filename := "mapleResult_" + prefix + "_" + key
 			filenameList = append(filenameList, filename)
+			k := strings.Split(key, "_")[1]
+			if ok:=key2fileMap[k]; ok == nil {
+				key2fileMap[k] = []string{filename}
+			} else {
+				key2fileMap[k] = append(key2fileMap[k], filename)
+			}
 			Write2Shell(filename)
 		}
 
@@ -182,12 +190,88 @@ func HTTPlistenJuice() {
 		for _, filename := range filenameList {
 			client.GetFile(filename, filename)
 		}
+		// merge those files to one key one file
+		sourceFileList := []string{} // record all merged juice source files, after finish juice delete them
+		for key, files := range key2fileMap {
+			// use key to create a file
+			juiceSourceFilename := "JuiceSource_" + prefix + "_" + key
+			outFile, err := os.OpenFile(juiceSourceFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				Logger.Fatal(err)
+			}
+			defer outFile.Close()
+
+			for _, file := range files {
+				inFile, err := os.Open(file)
+				if err != nil {
+					Logger.Fatal(err)
+				}
+				_, err = io.Copy(outFile, inFile)
+				if err != nil {
+					Logger.Fatal(err)
+				}
+				inFile.Close()
+				// remove those file after append
+				if err := os.Remove(file); err != nil {
+					Logger.Fatal(err)
+				}
+			}
+			sourceFileList = append(sourceFileList, juiceSourceFilename)
+		}
 
 		// step 4. process those files and save it to a file juiceResult_prefix_juicerworkerid
+		destFilename := "juiceResult_" + prefix + "_" + id  // the destFile will be send to master /main folder, master will merge them
+		destFile, err := os.Create(destFilename)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		destFile.Close()
+		
+		exepath := ExePath + exe
+		for _, source := range sourceFileList {
+			Write2Shell(source)
+			key := strings.Split(source, "_")[2]
+			// source is in main
+			cmd := exec.Command(exepath, key, source, destFilename)
+			_, err := cmd.Output()
+			if err != nil {
+        		Logger.Fatal(err)
+			}
+			// remove those source files
+			if err := os.Remove(source); err != nil {
+				Logger.Fatal(err)
+			}
+		}
 
+		// step 5. send the file to master, can we send it in the body?
+		Openfile, err := os.Open(destFilename)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		destFile.Close()
+		FileHeader := make([]byte, 512)
+		//Copy the headers into the FileHeader buffer
+		Openfile.Read(FileHeader)
+		//Get content type of file
+		FileContentType := http.DetectContentType(FileHeader)
+		//Get the file size
+		FileStat, _ := Openfile.Stat()                     //Get info from file
+		FileSize := strconv.FormatInt(FileStat.Size(), 10) //Get file size as a string
+		//Send the headers
+		w.Header().Set("Content-Disposition", "attachment; filename="+destFilename)
+		w.Header().Set("Content-Type", FileContentType)
+		w.Header().Set("Content-Length", FileSize)
 
+		//Send the file
+		//We read 512 bytes from the file already, so we reset the offset back to 0
+		Openfile.Seek(0, 0)
+		io.Copy(w, Openfile) //'Copy' the file to the client
 
-		w.Write([]byte("OK"))
+		if err := os.Remove(destFilename); err != nil {
+			Logger.Fatal(err)
+		}
+		return
+
 
 /**
 		// datanode can decode exe 

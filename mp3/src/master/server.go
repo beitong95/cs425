@@ -15,6 +15,8 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/cespare/xxhash"
+	"errors"
+	"io"
 )
 
 // track status
@@ -723,11 +725,50 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func SendCmdToJuicer(prefix string, commandString string, destinationIp string, id string, recoverFilename string) {
+func SendCmdToJuicer(prefix string, commandString string, destinationIp string, id string, recoverFilename string) (string, error) {
 	url := "http://" + destinationIp + "/juiceWorker?keys=" + commandString + "&prefix=" + prefix + "&id=" + id
+	prefix = strings.Split(prefix, "_")[1]
 	Write2Shell("Send command to juicer worker " + url)
-	body := networking.HTTPsend(url)
-	Write2Shell(string(body))
+	rsp, err:= http.Get(url)
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	localfilename := "juiceResult2Master_" + prefix + "_" + id 
+	// receive file
+	fmt.Println(rsp.Header)
+	if rsp.Header["Content-Length"][0] == "19" {
+		fmt.Println("Possible empty")
+		buffer := make([]byte, 19)
+		rsp.Body.Read(buffer)
+		if string(buffer) == "404 page not found\n" {
+			return "File not found", errors.New("networking: file not found")
+		} else {
+			file := strings.NewReader(string(buffer))
+			// store in main folder
+			destFile, err := os.Create("./" + localfilename)
+			if err != nil {
+				log.Printf("Create file failed: %s\n", err)
+				return "Create Failed", err
+			}
+			_, err = io.Copy(destFile, file)
+			if err != nil {
+				log.Printf("Write file failed: %s\n", err)
+				return "Write error", err
+			}
+		}
+	}
+	// store in main folder
+	destFile, err := os.Create("./" + localfilename)
+	if err != nil {
+		log.Printf("Create file failed: %s\n", err)
+		return "Create Failed", err
+	}
+	_, err = io.Copy(destFile, rsp.Body)
+	if err != nil {
+		log.Printf("Write file failed: %s\n", err)
+		return "Write error", err
+	}
+
 	// how to send file in body
 	MF.Lock()
 	// gurantee there is only one copy 
@@ -747,12 +788,10 @@ func SendCmdToJuicer(prefix string, commandString string, destinationIp string, 
 	Vm2fileMap[vm][len(Vm2fileMap[vm])-1] = ""   
 	Vm2fileMap[vm] = Vm2fileMap[vm][:len(Vm2fileMap[vm])-1]  
 	MV.Unlock()
-	prefix = strings.Split(prefix, "_")[1]
-	if string(body) == "OK" {
-		JuiceM.Lock()
-		JuiceMap[prefix]--
-		JuiceM.Unlock()
-	}
+	JuiceM.Lock()
+	JuiceMap[prefix]--
+	JuiceM.Unlock()
+	return "OK", nil
 }
 
 
@@ -813,7 +852,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	Write2Shell("Juice start")
 
 	//step2. find all keys in the a juice task with prefix
-	KeyList := make(map[string][]string) // [key][workerids]
+	KeyList := make(map[string][]string) // [key][mapleworkerids]
 	MV.Lock()
 	for fname,_ := range File2VmMap {
 		if isFileOfJuice:=strings.Contains(fname, prefix); isFileOfJuice == true {
@@ -842,6 +881,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	JuiceM.Lock()
 	JuiceMap[prefix] = num
 	JuiceM.Unlock()
+	realJuicerWorkers := []string{} // ignore those unlucky guys which have no key
 	
 	exitFlag := false
 	for exitFlag != true {
@@ -858,6 +898,11 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 			//Write2Shell(destinationIp)
 			// convert keys into a long string
 			commandString := ""
+			for len(ShuffleRes[remainJuiceWorkers-1]) == 0 {
+				remainJuiceWorkers--
+			}
+			// at least we have one
+			realJuicerWorkers = append(realJuicerWorkers, fmt.Sprint(remainJuiceWorkers-1))
 			for _, key := range ShuffleRes[remainJuiceWorkers-1] {
 				// we also need to add subid (maple worker id)
 				for _, workerId := range KeyList[key] {
@@ -897,6 +942,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 		JuiceM.Lock()
 		if JuiceMap[prefix] == 0 {
 			Write2Shell("Juice Partial Success, now send the final res to HDFS/client")
+			juiceFalseFlag = false
 			break
 		}
 		JuiceM.Unlock()
@@ -910,11 +956,31 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 
 	//step 6. merge and upload the final res to HDFS
 	// juice res file location: in files
-	// juice res file name: juiceResult_exe_prefix_key perkeyperfile
+	// juice res file name: juiceResult2Master_prefix_juicerid 
+	finalRes, err := os.OpenFile(destFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	defer finalRes.Close()
+	for _, realId := range realJuicerWorkers {
+		filename := "juiceResult2Master_" + prefix + "_" + realId 
+		inFile, err := os.Open(filename)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		_, err = io.Copy(finalRes, inFile)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		inFile.Close()
+		if err := os.Remove(filename); err != nil {
+			Logger.Fatal(err)
+		}
+	}
 
 	//step 7. delete files
 	if isDelete == 1 {
-		Write2Shell("Request Delete")
+		Write2Shell("Request Delete") // delete what? map intermediate result?
 	}
 
 	//step 8. send ack to client 
@@ -933,3 +999,9 @@ func HashShuffle(key string, num uint64) int {
 	hash := xxhash.Sum64([]byte(key))
 	return int(hash % num)
 } 
+
+//sort and range 
+func RangeShuffle(KeyList map[string][]string) map[int][]string {
+	Write2Shell("TODO")
+	return nil
+}

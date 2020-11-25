@@ -6,7 +6,7 @@ import (
 	"os"
 	. "structs"
 	"bufio"
-
+	"strings"
 	"github.com/cespare/xxhash"
 )
 
