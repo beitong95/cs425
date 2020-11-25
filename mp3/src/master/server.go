@@ -391,14 +391,16 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		res = []byte("[]")
 	} else {
 		// the file exists
-		if len(val) < 4 {
-			res = []byte("[]")
-		} else {
-			res, err = json.Marshal(val)
-			if err != nil {
-				panic(err)
-			}
+		
+		//if len(val) < 4 {
+		//	res = []byte("[]")
+		//} else {
+
+		res, err = json.Marshal(val)
+		if err != nil {
+			panic(err)
 		}
+		//}
 	}
 	Write2Shell("Master sends IPS: " + string(res))
 	w.Write(res)
