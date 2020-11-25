@@ -116,7 +116,7 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 
 	res := []string{}
 	for i := range buffer {
-		res = append(res, id + "_" + fmt.Sprint(i))
+		res = append(res, "PartitionRes_" + id + "_" + fmt.Sprint(i))
 	}
 
 	for i, s := range buffer {

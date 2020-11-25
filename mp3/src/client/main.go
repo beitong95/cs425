@@ -7,6 +7,7 @@ import (
 	. "structs"
 	"time"
 	"helper"
+	"strings"
 )
 
 /**
@@ -270,14 +271,15 @@ OutPut:
 Related: 
 */
 func Maple(maple_exe string, num_maples string, sdfs_intermediate_filename_prefix string, input_file string, _cmd string) {
-	// we assume the maple_exe has already been stored in sdfs
-	// we assume the input files have already been stored sdfs
+	// we assume the maple_exe has already been stored in every datanode's main folder
+	// we assume the input files have already been stored in master's main folder
 	start := time.Now()
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/maple?exe=" + maple_exe + "&num=" + num_maples + "&prefix=" + sdfs_intermediate_filename_prefix + "&file=" + input_file 
 	Write2Shell("maple url: " + url)
 	body := networking.HTTPsend(url)
-	Write2Shell("maple body: " + string(body))
+	//Write2Shell("maple body: " + string(body))
+	_cmd = strings.Replace(_cmd,"\n", "", 1)
 	if string(body) == "OK" {
 		Write2Shell(_cmd + " success")
 	} else{
@@ -296,12 +298,15 @@ OutPut:
 Related: 
 */
 func Juice(juice_exe string, num_juices string, sdfs_intermediate_filename_prefix string, destfile string, delete_input string, _cmd string) {
+	// we assume the juice_exe has already been stored in every datanode's main folder
+	// we assume the juice source file mapleResult_prefix_mapleworkerid_key has already been stored in hdfs
 	start := time.Now()
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/juice?exe=" + juice_exe + "&num=" + num_juices + "&prefix=" + sdfs_intermediate_filename_prefix + "&file=" + destfile + "&delete=" + delete_input
 	Write2Shell("juice url: " + url)
 	body := networking.HTTPsend(url)
-	Write2Shell("juice body: " + string(body))
+	//Write2Shell("juice body: " + string(body))
+	_cmd = strings.Replace(_cmd,"\n", "", 1)
 	if string(body) == "OK" {
 		Write2Shell(_cmd + " success")
 	} else{

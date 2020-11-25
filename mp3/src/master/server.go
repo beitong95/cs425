@@ -15,8 +15,9 @@ import (
 	"os"
 	"path/filepath"
 	"github.com/cespare/xxhash"
-	"errors"
+	_ "errors"
 	"io"
+	"client"
 )
 
 // track status
@@ -35,9 +36,8 @@ func ServerRun(port string) {
 	networking.HTTPlisten("/ls", HandleLs)
 	networking.HTTPlisten("/clientACK", HandleClientACK) // client will send /clientACK?id=1
 	networking.HTTPlisten("/clientBad", HandleClientBad) ///client will send /clientBad?id=1
-	networking.HTTPlisten("/maple", HandleMaple) //client will send /clientBad?id=1
-	networking.HTTPlisten("/juice", HandleJuice) //client will send /clientBad?id=1
-//	networking.HTTPlisten("/workerACK", HandleWorkerACK) // worker will send /workerACK?id=1
+	networking.HTTPlisten("/maple", HandleMaple)  // client 2 master maple
+	networking.HTTPlisten("/juice", HandleJuice)  // client 2 master juice 
 	networking.HTTPstart(port)
 
 }
@@ -544,38 +544,40 @@ func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
-// here we use file2vm vm2file to store the recoverable info 
-func UploadFileToWorkersWrapper(prefix string, filename string, destinationIp string, recoverFilename string) {
-	status := networking.UploadFileToWorkers(filename, filename, destinationIp)
-	// handle vm2file file2vm
-	MF.Lock()
-	// gurantee there is only one copy 
-	vm := File2VmMap[recoverFilename][0]
-	delete(File2VmMap, recoverFilename)
-	MF.Unlock()
-	MV.Lock()
-	// find index
-	index := 0
-	for i, f := range Vm2fileMap[vm]{
-		if f == recoverFilename{
-			index = i
-			break
-		}
-	}
-	Vm2fileMap[vm][index] = Vm2fileMap[vm][len(Vm2fileMap[vm])-1] 
-	Vm2fileMap[vm][len(Vm2fileMap[vm])-1] = ""   
-	Vm2fileMap[vm] = Vm2fileMap[vm][:len(Vm2fileMap[vm])-1]  
-	MV.Unlock()
+// master send task to maple workers
+func SendCmdToMapler(prefix string, filename string, exe string, destinationIp string, recoverFilename string) {
+	status := networking.UploadFileToWorkers(filename, exe + "_" + filename, destinationIp)
 
 	if status == "OK" {
-		Write2Shell("Receive Worker OK")
+
+		// remove the record
+		MF.Lock()
+		// gurantee there is only one copy 
+		vm := File2VmMap[recoverFilename][0]
+		delete(File2VmMap, recoverFilename)
+		MF.Unlock()
+		MV.Lock()
+		// find index
+		index := 0
+		for i, f := range Vm2fileMap[vm]{
+			if f == recoverFilename{
+				index = i
+				break
+			}
+		}
+		Vm2fileMap[vm][index] = Vm2fileMap[vm][len(Vm2fileMap[vm])-1] 
+		Vm2fileMap[vm][len(Vm2fileMap[vm])-1] = ""   
+		Vm2fileMap[vm] = Vm2fileMap[vm][:len(Vm2fileMap[vm])-1]  
+		MV.Unlock()
+		//Write2Shell("Receive Worker OK")
+
 		// subtract 1 
 		MapleM.Lock()
 		MapleMap[prefix]--
-		Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
+		//Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
 		MapleM.Unlock()
 	} else {
-
+		//do nothing wait for fail detector
 	}
 }
 /*
@@ -586,8 +588,6 @@ OutPut: nil
 Related: 
 */
 func HandleMaple(w http.ResponseWriter, req *http.Request) {
-	// record current time for exit
-	//handle maple
 	//step1. get all parameters
 	exes, ok := req.URL.Query()["exe"]
 	if !ok {
@@ -611,7 +611,6 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	prefix := prefixs[0]
-	prefix = exe + "_" + prefix
 	Write2Shell("prefix: " + prefix)
 
 	files, ok := req.URL.Query()["file"]
@@ -620,7 +619,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	file := files[0]
-	Write2Shell("file: " + file)
+	Write2Shell("Source file: " + file)
 
 	Write2Shell("Maple start")
 
@@ -637,13 +636,16 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(res))
 		return
 	}
-	partitions, _ := helper.HashPartition(file,uint64(num), prefix)
+	// partitions []string{prefix_maplerId}
+	partitions, _ := helper.HashPartition(file,uint64(num), prefix) // partition the large file into num small files
+	// record total maplers
 	MapleM.Lock()
 	MapleMap[prefix] = num
 	MapleM.Unlock()
+	Write2Shell("Finish Partition")
 
 	// step3. send task to workers
-	remainPartitions := len(partitions) // mapleworkers
+	remainPartitions := len(partitions) // maplers count
 	exitFlag := false
 	for exitFlag != true {
 		copyMembershipList := []string{}
@@ -657,7 +659,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 			ip := strings.Split(id,"*")[0]
 			destinationIp := IP2DatanodeUploadIP(ip)
 			filename := partitions[remainPartitions-1]
-			recoverFilename := prefix + ":" + filename
+			recoverFilename := prefix + ":" + filename + ":" + exe // we can use the prefix and filename to recover the SendCmdToMapler 
 			MF.Lock()
 			File2VmMap[recoverFilename] = []string{ip}
 			MF.Unlock()
@@ -665,7 +667,8 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 			Vm2fileMap[ip] = append(Vm2fileMap[ip], recoverFilename)
 			MV.Unlock()
 			// send exe with filename
-			go UploadFileToWorkersWrapper(prefix, filename, destinationIp, recoverFilename)
+			// filename: PartitionRes_prefix_maplerid
+			go SendCmdToMapler(prefix, filename, exe, destinationIp, recoverFilename)
 			remainPartitions--
 			if remainPartitions == 0 {
 				exitFlag = true
@@ -681,7 +684,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 	//exit 3: timer timeout	 -> timeout
 	MapleFalseFlag := true	
 	start := time.Now()
-	Write2Shell("Now waiting Workers ACKs")
+	Write2Shell("Send all tasks to Workers. Now waiting Workers ACKs")
 
 	for {
 		time.Sleep(1 * time.Second)
@@ -696,16 +699,14 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 			Write2Shell("Timeout " + prefix)
 			break
 		}
-
 	}
 	MapleM.Unlock()
 
 	// at that time all maple results have been uploaded to HDFS.
 	// safe to delete partitions
-
 	// delete all files
 	Write2Shell("Removing files with prefix: " + prefix)
-	files, err := filepath.Glob(prefix + "*")
+	files, err := filepath.Glob("PartitionRes_" + prefix + "*")
 	if err != nil {
 		Logger.Fatal(err)
 	}
@@ -726,38 +727,18 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 }
 
 func SendCmdToJuicer(prefix string, commandString string, destinationIp string, id string, recoverFilename string) (string, error) {
+	// in mapper filename contains id
 	url := "http://" + destinationIp + "/juiceWorker?keys=" + commandString + "&prefix=" + prefix + "&id=" + id
 	prefix = strings.Split(prefix, "_")[1]
 	Write2Shell("Send command to juicer worker " + url)
 	rsp, err:= http.Get(url)
+	// if there is an error, the node fail
 	if err != nil {
-		Logger.Fatal(err)
+		return "Bad", nil	
 	}
-	localfilename := "juiceResult2Master_" + prefix + "_" + id 
+	// else
 	// receive file
-	fmt.Println(rsp.Header)
-	if rsp.Header["Content-Length"][0] == "19" {
-		fmt.Println("Possible empty")
-		buffer := make([]byte, 19)
-		rsp.Body.Read(buffer)
-		if string(buffer) == "404 page not found\n" {
-			return "File not found", errors.New("networking: file not found")
-		} else {
-			file := strings.NewReader(string(buffer))
-			// store in main folder
-			destFile, err := os.Create("./" + localfilename)
-			if err != nil {
-				log.Printf("Create file failed: %s\n", err)
-				return "Create Failed", err
-			}
-			_, err = io.Copy(destFile, file)
-			if err != nil {
-				log.Printf("Write file failed: %s\n", err)
-				return "Write error", err
-			}
-		}
-	}
-	// store in main folder
+	localfilename := "juiceResult2Master_" + prefix + "_" + id 
 	destFile, err := os.Create("./" + localfilename)
 	if err != nil {
 		log.Printf("Create file failed: %s\n", err)
@@ -769,9 +750,9 @@ func SendCmdToJuicer(prefix string, commandString string, destinationIp string, 
 		return "Write error", err
 	}
 
-	// how to send file in body
 	MF.Lock()
 	// gurantee there is only one copy 
+	// if fail we exit we keep those record
 	vm := File2VmMap[recoverFilename][0]
 	delete(File2VmMap, recoverFilename)
 	MF.Unlock()
@@ -803,7 +784,6 @@ OutPut: nil
 Related: 
 */
 func HandleJuice(w http.ResponseWriter, req *http.Request) {
-	// record current time for exit
 	// handle juice
 	// step1. get all parameters
 	exes, ok := req.URL.Query()["exe"]
@@ -849,9 +829,10 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	Write2Shell("is delete: " + delete)
 	// convert it to int
 	isDelete,_ := strconv.Atoi(delete)
+	Write2Shell(fmt.Sprint(isDelete))
 	Write2Shell("Juice start")
 
-	//step2. find all keys in the a juice task with prefix
+	//step2. find all keys and all available files (use maplerid as index)
 	KeyList := make(map[string][]string) // [key][mapleworkerids]
 	MV.Lock()
 	for fname,_ := range File2VmMap {
@@ -870,11 +851,12 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	MV.Unlock()
 
 	//step3. shuffle TODO: add shuffle option
-	ShuffleRes := make(map[int][]string) // [juicer id 0 - count][keys]
+	ShuffleRes := make(map[int][]string) // [juicer id][keys]
 	for key, _ := range KeyList {
 		res := HashShuffle(key, uint64(num))
 		ShuffleRes[res] = append(ShuffleRes[res], key)
 	}
+	// we can use ShuffleRes and KeyList to send commands [juicer id][keys] [key][related file(maplerid)]
 	
 	// step4. send juice command to workers
 	remainJuiceWorkers := len(ShuffleRes)
@@ -898,18 +880,22 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 			//Write2Shell(destinationIp)
 			// convert keys into a long string
 			commandString := ""
+			// if no keys, we skip this worker
 			for len(ShuffleRes[remainJuiceWorkers-1]) == 0 {
 				remainJuiceWorkers--
 			}
 			// at least we have one
+			// add all real workers who get the command, later we can delete them
 			realJuicerWorkers = append(realJuicerWorkers, fmt.Sprint(remainJuiceWorkers-1))
 			for _, key := range ShuffleRes[remainJuiceWorkers-1] {
 				// we also need to add subid (maple worker id)
 				for _, workerId := range KeyList[key] {
+					// commandString is a list of to be downloaded files index (maplerid + key)
 					commandString = commandString + workerId + "_" + key + ","
 				}
 			}
 			//Write2Shell(commandString)
+			// record info so that we can recover if the node fails
 			recoverFilename := toSendPrefix + ":" + commandString + ":" + fmt.Sprint(remainJuiceWorkers-1)
 			MF.Lock()
 			File2VmMap[recoverFilename] = []string{ip}
@@ -954,9 +940,9 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	}
 	JuiceM.Unlock()
 
-	//step 6. merge and upload the final res to HDFS
-	// juice res file location: in files
+	//step 6. merge and upload the final res 
 	// juice res file name: juiceResult2Master_prefix_juicerid 
+	// final res, do we need to send it to client? just like datanode send it back to master
 	finalRes, err := os.OpenFile(destFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		Logger.Fatal(err)
@@ -981,6 +967,12 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	//step 7. delete files
 	if isDelete == 1 {
 		Write2Shell("Request Delete") // delete what? map intermediate result?
+		for key, maplerid := range KeyList {
+			for _, id := range maplerid {
+				todeleteFilename := "mapleResult_" + prefix + "_" + id + "_" + key
+				client.DeleteFile(todeleteFilename)
+			}
+		}
 	}
 
 	//step 8. send ack to client 

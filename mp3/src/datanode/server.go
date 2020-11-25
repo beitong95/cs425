@@ -81,10 +81,13 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		
 		// step 2. process the file
 		// we assume the executable file is in the current folder
+		// filename exe_PartitionRes_prefix_maplerid
 		filename := header.Filename
 		mapleSource := MaplePath + filename
 		// exe_prefix_subid
 		exe := strings.Split(filename, "_")[0]
+		maplerid := strings.Split(filename, "_")[3]
+		prefix := strings.Split(filename, "_")[2]
 		exepath := ExePath + exe
 		file, err := os.Open(mapleSource) 
 		if err != nil {
@@ -93,6 +96,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		defer file.Close()
 		scanner := bufio.NewScanner(file)
 		outputMap := make(map[string]string)
+		// TODO: map slow
 		for scanner.Scan() {
 			text := scanner.Text()
 			fields := strings.Fields(text)
@@ -112,16 +116,13 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			Logger.Fatal(err)
 		}
 		for i,s := range outputMap {
-			//name exe_prefix_subid_key
-			outputName := "mapleResult" + "_" + filename + "_" + i
+			//name mapleResult_prefix_maplerid_key
+			outputName := "mapleResult" + "_" + prefix + "_" + maplerid + "_" + i
 			err := ioutil.WriteFile(outputName, []byte(s), 0644)
 			if err != nil {
 				Logger.Fatal(err)
 			}
-			//TODO:we should add errror here 
-			// here we change the remote name
-			remotename := strings.Replace(outputName, "_"+exe, "", 1)
-			client.PutFile(outputName, remotename)
+			client.PutFile(outputName, outputName)
 			if err := os.Remove(outputName); err != nil {
 				Logger.Fatal(err)
 			}
@@ -130,6 +131,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		if err := os.Remove(mapleSource); err != nil {
 			Logger.Fatal(err)
 		}
+		// at this time all maple results are on hdfs, no intermediate files are in datanodes
 		w.Write([]byte("OK"))
 	}
 	http.HandleFunc("/mapleWorker", DownloadMaple)
@@ -188,6 +190,7 @@ func HTTPlistenJuice() {
 
 		// step 3. download all subfiles to \main
 		for _, filename := range filenameList {
+			// juice source small files mapleResult_prefix_maplerid_key
 			client.GetFile(filename, filename)
 		}
 		// merge those files to one key one file
@@ -243,7 +246,7 @@ func HTTPlistenJuice() {
 			}
 		}
 
-		// step 5. send the file to master, can we send it in the body?
+		// step 5. send the file to master, can we send it in the body? yes
 		Openfile, err := os.Open(destFilename)
 		if err != nil {
 			Logger.Fatal(err)
@@ -266,7 +269,6 @@ func HTTPlistenJuice() {
 		//We read 512 bytes from the file already, so we reset the offset back to 0
 		Openfile.Seek(0, 0)
 		io.Copy(w, Openfile) //'Copy' the file to the client
-
 		if err := os.Remove(destFilename); err != nil {
 			Logger.Fatal(err)
 		}
