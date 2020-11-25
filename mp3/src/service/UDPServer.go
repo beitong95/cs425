@@ -190,8 +190,19 @@ func selectFailedID(ticker *time.Ticker) {
 
 						for _, file := range copyVM2fileMap {
 							//MV.Unlock()
+							// check file name 
 							Write2Shell(file)
-							go master.Rereplica(file)
+							if typeRe := strings.Contains(file, "maple"); typeRe {
+								go master.ReMaple(file)
+							} else if typeRe := strings.Contains(file, "juice"); typeRe {
+								go master.ReJuice(file)
+							} else {
+								go master.Rereplica(file)
+							} 
+							// mp3 failure
+							// master resend maple
+							// master resend juice
+							// build a wrapper for sendmessage2xxx we need to select a new IP
 							//MV.Lock()
 						}
 						//MV.Unlock()

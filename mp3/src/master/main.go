@@ -8,7 +8,8 @@ import (
 
 /**
 TODO:
-
+1. failure
+2. performance
 **/
 
 /*

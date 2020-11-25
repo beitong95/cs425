@@ -661,7 +661,7 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 			ip := strings.Split(id,"*")[0]
 			destinationIp := IP2DatanodeUploadIP(ip)
 			filename := partitions[remainPartitions-1]
-			recoverFilename := prefix + ":" + filename + ":" + exe // we can use the prefix and filename to recover the SendCmdToMapler 
+			recoverFilename := "maple:" + prefix + ":" + filename + ":" + exe // we can use the prefix and filename to recover the SendCmdToMapler 
 			MF.Lock()
 			File2VmMap[recoverFilename] = []string{ip}
 			MF.Unlock()
@@ -898,7 +898,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 			}
 			//Write2Shell(commandString)
 			// record info so that we can recover if the node fails
-			recoverFilename := toSendPrefix + ":" + commandString + ":" + fmt.Sprint(remainJuiceWorkers-1)
+			recoverFilename := "juice:" + toSendPrefix + ":" + commandString + ":" + fmt.Sprint(remainJuiceWorkers-1)
 			MF.Lock()
 			File2VmMap[recoverFilename] = []string{ip}
 			MF.Unlock()
