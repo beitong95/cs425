@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"strings"
 	"github.com/cespare/xxhash"
+	"math/rand"
 )
 
 func CreateFile() {
@@ -101,9 +102,9 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 	
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		text := scanner.Text()
+		text := scanner.Text() 
 		//Write2Shell(text)
-		hash := xxhash.Sum64([]byte(text))
+		hash := xxhash.Sum64([]byte(text + fmt.Sprint(rand.Intn(100))))
 		//Write2Shell(fmt.Sprintf("%v", hash))
 		partitionIndex := int(hash % partitionCount)
 		//Write2Shell(fmt.Sprintf("%v", partitionIndex))

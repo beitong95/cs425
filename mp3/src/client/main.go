@@ -40,7 +40,7 @@ OutPut: nil
 Related: HandleGet, DownloadFileFromDatanode
 */
 func GetFile(filename string, localfilename string) {
-	t1 := time.Now()
+	//t1 := time.Now()
 	getFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
@@ -63,9 +63,9 @@ func GetFile(filename string, localfilename string) {
 		newIp := IP2DatanodeHTTPServerIP(ip)
 		status, _ := networking.DownloadFileFromDatanode(filename, localfilename, newIp)
 		if status == "OK" {
-			t2 := time.Now()
-			diff := t2.Sub(t1)
-			Write2Shell("Get: " + filename + " time: " + diff.String())
+			//t2 := time.Now()
+			//diff := t2.Sub(t1)
+			//Write2Shell("Get: " + filename + " time: " + diff.String())
 			getFailFlag = false
 			url = "http://" + newIP + "/clientACK?id=" + ID
 			networking.HTTPsend(url)
@@ -92,13 +92,13 @@ OutPut: nil
 Related: HandlePut, UploadFileToDatanode
 */
 func PutFile(filename string, remotefilename string) {
-	t1 := time.Now()
+	//t1 := time.Now()
 	putFailFlag := true
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/put?id=" + ID + "&file=" + remotefilename
-	Write2Shell("Putfile url: " + url)
+	//Write2Shell("Putfile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
@@ -141,12 +141,12 @@ func PutFile(filename string, remotefilename string) {
 		networking.HTTPsend(url)
 		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
 	} else {
-		t2 := time.Now()
-		diff := t2.Sub(t1)
-		Write2Shell("Put: " + filename + " time: " + diff.String())
+		//t2 := time.Now()
+		//diff := t2.Sub(t1)
+		//Write2Shell("Put: " + filename + " time: " + diff.String())
 		url = "http://" + newIP + "/clientACK?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Success")
+		//Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Success")
 	}
 }
 

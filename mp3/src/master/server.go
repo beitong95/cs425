@@ -18,6 +18,7 @@ import (
 	_ "errors"
 	"io"
 	"client"
+	"math/rand"
 )
 
 // track status
@@ -53,7 +54,7 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 	for {
 		MW.Lock()
 		if WriteCounter == 0 {
-			Write2Shell("Now Approve This Read")
+			//Write2Shell("Now Approve This Read")
 			//Question: reader ++ ?
 			MW.Unlock()
 			break
@@ -61,7 +62,7 @@ func HandleGetIPs(w http.ResponseWriter, req *http.Request) {
 		MW.Unlock()
 	}
 	filename := file[0]
-	Write2Shell("Master receive GET request for file: " + filename)
+	//Write2Shell("Master receive GET request for file: " + filename)
 	var res []byte
 	var err error
 	if val, ok := File2VmMap[filename]; ok {
@@ -104,7 +105,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	CM.Lock()
 	ClientMap[id] = "Get"
 	CM.Unlock()
-	Write2Shell("Master receive GET request id: " + fmt.Sprintf("%v", id))
+	//Write2Shell("Master receive GET request id: " + fmt.Sprintf("%v", id))
 
 	//step3. get "GET" request file name
 	file, ok := req.URL.Query()["file"]
@@ -113,7 +114,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	filename := file[0]
-	Write2Shell("Master receive GET request for file: " + filename)
+	//Write2Shell("Master receive GET request for file: " + filename)
 
 	//step4. handle reader and writer logic
 	//if we cannot read now, we stop here and wait for permission
@@ -129,7 +130,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		MW.Unlock()
 		MR.Unlock()
 	}
-	Write2Shell("Now Approve This Read id: " + fmt.Sprintf("%v", id))
+	//Write2Shell("Now Approve This Read id: " + fmt.Sprintf("%v", id))
 
 	//step5. send ips back to client
 	var res []byte
@@ -140,7 +141,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 			panic(err)
 		}
 		// print ips
-		Write2Shell("Master sends IPS: " + string(res))
+		//Write2Shell("Master sends IPS: " + string(res))
 	} else {
 		res = []byte("[]")
 		Write2Shell("File does not exist")
@@ -153,11 +154,11 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	//exit 3: timer timeout	 -> timeout
 	//Question local variable?
 	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		//Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
 		for {
 			CM.Lock()
 			if ClientMap[id] == "Done" {
-				Write2Shell("Get success ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Get success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
 				MR.Lock()
@@ -166,7 +167,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MR.Lock()
@@ -210,7 +211,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	CM.Lock()
 	ClientMap[id] = "Put"
 	CM.Unlock()
-	Write2Shell("Master receive PUT request id: " + fmt.Sprintf("%v", id))
+	//Write2Shell("Master receive PUT request id: " + fmt.Sprintf("%v", id))
 
 	//step3. get "PUT" request file name
 	file, ok := req.URL.Query()["file"]
@@ -219,7 +220,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	filename := file[0]
-	Write2Shell("Master receive PUT request for file: " + filename)
+	//Write2Shell("Master receive PUT request for file: " + filename)
 
 	// step4. handle reader and writer logic
 	// if we cannot write now, we stop here for further permission
@@ -246,7 +247,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		// TODO: cannot guarantee that we can get 4 ips
 		list = Hash2Ips(filename)
 		if len(list) < 4 {
-			Write2Shell("Client try to put a new file, but we cannot find 4 VMs to store this file")
+			//Write2Shell("Client try to put a new file, but we cannot find 4 VMs to store this file")
 		}
 		res, err = json.Marshal(list)
 		if err != nil {
@@ -255,7 +256,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	} else {
 		// the file exists
 		if len(val) < 4 {
-			Write2Shell("Client try to put a existed file, but we cannot find 4 VMs store this file.")
+			//Write2Shell("Client try to put a existed file, but we cannot find 4 VMs store this file.")
 			res = []byte("[]")
 		} else if len(val) >= 4 {
 			res, err = json.Marshal(val)
@@ -264,7 +265,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 	}
-	Write2Shell("Master sends IPS: " + string(res))
+	//Write2Shell("Master sends IPS: " + string(res))
 	w.Write(res)
 
 	//step6. master wait ACK from client
@@ -274,7 +275,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	//Question local variable?
 
 	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		//Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
 		for {
 			CM.Lock()
 			if ClientMap[id] == "Done" {
@@ -302,7 +303,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				MV.Unlock()
 				Logger.Info(Vm2fileMap)
 
-				Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
 				MW.Lock()
@@ -311,7 +312,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Put fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MW.Lock()
@@ -320,7 +321,7 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
-				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
 			}
@@ -355,7 +356,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 	CM.Lock()
 	ClientMap[id] = "Delete"
 	CM.Unlock()
-	Write2Shell("Master receive DELETE request id: " + fmt.Sprintf("%v", id))
+	//Write2Shell("Master receive DELETE request id: " + fmt.Sprintf("%v", id))
 
 	//step3. get "DELETE" request file name
 	file, ok := req.URL.Query()["file"]
@@ -364,7 +365,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	filename := file[0]
-	Write2Shell("Master receive DELETE request for file: " + filename)
+	//Write2Shell("Master receive DELETE request for file: " + filename)
 
 	// step4. handle reader and writer logic
 	// if we cannot write now, we stop here for further permission
@@ -384,7 +385,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 	// step5 send ips back to client
 	var res []byte
 	val, ok := File2VmMap[filename]
-	Write2Shell("File VMs: " + fmt.Sprint(val))
+	//Write2Shell("File VMs: " + fmt.Sprint(val))
 	var err error
 	if !ok {
 		//no such file
@@ -402,13 +403,13 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		}
 		//}
 	}
-	Write2Shell("Master sends IPS: " + string(res))
+	//Write2Shell("Master sends IPS: " + string(res))
 	w.Write(res)
 
 	//step6. master wait ACK from client
 
 	go func() {
-		Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
+		//Write2Shell("Now waiting ACK from id: " + fmt.Sprintf("%v", id))
 		for {
 			CM.Lock()
 			if ClientMap[id] == "Done" {
@@ -436,7 +437,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				}
 				Logger.Info(Vm2fileMap)
 
-				Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
 				MR.Lock()
@@ -445,7 +446,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				Write2Shell("DELETE fail ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("DELETE fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MR.Lock()
@@ -454,7 +455,7 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				CM.Unlock()
 				break
 			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
-				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
 			}
@@ -481,7 +482,7 @@ func HandleLs(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	filename := file[0]
-	Write2Shell("Master receive LS request for file: " + filename)
+	//Write2Shell("Master receive LS request for file: " + filename)
 	for {
 		MR.Lock()
 		MW.Lock()
@@ -546,8 +547,35 @@ func HandleClientBad(w http.ResponseWriter, req *http.Request) {
 	w.Write([]byte("OK"))
 }
 
+func ReMaple(recoverFilename string) {
+
+	copyMembershipList := []string{}
+	// get all available vm ip
+	MT.Lock()
+		for id, _ := range MembershipList {
+			copyMembershipList = append(copyMembershipList, id)
+		}
+	MT.Unlock()
+	availableVMCount := len(copyMembershipList)
+	randomIndex := rand.Intn(availableVMCount)
+	id := copyMembershipList[randomIndex]
+	ip := strings.Split(id,"*")[0]
+	destinationIp := IP2DatanodeUploadIP(ip)
+	filename := strings.Split(recoverFilename, ":")[2]
+	prefix := strings.Split(recoverFilename,":")[1]
+	exe := strings.Split(recoverFilename,":")[3]
+	MF.Lock()
+	File2VmMap[recoverFilename] = []string{ip}
+	MF.Unlock()
+	MV.Lock()
+	Vm2fileMap[ip] = append(Vm2fileMap[ip], recoverFilename)
+	MV.Unlock()
+	go SendCmdToMapler(prefix, filename, exe, destinationIp, recoverFilename)
+}
+
 // master send task to maple workers
 func SendCmdToMapler(prefix string, filename string, exe string, destinationIp string, recoverFilename string) {
+	Write2Shell(recoverFilename + ":" + destinationIp)
 	status := networking.UploadFileToWorkers(filename, exe + "_" + filename, destinationIp)
 
 	if status == "OK" {
@@ -576,9 +604,10 @@ func SendCmdToMapler(prefix string, filename string, exe string, destinationIp s
 		// subtract 1 
 		MapleM.Lock()
 		MapleMap[prefix]--
-		//Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
+		Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
 		MapleM.Unlock()
 	} else {
+		Write2Shell(recoverFilename + " FAIL")
 		//do nothing wait for fail detector
 	}
 }
@@ -691,18 +720,18 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 	for {
 		time.Sleep(1 * time.Second)
 		MapleM.Lock()
-		if MapleMap[prefix] == 0 {
+		temp := MapleMap[prefix]
+		MapleM.Unlock()
+		if temp == 0 {
 			MapleFalseFlag = false
 			Write2Shell("Maple Success")
 			break
 		}
-		MapleM.Unlock()
 		if elapsed := time.Now().Sub(start); elapsed > MapleTimeout*time.Second {
 			Write2Shell("Timeout " + prefix)
 			break
 		}
 	}
-	MapleM.Unlock()
 
 	// at that time all maple results have been uploaded to HDFS.
 	// safe to delete partitions
@@ -726,6 +755,35 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		w.Write([]byte(res))
 	}
 	return
+}
+
+func ReJuice(recoverFilename string) {
+
+	copyMembershipList := []string{}
+	// get all available vm ip
+	MT.Lock()
+		for id, _ := range MembershipList {
+			copyMembershipList = append(copyMembershipList, id)
+		}
+	MT.Unlock()
+	availableVMCount := len(copyMembershipList)
+	randomIndex := rand.Intn(availableVMCount)
+	id := copyMembershipList[randomIndex]
+	ip := strings.Split(id,"*")[0]
+	destinationIp := IP2DatanodeUploadIP(ip)
+
+	toSendPrefix := strings.Split(recoverFilename, ":")[1]
+	commandString := strings.Split(recoverFilename,":")[2]
+	juicerId := strings.Split(recoverFilename,":")[3]
+
+	MF.Lock()
+	File2VmMap[recoverFilename] = []string{ip}
+	MF.Unlock()
+	MV.Lock()
+	Vm2fileMap[ip] = append(Vm2fileMap[ip], recoverFilename)
+	MV.Unlock()
+
+	go SendCmdToJuicer(toSendPrefix, commandString, destinationIp, juicerId, recoverFilename)
 }
 
 func SendCmdToJuicer(prefix string, commandString string, destinationIp string, id string, recoverFilename string) (string, error) {
@@ -928,19 +986,19 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	for {
 		time.Sleep(1 * time.Second)
 		JuiceM.Lock()
-		if JuiceMap[prefix] == 0 {
+		temp := JuiceMap[prefix]
+		JuiceM.Unlock()
+		if temp == 0 {
 			Write2Shell("Juice Partial Success, now send the final res to HDFS/client")
 			juiceFalseFlag = false
 			break
 		}
-		JuiceM.Unlock()
 		if elapsed := time.Now().Sub(start); elapsed > JuiceTimeout*time.Second {
 			Write2Shell("Timeout " + prefix)
 			break
 		}
 
 	}
-	JuiceM.Unlock()
 
 	//step 6. merge and upload the final res 
 	// juice res file name: juiceResult2Master_prefix_juicerid 

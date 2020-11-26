@@ -167,11 +167,12 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 	resp, err := http.Post(url, contentType, r)
 
 	if err != nil {
-		Logger.Fatal("Post failed: %s\n", err)
+		return []byte("BAD")
+		//Logger.Fatal("Post failed: %s\n", err)
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return []byte("BAD")
 	}
 	resp.Body.Close()
 	return body
@@ -180,18 +181,18 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 // a wrapper to upload file
 func UploadFileToDatanode(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/putfile"
-	Write2Shell("Upload file to url:" + url)
+	//Write2Shell("Upload file to url:" + url)
 	body := HTTPuploadFile(url, filename, remotefilename)
-	Write2Shell("Url: " + url + " Status: " + string(body))
+	//Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 
 // upload file to datanode
 func UploadFileToWorkers(filename string, remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/mapleWorker"
-	Write2Shell("Upload file to url:" + url)
+	//Write2Shell("Upload file to url:" + url)
 	body := HTTPuploadFile(url, filename, remotefilename)
-	Write2Shell("Url: " + url + " Status: " + string(body))
+	//Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 
@@ -243,9 +244,9 @@ func DownloadFileFromDatanode(filename string, localfilename string, ipPort stri
 // delete a file just send a request
 func DeleteFileFromDatanode(remotefilename string, ipPort string) string {
 	url := "http://" + ipPort + "/deletefile?file=" + remotefilename
-	Write2Shell("Delete file from url:" + url)
+	//Write2Shell("Delete file from url:" + url)
 	body := HTTPsend(url)
-	Write2Shell("Url: " + url + " Status: " + string(body))
+	//Write2Shell("Url: " + url + " Status: " + string(body))
 	return string(body)
 }
 
