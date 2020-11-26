@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"bufio"
 	"strings"
 )
@@ -30,10 +29,36 @@ func main() {
 		text := scanner.Text()
 		fields := strings.Fields(text)
 		key := fields[0]
-		value := fields[1]
-		intValue,_ := strconv.Atoi(value)
-		newValue := fmt.Sprint(intValue + 1) // add one
-		output := key + "\t" + newValue + "\n"
+		votes := strings.Split(key,",")
+		var A = ""
+		var B = ""
+		var C = ""
+		for _,vote := range votes {
+			var candidate = strings.Split(vote,".")
+			if candidate[0] == "A" {
+				A = candidate[1]
+			} else if candidate[0] == "B" {
+				B = candidate[1]
+			} else {
+				C = candidate[1]
+			}
+		}
+		var output = ""
+		if A < B {
+			output += "A,B\t1\n"
+		} else {
+			output += "B,A\t1\n"
+		}
+		if A < C {
+			output += "A,C\t1\n"
+		} else {
+			output += "C,A\t1\n"
+		}
+		if B < C {
+			output += "B,C\t1\n"
+		} else {
+			output += "C,B\t1\n"
+		}
 		destFile.Write([]byte(output))
 	}
 	if err := scanner.Err(); err != nil {
