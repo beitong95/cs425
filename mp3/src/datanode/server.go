@@ -93,9 +93,9 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		// TODO: map slow
 		// step 1 process file with map and store it to a new file 
 		intermediateFilename := "MapleIntermediate_" + prefix + "_" + maplerid
-		Write2Shell(exepath)
-		Write2Shell(mapleSource)
-		Write2Shell(intermediateFilename)
+		//Write2Shell(exepath)
+		//Write2Shell(mapleSource)
+		//Write2Shell(intermediateFilename)
 		cmd := exec.Command(exepath, mapleSource, intermediateFilename)
 		_, err = cmd.Output()
 		if err != nil {
@@ -133,11 +133,9 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		if err := os.Remove(mapleSource); err != nil {
 			Logger.Fatal(err)
 		}
-		/**
 		if err := os.Remove(intermediateFilename); err != nil {
 			Logger.Fatal(err)
 		}
-		**/
 		// at this time all maple results are on hdfs, no intermediate files are in datanodes
 		w.Write([]byte("OK"))
 	}
