@@ -178,7 +178,7 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 
 		switch cmd {
 		case "vote":
-			go client.MapleJuice("voteMaple", "5", "vote", "votes.txt", "maplecommand", "countJuice", "3", "out.txt", "1", "juicecommand")
+			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "out.txt", "1", "juicecommand")
 		case "help":
 			fmt.Println(strings.Replace(getHelp(), "\t", "", -1))
 		case "all2all":
