@@ -59,6 +59,7 @@ func GetFile(filename string, localfilename string) {
 
 	//step3. download files from the list
 	for _, ip := range IPs {
+		Write2Shell("IP: " + ip)
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		newIp := IP2DatanodeHTTPServerIP(ip)
 		status, _ := networking.DownloadFileFromDatanode(filename, localfilename, newIp)
