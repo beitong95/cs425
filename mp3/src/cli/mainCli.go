@@ -78,7 +78,8 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		}
 		switch cmd {
 		case "vote":
-			go client.MapleJuice("voteMaple", "5", "vote", "votes.txt", "maplecommand", "countJuice", "3", "out.txt", "1", "juicecommand")
+			//filename 1 is maple count filename2 is juice count
+			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "out.txt", "1", "juicecommand")
 		case "all2all":
 			c <- CHANGE_TO_ALL2ALL
 		case "gossip":
