@@ -77,6 +77,8 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			return
 		}
 		switch cmd {
+		case "vote":
+			go client.MapleJuice("voteMaple", "5", "vote", "votes.txt", "maplecommand", "countJuice", "3", "out.txt", "1", "juicecommand")
 		case "all2all":
 			c <- CHANGE_TO_ALL2ALL
 		case "gossip":
