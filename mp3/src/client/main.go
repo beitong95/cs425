@@ -45,7 +45,7 @@ func GetFile(filename string, localfilename string) {
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
-	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename
+	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename + "&memberID=" + MyID
 	//Write2Shell("GetFile url: " + url)
 
 	//step 2. send url and decode body
@@ -78,7 +78,7 @@ func GetFile(filename string, localfilename string) {
 	if getFailFlag == true {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
+		//Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
 	} else {
 		//Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
 	}
@@ -163,7 +163,7 @@ func DeleteFile(remotefilename string) {
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
-	url := "http://" + newIP + "/delete?id=" + ID + "&file=" + remotefilename
+	url := "http://" + newIP + "/delete?id=" + ID + "&file=" + remotefilename + "&memberID=" + MyID
 	//Write2Shell("Deletefile url: " + url)
 
 	//step 2. send url and decode body
@@ -208,10 +208,10 @@ func DeleteFile(remotefilename string) {
 	if putFailFlag == true {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Delete" + remotefilename + " id: " + ID + " Fail")
-		Write2Shell("Failed destination IPs:")
+		//Write2Shell("Delete" + remotefilename + " id: " + ID + " Fail")
+		//Write2Shell("Failed destination IPs:")
 		for _, v := range failedIPs {
-			Write2Shell(v)
+			//Write2Shell(v)
 		}
 	} else {
 		url = "http://" + newIP + "/clientACK?id=" + ID

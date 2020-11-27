@@ -148,20 +148,19 @@ func Rereplica(filename string) {
 
 			sourceIp := IP2DatanodeUploadIP(source)
 			url := "http://" + sourceIp + "/rereplica?file=" + filename + "&destination=" + replica
+			MV.Lock()
+			Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
+			MV.Unlock()
+			MF.Lock()
+			File2VmMap[filename] = append(File2VmMap[filename], replica)
+			MF.Unlock()
 			body := networking.HTTPsend(url)
 			if string(body) == "OK" {
 				rereplicaFailFlag = false
 				//Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Success!")
 				// master update metadata
-				MV.Lock()
-				Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)
-				MV.Unlock()
-				MF.Lock()
-				File2VmMap[filename] = append(File2VmMap[filename], replica)
-				MF.Unlock()
 			} else if string(body) == "Bad" {
-				Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Fail!")
-				continue
+				//Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Fail!")
 			}
 			MW.Lock()
 			WriteCounter--

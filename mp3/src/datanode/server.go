@@ -141,93 +141,6 @@ func HTTPlistenMaple(BaseUploadPath string) {
 	http.HandleFunc("/mapleWorker", DownloadMaple)
 }
 
-/**
-// old slow method
-func HTTPlistenMaple(BaseUploadPath string) {
-	DownloadMaple := func(w http.ResponseWriter, r *http.Request) {
-		// step 1. Download file
-		formFile, header, err := r.FormFile("uploadfile")
-		if err != nil {
-			log.Printf("Get form file failed: %s\n", err)
-			//TODO: w.write add return status
-			w.Write([]byte("error"))
-			return
-		}
-		defer formFile.Close()
-
-		destFile, err := os.Create(BaseUploadPath + header.Filename)
-		if err != nil {
-			log.Printf("Create failed: %s\n", err)
-			w.Write([]byte("error"))
-			return
-		}
-		defer destFile.Close()
-
-		_, err = io.Copy(destFile, formFile)
-		if err != nil {
-			log.Printf("Write file failed: %s\n", err)
-			w.Write([]byte("error"))
-			return
-		}
-		
-		// step 2. process the file
-		// we assume the executable file is in the current folder
-		// filename exe_PartitionRes_prefix_maplerid
-		filename := header.Filename
-		mapleSource := MaplePath + filename
-		// exe_prefix_subid
-		exe := strings.Split(filename, "_")[0]
-		maplerid := strings.Split(filename, "_")[3]
-		prefix := strings.Split(filename, "_")[2]
-		exepath := ExePath + exe
-		file, err := os.Open(mapleSource) 
-		if err != nil {
-			Logger.Fatal(err)
-		}
-		defer file.Close()
-		scanner := bufio.NewScanner(file)
-		outputMap := make(map[string]string)
-		// TODO: map slow
-		for scanner.Scan() {
-			text := scanner.Text()
-			fields := strings.Fields(text)
-			key := fields[0]
-			value := fields[1]
-			cmd := exec.Command(exepath, key, value)
-			// TODO: here the newValue can be multi lines
-			output, err := cmd.Output()
-			if err != nil {
-        		Logger.Fatal(err)
-			}
-			fields = strings.Fields(string(output))
-			key = fields[0]
-			outputMap[key] = outputMap[key] + string(output) 
-		}
-		if err := scanner.Err(); err != nil {
-			Logger.Fatal(err)
-		}
-		for i,s := range outputMap {
-			//name mapleResult_prefix_maplerid_key
-			outputName := "mapleResult" + "_" + prefix + "_" + maplerid + "_" + i
-			err := ioutil.WriteFile(outputName, []byte(s), 0644)
-			if err != nil {
-				Logger.Fatal(err)
-			}
-			client.PutFile(outputName, outputName)
-			if err := os.Remove(outputName); err != nil {
-				Logger.Fatal(err)
-			}
-
-		}
-		if err := os.Remove(mapleSource); err != nil {
-			Logger.Fatal(err)
-		}
-		// at this time all maple results are on hdfs, no intermediate files are in datanodes
-		w.Write([]byte("OK"))
-	}
-	http.HandleFunc("/mapleWorker", DownloadMaple)
-}
-**/
 //juice
 func HTTPlistenJuice() {
 	ProcessJuice := func(w http.ResponseWriter, req *http.Request) {
@@ -278,17 +191,18 @@ func HTTPlistenJuice() {
 			}
 		}
 
-		// step 3. download all subfiles to \main
+		// step 3. download all subfiles to \main \\ TODO:
 		for _, filename := range filenameList {
 			// juice source small files mapleResult_prefix_maplerid_key
 			client.GetFile(filename, filename)
 		}
-		// merge those files to one key one file
+
+		// merge those files to one key per file
 		sourceFileList := []string{} // record all merged juice source files, after finish juice delete them
 		for key, files := range key2fileMap {
 			// use key to create a file
 			juiceSourceFilename := "JuiceSource_" + prefix + "_" + key
-			outFile, err := os.OpenFile(juiceSourceFilename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			outFile, err := os.OpenFile(juiceSourceFilename, os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				Logger.Fatal(err)
 			}

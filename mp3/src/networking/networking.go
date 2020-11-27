@@ -114,13 +114,13 @@ OutPut: body
 func HTTPsend(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
-		return []byte("BAD")
+		return []byte("Bad")
 		//panic(err)
 
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return []byte("BAD")
+		return []byte("Bad")
 		//panic(err)
 	}
 	resp.Body.Close()
