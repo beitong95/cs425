@@ -81,11 +81,12 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		// we assume the executable file is in the current folder
 		// filename exe_PartitionRes_prefix_maplerid
 		filename := header.Filename
-		Write2Shell("start process file: " + filename)	
+		Write2Shell("Start process file: " + filename)	
 		mapleSource := MaplePath + filename
 		// exe_prefix_subid
 		exe := strings.Split(filename, "_")[0]
 		maplerid := strings.Split(filename, "_")[3]
+		Write2Shell("Mapler ID: " + id)
 		prefix := strings.Split(filename, "_")[2]
 		exepath := ExePath + exe
 		// TODO: map slow
@@ -121,7 +122,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			if err != nil {
 				Logger.Fatal(err)
 			}
-			Write2Shell("Put: " + outputName)
+			//Write2Shell("Put: " + outputName)
 			client.PutFile(outputName, outputName)
 			if err := os.Remove(outputName); err != nil {
 				Logger.Fatal(err)
@@ -192,6 +193,7 @@ func HTTPlistenJuice() {
 		}
 
 		// step 3. download all subfiles to \main \\ TODO:
+		Write2Shell("Start download source files")
 		for _, filename := range filenameList {
 			// juice source small files mapleResult_prefix_maplerid_key
 			//Write2Shell("try to download file: " + filename)
@@ -229,6 +231,7 @@ func HTTPlistenJuice() {
 		}
 
 		// step 4. process those files and save it to a file juiceResult_prefix_juicerworkerid
+		Write2Shell("Start process files")
 		destFilename := "juiceResult_" + prefix + "_" + id  // the destFile will be send to master /main folder, master will merge them
 		destFile, err := os.OpenFile(destFilename, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
@@ -252,6 +255,7 @@ func HTTPlistenJuice() {
 			Write2Shell("KEY FINISH:" +  source)
 		}
 
+		Write2Shell("Start send result to master")
 		// step 5. send the file to master, can we send it in the body? yes
 		Openfile, err := os.Open(destFilename)
 		if err != nil {
@@ -278,7 +282,7 @@ func HTTPlistenJuice() {
 		if err := os.Remove(destFilename); err != nil {
 			Logger.Fatal(err)
 		}
-		Write2Shell("Juicer" + id + "Suceess")
+		Write2Shell("Juicer " + id + " Suceess")
 		return
 	}
 	http.HandleFunc("/juiceWorker", ProcessJuice)

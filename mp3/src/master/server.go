@@ -637,7 +637,7 @@ func ReMaple(recoverFilename string) {
 
 // master send task to maple workers
 func SendCmdToMapler(prefix string, filename string, exe string, destinationIp string, recoverFilename string) {
-	Write2Shell(recoverFilename + ":" + destinationIp)
+	//Write2Shell(recoverFilename + ":" + destinationIp)
 	status := networking.UploadFileToWorkers(filename, exe + "_" + filename, destinationIp)
 
 	if status == "OK" {
