@@ -972,10 +972,23 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 
 	//step3. shuffle TODO: add shuffle option
 	ShuffleRes := make(map[int][]string) // [juicer id][keys]
+	// get key slice
+	Keys := []string{}
+	for key, _ := range KeyList {
+		Keys = append(Keys, key)
+	}
+	keyCount := len(Keys)
+	juicerIndex := 0
+	for i:=0; i< keyCount; i++ {
+		ShuffleRes[juicerIndex] = append(ShuffleRes[juicerIndex], Keys[i])
+		juicerIndex = (juicerIndex+1)%num
+	}
+	/**
 	for key, _ := range KeyList {
 		res := HashShuffle(key, uint64(num))
 		ShuffleRes[res] = append(ShuffleRes[res], key)
 	}
+	**/
 	// we can use ShuffleRes and KeyList to send commands [juicer id][keys] [key][related file(maplerid)]
 	
 	// step4. send juice command to workers
