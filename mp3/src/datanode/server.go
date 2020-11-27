@@ -86,7 +86,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		// exe_prefix_subid
 		exe := strings.Split(filename, "_")[0]
 		maplerid := strings.Split(filename, "_")[3]
-		Write2Shell("Mapler ID: " + id)
+		Write2Shell("Mapler ID: " + maplerid)
 		prefix := strings.Split(filename, "_")[2]
 		exepath := ExePath + exe
 		// TODO: map slow
