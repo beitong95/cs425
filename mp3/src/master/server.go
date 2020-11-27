@@ -208,9 +208,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := ids[0]
-	CM.Lock()
-	ClientMap[id] = "Put"
-	CM.Unlock()
 	//Write2Shell("Master receive PUT request id: " + fmt.Sprintf("%v", id))
 
 	//step3. get "PUT" request file name
@@ -220,6 +217,12 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	filename := file[0]
+	memberIDs, ok := req.URL.Query()["memberID"]
+	if !ok {
+		Logger.Error("Handle PUT Url Param 'key' is missing")
+		return
+	}
+	memberID := memberIDs[0]
 	//Write2Shell("Master receive PUT request for file: " + filename)
 
 	// step4. handle reader and writer logic
@@ -236,6 +239,9 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		MR.Unlock()
 		MW.Unlock()
 	}
+	CM.Lock()
+	ClientMap[id] = "Put"
+	CM.Unlock()
 
 	// step5 send ips back to client
 	var res []byte
@@ -266,6 +272,29 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	//Write2Shell("Master sends IPS: " + string(res))
+	// record the metadata before send ips
+	MF.Lock()
+	if !ok {
+		File2VmMap[filename] = list
+	} else {
+		File2VmMap[filename] = val
+	}
+	MF.Unlock()
+	Logger.Info(File2VmMap)
+
+	MV.Lock()
+
+	if !ok {
+		for _, v := range list {
+			Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+		}
+	} else {
+		for _, v := range val {
+			Vm2fileMap[v] = append(Vm2fileMap[v], filename)
+		}
+	}
+	MV.Unlock()
+
 	w.Write(res)
 
 	//step6. master wait ACK from client
@@ -279,30 +308,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		for {
 			CM.Lock()
 			if ClientMap[id] == "Done" {
-
-				MF.Lock()
-				if !ok {
-					File2VmMap[filename] = list
-				} else {
-					File2VmMap[filename] = val
-				}
-				MF.Unlock()
-				Logger.Info(File2VmMap)
-
-				MV.Lock()
-
-				if !ok {
-					for _, v := range list {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				} else {
-					for _, v := range val {
-						Vm2fileMap[v] = append(Vm2fileMap[v], filename)
-					}
-				}
-				MV.Unlock()
-				Logger.Info(Vm2fileMap)
-
 				//Write2Shell("Put success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
@@ -320,7 +325,16 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 				MW.Unlock()
 				CM.Unlock()
 				break
+			} else if _, ok := FailedNodes[memberID]; ok{ // the client ip has failed
+				w.Write([]byte("Bad"))
+				//change readcounter to 0
+				MW.Lock()
+				WriteCounter--
+				MW.Unlock()
+				CM.Unlock()
+				break
 			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
+
 				//Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				CM.Unlock()
 				break
@@ -353,9 +367,6 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	id := ids[0]
-	CM.Lock()
-	ClientMap[id] = "Delete"
-	CM.Unlock()
 	//Write2Shell("Master receive DELETE request id: " + fmt.Sprintf("%v", id))
 
 	//step3. get "DELETE" request file name
@@ -381,6 +392,9 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		MR.Unlock()
 		MW.Unlock()
 	}
+	CM.Lock()
+	ClientMap[id] = "Delete"
+	CM.Unlock()
 
 	// step5 send ips back to client
 	var res []byte
@@ -404,6 +418,29 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		//}
 	}
 	//Write2Shell("Master sends IPS: " + string(res))
+	MF.Lock()
+	if !ok {
+		//no such file
+	} else {
+		delete(File2VmMap, filename)
+	}
+	MF.Unlock()
+	Logger.Info(File2VmMap)
+
+	if !ok {
+		//no such file
+	} else {
+		MV.Lock()
+		for _, v := range val { //each vm should delete this file
+			for i := 0; i < len(Vm2fileMap[v]); i++ {
+				if Vm2fileMap[v][i] == filename {
+					Vm2fileMap[v] = append(Vm2fileMap[v][:i], Vm2fileMap[v][i+1:]...)
+				}
+			}
+		}
+		MV.Unlock()
+	}
+	Logger.Info(Vm2fileMap)
 	w.Write(res)
 
 	//step6. master wait ACK from client
@@ -413,29 +450,6 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 		for {
 			CM.Lock()
 			if ClientMap[id] == "Done" {
-				MF.Lock()
-				if !ok {
-					//no such file
-				} else {
-					delete(File2VmMap, filename)
-				}
-				MF.Unlock()
-				Logger.Info(File2VmMap)
-
-				if !ok {
-					//no such file
-				} else {
-					MV.Lock()
-					for _, v := range val { //each vm should delete this file
-						for i := 0; i < len(Vm2fileMap[v]); i++ {
-							if Vm2fileMap[v][i] == filename {
-								Vm2fileMap[v] = append(Vm2fileMap[v][:i], Vm2fileMap[v][i+1:]...)
-							}
-						}
-					}
-					MV.Unlock()
-				}
-				Logger.Info(Vm2fileMap)
 
 				//Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
@@ -561,6 +575,7 @@ func ReMaple(recoverFilename string) {
 	id := copyMembershipList[randomIndex]
 	ip := strings.Split(id,"*")[0]
 	destinationIp := IP2DatanodeUploadIP(ip)
+	Write2Shell("remaple "+ recoverFilename + " TO: " + destinationIp)
 	filename := strings.Split(recoverFilename, ":")[2]
 	prefix := strings.Split(recoverFilename,":")[1]
 	exe := strings.Split(recoverFilename,":")[3]
@@ -771,7 +786,7 @@ func ReJuice(recoverFilename string) {
 	id := copyMembershipList[randomIndex]
 	ip := strings.Split(id,"*")[0]
 	destinationIp := IP2DatanodeUploadIP(ip)
-
+	Write2Shell("rejuice "+ recoverFilename + " TO: " + destinationIp)
 	toSendPrefix := strings.Split(recoverFilename, ":")[1]
 	commandString := strings.Split(recoverFilename,":")[2]
 	juicerId := strings.Split(recoverFilename,":")[3]

@@ -105,7 +105,7 @@ Related: UDPServer faildetector
 // 1) after new master elected, files have no more 4 replicas
 // 2) after one datanode failed, all files stored in this datanode
 func Rereplica(filename string) {
-	Write2Shell("Start rereplica " + filename)
+	//Write2Shell("Start rereplica " + filename)
 	var replicas = []string{}
 	var sources = []string{}
 	MV.Lock()
@@ -151,7 +151,7 @@ func Rereplica(filename string) {
 			body := networking.HTTPsend(url)
 			if string(body) == "OK" {
 				rereplicaFailFlag = false
-				Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Success!")
+				//Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Success!")
 				// master update metadata
 				MV.Lock()
 				Vm2fileMap[replica] = append(Vm2fileMap[replica], filename)

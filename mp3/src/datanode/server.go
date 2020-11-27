@@ -63,7 +63,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		}
 		defer formFile.Close()
 
-		destFile, err := os.Create(BaseUploadPath + header.Filename)
+		destFile, err := os.Create(BaseUploadPath + header.Filename) // ?
 		if err != nil {
 			log.Printf("Create failed: %s\n", err)
 			w.Write([]byte("error"))

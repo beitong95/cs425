@@ -97,7 +97,7 @@ func PutFile(filename string, remotefilename string) {
 	//step 1. get id and create url
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
-	url := "http://" + newIP + "/put?id=" + ID + "&file=" + remotefilename
+	url := "http://" + newIP + "/put?id=" + ID + "&file=" + remotefilename + "&memberID=" + MyID
 	//Write2Shell("Putfile url: " + url)
 
 	//step 2. send url and decode body
@@ -112,8 +112,8 @@ func PutFile(filename string, remotefilename string) {
 	if len(IPs) == 0 {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
-		Write2Shell("Reason: IPs lenght == 0")
+		//Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
+		//Write2Shell("Reason: IPs lenght == 0")
 		return
 	}
 
@@ -127,6 +127,7 @@ func PutFile(filename string, remotefilename string) {
 		if status == "OK" {
 			successCounter++
 		} else {
+			//rereplica will handle it
 		}
 	}
 
@@ -139,7 +140,7 @@ func PutFile(filename string, remotefilename string) {
 	if putFailFlag == true {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
+		//Write2Shell("Put" + filename + " " + remotefilename + " id: " + ID + " Fail")
 	} else {
 		//t2 := time.Now()
 		//diff := t2.Sub(t1)

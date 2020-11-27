@@ -11,7 +11,7 @@ func main() {
 	file := args[0]
 	dest := args[1]
 	// open destination file
-	destFile, err := os.OpenFile(dest, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)	
+	destFile, err := os.OpenFile(dest, os.O_CREATE|os.O_WRONLY, 0644)	
 	if err != nil {
 		panic(err)
 	}

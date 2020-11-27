@@ -191,12 +191,10 @@ func selectFailedID(ticker *time.Ticker) {
 						for _, file := range copyVM2fileMap {
 							//MV.Unlock()
 							// check file name 
-							Write2Shell(file)
+							//Write2Shell(file)
 							if typeRe := strings.Contains(file, "maple:"); typeRe {
-								Write2Shell("remaple "+ file)
 								go master.ReMaple(file)
 							} else if typeRe := strings.Contains(file, "juice:"); typeRe {
-								Write2Shell("rejuice "+ file)
 								go master.ReJuice(file)
 							} else {
 								go master.Rereplica(file)
