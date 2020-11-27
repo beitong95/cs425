@@ -126,6 +126,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		MW.Lock()
 		if WriteCounter == 0 {
 			ReadCounter++
+			//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 			MW.Unlock()
 			MR.Unlock()
 			break
@@ -169,6 +170,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
@@ -178,14 +180,17 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if _, ok := FailedNodes[memberID]; ok{ // the client ip has failed
+				//Write2Shell("exit for failednodes: " + memberID)
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MW.Lock()
 				ReadCounter--
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MW.Unlock()
 				CM.Unlock()
 				break
@@ -193,6 +198,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				MW.Lock()
 				ReadCounter--
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MW.Unlock()
 				CM.Unlock()
 				break
@@ -311,7 +317,6 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 	MV.Unlock()
-
 	w.Write(res)
 
 	//step6. master wait ACK from client
@@ -847,6 +852,7 @@ func SendCmdToJuicer(prefix string, commandString string, destinationIp string, 
 	rsp, err:= http.Get(url)
 	// if there is an error, the node fail
 	if err != nil {
+		Write2Shell(destinationIp + " juicer worker fail")
 		return "Bad", nil	
 	}
 	// else

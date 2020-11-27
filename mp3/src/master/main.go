@@ -168,7 +168,7 @@ func Rereplica(filename string) {
 		}
 	}
 	if rereplicaFailFlag == true {
-		Write2Shell("Rereplica file " + filename + " Fail! We cannot reach the required rereplica factor = 3")
+		//Write2Shell("Rereplica file " + filename + " Fail! We cannot reach the required rereplica factor = 3")
 	}
 	Logger.Info(Vm2fileMap)
 }

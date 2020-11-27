@@ -194,9 +194,11 @@ func HTTPlistenJuice() {
 		// step 3. download all subfiles to \main \\ TODO:
 		for _, filename := range filenameList {
 			// juice source small files mapleResult_prefix_maplerid_key
+			Write2Shell("try to download file: " + filename)
 			client.GetFile(filename, filename)
 		}
 
+		Write2Shell("finish download files")
 		// merge those files to one key per file
 		sourceFileList := []string{} // record all merged juice source files, after finish juice delete them
 		for key, files := range key2fileMap {
@@ -228,7 +230,7 @@ func HTTPlistenJuice() {
 
 		// step 4. process those files and save it to a file juiceResult_prefix_juicerworkerid
 		destFilename := "juiceResult_" + prefix + "_" + id  // the destFile will be send to master /main folder, master will merge them
-		destFile, err := os.Create(destFilename)
+		destFile, err := os.OpenFile(destFilename, os.O_CREATE|os.O_WRONLY, 0644)
 		if err != nil {
 			Logger.Fatal(err)
 		}

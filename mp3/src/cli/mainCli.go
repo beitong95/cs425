@@ -14,7 +14,7 @@ import (
 	"github.com/marcusolsson/tui-go"
 )
 
-var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para", "maple", "juice"}
+var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para", "maple", "juice", "vote"}
 
 func getHelp() string {
 	return `help                            -> help inFormation
@@ -174,6 +174,8 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 		fmt.Printf("CLI send %s to UDP server\n", cmd)
 
 		switch cmd {
+		case "vote":
+			go client.MapleJuice("voteMaple", "5", "vote", "votes.txt", "maplecommand", "countJuice", "3", "out.txt", "1", "juicecommand")
 		case "help":
 			fmt.Println(strings.Replace(getHelp(), "\t", "", -1))
 		case "all2all":

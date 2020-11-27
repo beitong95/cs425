@@ -122,6 +122,7 @@ func PutFile(filename string, remotefilename string) {
 
 	for _, ip := range IPs {
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
+		//Write2Shell(ip)
 		destinationIp := IP2DatanodeUploadIP(ip)
 		status := networking.UploadFileToDatanode(filename, remotefilename, destinationIp)
 		if status == "OK" {
@@ -210,9 +211,9 @@ func DeleteFile(remotefilename string) {
 		networking.HTTPsend(url)
 		//Write2Shell("Delete" + remotefilename + " id: " + ID + " Fail")
 		//Write2Shell("Failed destination IPs:")
-		for _, v := range failedIPs {
+		//for _, v := range failedIPs {
 			//Write2Shell(v)
-		}
+		//}
 	} else {
 		url = "http://" + newIP + "/clientACK?id=" + ID
 		networking.HTTPsend(url)
@@ -262,6 +263,15 @@ func Store() {
 	for _, val := range list {
 		Write2Shell(val)
 	}
+}
+
+
+/*maple and juice
+*/
+
+func MapleJuice(maple_exe string, num_maples string, sdfs_intermediate_filename_prefix string, input_file string, _cmd1 string, juice_exe string, num_juices string, destfile string, delete_input string, _cmd2 string) {
+	Maple(maple_exe, num_maples, sdfs_intermediate_filename_prefix, input_file, _cmd1)
+	Juice(juice_exe, num_juices, sdfs_intermediate_filename_prefix, destfile, delete_input, _cmd2) 
 }
 
 /*
