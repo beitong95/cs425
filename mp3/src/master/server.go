@@ -124,9 +124,10 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	for {
 		MR.Lock()
 		MW.Lock()
+		Write2Shell("Writer count: " + fmt.Sprint(WriteCounter))
 		if WriteCounter == 0 {
 			ReadCounter++
-			//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+			Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 			MW.Unlock()
 			MR.Unlock()
 			break
@@ -154,7 +155,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		Write2Shell("File does not exist")
 	}
 	w.Write(res)
-
+	Write2Shell("FinishWriteIPS")
 	//step6. master wait ACK from client
 	//exit 1: receive "Done" -> get success
 	//exit 2: receive "Bad"  -> get fail
@@ -170,27 +171,27 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
-				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				//Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
+				Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
-				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if _, ok := FailedNodes[memberID]; ok{ // the client ip has failed
-				//Write2Shell("exit for failednodes: " + memberID)
+				Write2Shell("exit for failednodes: " + memberID)
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MW.Lock()
 				ReadCounter--
-				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MW.Unlock()
 				CM.Unlock()
 				break
@@ -198,7 +199,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
 				MW.Lock()
 				ReadCounter--
-				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MW.Unlock()
 				CM.Unlock()
 				break
