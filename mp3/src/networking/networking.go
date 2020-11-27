@@ -4,7 +4,6 @@ import (
 	. "structs"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -212,8 +211,7 @@ func DownloadFileFromDatanode(filename string, localfilename string, ipPort stri
 		return "Connection error", err
 	}
 	if rsp.Header["Content-Length"][0] == "19" {
-		fmt.Println("Possible empty")
-		return "Empty", err
+		Write2Shell("Possible empty")
 		buffer := make([]byte, 19)
 		rsp.Body.Read(buffer)
 		if string(buffer) == "404 page not found\n" {
