@@ -50,6 +50,7 @@ func GetFile(filename string, localfilename string) {
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
+	Write2Shell("BODY: " + string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)

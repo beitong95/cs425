@@ -121,6 +121,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 
 	//step4. handle reader and writer logic
 	//if we cannot read now, we stop here and wait for permission
+	Write2Shell("STEP4")
 	for {
 		MR.Lock()
 		MW.Lock()
@@ -140,6 +141,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	CM.Unlock()
 	//Write2Shell("Now Approve This Read id: " + fmt.Sprintf("%v", id))
 
+	Write2Shell("STEP5")
 	//step5. send ips back to client
 	var res []byte
 	var err error
