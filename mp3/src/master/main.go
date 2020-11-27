@@ -4,6 +4,7 @@ import (
 	_ "errors"
 	. "structs"
 	"networking"
+	//"fmt"
 )
 
 /**
@@ -134,16 +135,16 @@ func Rereplica(filename string) {
 				break
 			}
 			for {
-				MW.Lock()
 				MR.Lock()
+				MW.Lock()
 				if ReadCounter == 0 && WriteCounter == 0 {
 					WriteCounter++
-					MR.Unlock()
 					MW.Unlock()
+					MR.Unlock()
 					break
 				}
-				MR.Unlock()
 				MW.Unlock()
+				MR.Unlock()
 			}
 
 			sourceIp := IP2DatanodeUploadIP(source)
@@ -162,9 +163,11 @@ func Rereplica(filename string) {
 			} else if string(body) == "Bad" {
 				//Write2Shell("Rereplica file " +  filename + " from " + source + " to " + replica + " Fail!")
 			}
+			//Write2Shell("Rereplica WriterCounter before -- " + fmt.Sprint(WriteCounter))
 			MW.Lock()
 			WriteCounter--
 			MW.Unlock()
+			//Write2Shell("Rereplica WriterCounter After-- " + fmt.Sprint(WriteCounter))
 		}
 	}
 	if rereplicaFailFlag == true {

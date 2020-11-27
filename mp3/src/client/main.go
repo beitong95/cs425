@@ -46,11 +46,11 @@ func GetFile(filename string, localfilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename + "&memberID=" + MyID
-	Write2Shell("GetFile url: " + url)
+	//Write2Shell("GetFile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
-	Write2Shell("BODY: " + string(body))
+	//Write2Shell("BODY: " + string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
@@ -60,7 +60,7 @@ func GetFile(filename string, localfilename string) {
 
 	//step3. download files from the list
 	for _, ip := range IPs {
-		Write2Shell("IP: " + ip)
+		//Write2Shell("IP: " + ip)
 		//ip: ip + udpPort  -> newIp: ip + datanodeHTTPServerPort
 		newIp := IP2DatanodeHTTPServerIP(ip)
 		status, _ := networking.DownloadFileFromDatanode(filename, localfilename, newIp)
@@ -80,9 +80,9 @@ func GetFile(filename string, localfilename string) {
 	if getFailFlag == true {
 		url = "http://" + newIP + "/clientBad?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
+		//Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
 	} else {
-		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
+		//Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
 	}
 }
 

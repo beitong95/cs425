@@ -135,7 +135,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			Logger.Fatal(err)
 		}
 		// at this time all maple results are on hdfs, no intermediate files are in datanodes
-		Write2Shell("Mapler Success")
+		Write2Shell("Mapler " + maplerid + " Success")
 		w.Write([]byte("OK"))
 	}
 	http.HandleFunc("/mapleWorker", DownloadMaple)
@@ -194,11 +194,11 @@ func HTTPlistenJuice() {
 		// step 3. download all subfiles to \main \\ TODO:
 		for _, filename := range filenameList {
 			// juice source small files mapleResult_prefix_maplerid_key
-			Write2Shell("try to download file: " + filename)
+			//Write2Shell("try to download file: " + filename)
 			client.GetFile(filename, filename)
 		}
 
-		Write2Shell("finish download files")
+		//Write2Shell("finish download files")
 		// merge those files to one key per file
 		sourceFileList := []string{} // record all merged juice source files, after finish juice delete them
 		for key, files := range key2fileMap {
@@ -278,7 +278,7 @@ func HTTPlistenJuice() {
 		if err := os.Remove(destFilename); err != nil {
 			Logger.Fatal(err)
 		}
-		Write2Shell("Juicer Suceess")
+		Write2Shell("Juicer" + id + "Suceess")
 		return
 	}
 	http.HandleFunc("/juiceWorker", ProcessJuice)

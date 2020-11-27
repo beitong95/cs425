@@ -121,14 +121,15 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 
 	//step4. handle reader and writer logic
 	//if we cannot read now, we stop here and wait for permission
-	Write2Shell("STEP4")
+	//Write2Shell("STEP4")
+	//Write2Shell("Writer count: " + fmt.Sprint(WriteCounter))
+	//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 	for {
 		MR.Lock()
 		MW.Lock()
-		Write2Shell("Writer count: " + fmt.Sprint(WriteCounter))
 		if WriteCounter == 0 {
 			ReadCounter++
-			Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+			//Write2Shell("Reader count for loop: " + fmt.Sprint(ReadCounter))
 			MW.Unlock()
 			MR.Unlock()
 			break
@@ -141,7 +142,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 	CM.Unlock()
 	//Write2Shell("Now Approve This Read id: " + fmt.Sprintf("%v", id))
 
-	Write2Shell("STEP5")
+	//Write2Shell("STEP5")
 	//step5. send ips back to client
 	var res []byte
 	var err error
@@ -157,7 +158,7 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 		Write2Shell("File does not exist")
 	}
 	w.Write(res)
-	Write2Shell("FinishWriteIPS")
+	//Write2Shell("FinishWriteIPS")
 	//step6. master wait ACK from client
 	//exit 1: receive "Done" -> get success
 	//exit 2: receive "Bad"  -> get fail
@@ -173,36 +174,36 @@ func HandleGet(w http.ResponseWriter, req *http.Request) {
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
-				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
-				Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
+				//Write2Shell("Get fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
 				MR.Lock()
 				ReadCounter--
-				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
 				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if _, ok := FailedNodes[memberID]; ok{ // the client ip has failed
-				Write2Shell("exit for failednodes: " + memberID)
+				//Write2Shell("exit for failednodes: " + memberID)
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
-				MW.Lock()
+				MR.Lock()
 				ReadCounter--
-				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
-				MW.Unlock()
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				MR.Unlock()
 				CM.Unlock()
 				break
 			} else if elapsed := time.Now().Sub(start); elapsed > MasterGetTimeout*time.Second {
 				Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
-				MW.Lock()
+				MR.Lock()
 				ReadCounter--
-				Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
-				MW.Unlock()
+				//Write2Shell("Reader count: " + fmt.Sprint(ReadCounter))
+				MR.Unlock()
 				CM.Unlock()
 				break
 			}
@@ -254,16 +255,16 @@ func HandlePut(w http.ResponseWriter, req *http.Request) {
 	// step4. handle reader and writer logic
 	// if we cannot write now, we stop here for further permission
 	for {
-		MW.Lock()
 		MR.Lock()
+		MW.Lock()
 		if ReadCounter == 0 && WriteCounter == 0 {
 			WriteCounter++
-			MR.Unlock()
 			MW.Unlock()
+			MR.Unlock()
 			break
 		}
-		MR.Unlock()
 		MW.Unlock()
+		MR.Unlock()
 	}
 	CM.Lock()
 	ClientMap[id] = "Put"
@@ -416,16 +417,16 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 	// step4. handle reader and writer logic
 	// if we cannot write now, we stop here for further permission
 	for {
-		MW.Lock()
 		MR.Lock()
+		MW.Lock()
 		if ReadCounter == 0 && WriteCounter == 0 {
 			WriteCounter++
-			MR.Unlock()
 			MW.Unlock()
+			MR.Unlock()
 			break
 		}
-		MR.Unlock()
 		MW.Unlock()
+		MR.Unlock()
 	}
 	CM.Lock()
 	ClientMap[id] = "Delete"
@@ -489,18 +490,18 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				//Write2Shell("DELETE success ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("OK"))
 				//change readcounter to 0
-				MR.Lock()
+				MW.Lock()
 				WriteCounter--
-				MR.Unlock()
+				MW.Unlock()
 				CM.Unlock()
 				break
 			} else if ClientMap[id] == "Bad" {
 				//Write2Shell("DELETE fail ACK from id: " + fmt.Sprintf("%v", id))
 				w.Write([]byte("Bad"))
 				//change readcounter to 0
-				MR.Lock()
+				MW.Lock()
 				WriteCounter--
-				MR.Unlock()
+				MW.Unlock()
 				CM.Unlock()
 				break
 			} else if _, ok := FailedNodes[memberID]; ok{ // the client ip has failed
@@ -513,9 +514,9 @@ func HandleDelete(w http.ResponseWriter, req *http.Request) {
 				break
 			} else if elapsed := time.Now().Sub(start); elapsed > MasterPutTimeout*time.Second {
 				//Write2Shell("Timeout id: " + fmt.Sprintf("%v", id))
-				MR.Lock()
+				MW.Lock()
 				WriteCounter--
-				MR.Unlock()
+				MW.Unlock()
 				CM.Unlock()
 				break
 			}
@@ -952,7 +953,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	Write2Shell("is delete: " + delete)
 	// convert it to int
 	isDelete,_ := strconv.Atoi(delete)
-	Write2Shell("User choose to delete all intermediate files: " + fmt.Sprint(isDelete))
+	//Write2Shell("User choose to delete all intermediate files: " + fmt.Sprint(isDelete))
 	Write2Shell("Juice start")
 
 	//step2. find all keys and all available files (use maplerid as index)
@@ -1117,6 +1118,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 		res := "Bad"
 		w.Write([]byte(res))
 	} else {
+		Write2Shell("Juice Success")
 		res := "OK"
 		w.Write([]byte(res))
 	}

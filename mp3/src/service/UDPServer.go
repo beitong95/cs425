@@ -195,6 +195,8 @@ func selectFailedID(ticker *time.Ticker) {
 							if typeRe := strings.Contains(file, "maple:"); typeRe {
 								go master.ReMaple(file)
 							} else if typeRe := strings.Contains(file, "juice:"); typeRe {
+								//Write2Shell("Current writer " + fmt.Sprint(WriteCounter))
+								//Write2Shell("Current reader " + fmt.Sprint(ReadCounter))
 								go master.ReJuice(file)
 							} else {
 								go master.Rereplica(file)
