@@ -114,11 +114,14 @@ OutPut: body
 func HTTPsend(url string) []byte {
 	resp, err := http.Get(url)
 	if err != nil {
-		panic(err)
+		return []byte("BAD")
+		//panic(err)
+
 	}
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		panic(err)
+		return []byte("BAD")
+		//panic(err)
 	}
 	resp.Body.Close()
 	return body
@@ -146,19 +149,22 @@ func HTTPuploadFile(url string, filename string, uploadFilename string) []byte {
 
 		formFile, err := writer.CreateFormFile("uploadfile", uploadFilename)
 		if err != nil {
-			Logger.Fatal("Create form file failed: %s\n", err)
+			return 
+			//Logger.Fatal("Create form file failed: %s\n", err)
 		}
 
 		srcFile, err := os.Open(filename)
 
 		if err != nil {
-			Logger.Fatal("%Open source file failed: s\n", err)
+			return 
+			//Logger.Fatal("%Open source file failed: s\n", err)
 		}
 
 		defer srcFile.Close()
 		_, err = io.Copy(formFile, srcFile)
 		if err != nil {
-			Logger.Fatal("Write to form file falied: %s\n", err)
+			return 
+		//	Logger.Fatal("Write to form file falied: %s\n", err)
 		}
 	}()
 

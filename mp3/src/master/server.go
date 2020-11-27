@@ -607,7 +607,7 @@ func SendCmdToMapler(prefix string, filename string, exe string, destinationIp s
 		Write2Shell("remain worker: " + fmt.Sprint(MapleMap[prefix]))
 		MapleM.Unlock()
 	} else {
-		Write2Shell(recoverFilename + " FAIL")
+		Write2Shell(recoverFilename + ":" + destinationIp + " FAIL")
 		//do nothing wait for fail detector
 	}
 }
@@ -790,7 +790,7 @@ func SendCmdToJuicer(prefix string, commandString string, destinationIp string, 
 	// in mapper filename contains id
 	url := "http://" + destinationIp + "/juiceWorker?keys=" + commandString + "&prefix=" + prefix + "&id=" + id
 	prefix = strings.Split(prefix, "_")[1]
-	Write2Shell("Send command to juicer worker " + url)
+	//Write2Shell("Send command to juicer worker " + url)
 	rsp, err:= http.Get(url)
 	// if there is an error, the node fail
 	if err != nil {
@@ -831,6 +831,7 @@ func SendCmdToJuicer(prefix string, commandString string, destinationIp string, 
 	MV.Unlock()
 	JuiceM.Lock()
 	JuiceMap[prefix]--
+	Write2Shell("remain worker: " + fmt.Sprint(JuiceMap[prefix]))
 	JuiceM.Unlock()
 	return "OK", nil
 }
@@ -951,7 +952,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 				// we also need to add subid (maple worker id)
 				for _, workerId := range KeyList[key] {
 					// commandString is a list of to be downloaded files index (maplerid + key)
-					commandString = commandString + workerId + "_" + key + ","
+					commandString = commandString + workerId + "_" + key + "*"
 				}
 			}
 			//Write2Shell(commandString)
@@ -1026,7 +1027,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 
 	//step 7. delete files
 	if isDelete == 1 {
-		Write2Shell("Request Delete") // delete what? map intermediate result?
+		Write2Shell("Delete intermediate files in HDFS") // delete what? map intermediate result?
 		for key, maplerid := range KeyList {
 			for _, id := range maplerid {
 				todeleteFilename := "mapleResult_" + prefix + "_" + id + "_" + key

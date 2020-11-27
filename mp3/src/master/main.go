@@ -8,7 +8,7 @@ import (
 
 /**
 TODO:
-1. failure
+1. failure how to gracefully exit?
 2. performance
 **/
 

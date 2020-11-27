@@ -196,7 +196,7 @@ func ParseCmdSimple(cmd string, commands []string) (string,string,string) {
 		}
 		wrongCommand := true
 		for i := 0; i < len(commands); i++ {
-			if commands[i] == cmd {
+			if commands[i] == strings.Fields(cmd)[0]{
 				wrongCommand = false
 			}
 		}

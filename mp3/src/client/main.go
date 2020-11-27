@@ -46,7 +46,7 @@ func GetFile(filename string, localfilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/get?id=" + ID + "&file=" + filename
-	Write2Shell("GetFile url: " + url)
+	//Write2Shell("GetFile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
@@ -80,7 +80,7 @@ func GetFile(filename string, localfilename string) {
 		networking.HTTPsend(url)
 		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Fail")
 	} else {
-		Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
+		//Write2Shell("Get " + filename + " " + localfilename + " id: " + ID + " Success")
 	}
 }
 
@@ -163,11 +163,11 @@ func DeleteFile(remotefilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/delete?id=" + ID + "&file=" + remotefilename
-	Write2Shell("Deletefile url: " + url)
+	//Write2Shell("Deletefile url: " + url)
 
 	//step 2. send url and decode body
 	body := networking.HTTPsend(url)
-	Write2Shell(string(body))
+	//Write2Shell(string(body))
 	var IPs []string
 	IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
@@ -215,7 +215,7 @@ func DeleteFile(remotefilename string) {
 	} else {
 		url = "http://" + newIP + "/clientACK?id=" + ID
 		networking.HTTPsend(url)
-		Write2Shell("Delete" + remotefilename + " id: " + ID + " Success")
+		//Write2Shell("Delete" + remotefilename + " id: " + ID + " Success")
 	}
 
 }
@@ -231,9 +231,9 @@ func Ls(remotefilename string) {
 	ID := fmt.Sprint(time.Now().UnixNano())
 	newIP := IP2MasterHTTPServerIP(MasterIP)
 	url := "http://" + newIP + "/ls?id=" + ID + "&file=" + remotefilename
-	Write2Shell("Ls file url: " + url)
+	//Write2Shell("Ls file url: " + url)
 	body := networking.HTTPsend(url)
-	Write2Shell(string(body))
+	//Write2Shell(string(body))
 	var IPs = []string{}
 	err := json.Unmarshal(body, &IPs)
 	if err != nil {

@@ -50,7 +50,6 @@ func ServerRun(serverPort string) {
 	// client gets; datanode send the file to the client.
 	go networking.HTTPfileServer(serverPort, Dir + "files_" + DatanodeHTTPServerPort) //handle get files
 }
-
 // worker (datanode) listen to maple request from master
 func HTTPlistenMaple(BaseUploadPath string) {
 	DownloadMaple := func(w http.ResponseWriter, r *http.Request) {
@@ -78,13 +77,12 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			w.Write([]byte("error"))
 			return
 		}
-		
 		// step 2. process the file
 		// we assume the executable file is in the current folder
 		// filename exe_PartitionRes_prefix_maplerid
 		filename := header.Filename
+		Write2Shell("start process file: " + filename)	
 		mapleSource := MaplePath + filename
-		Write2Shell(mapleSource)
 		// exe_prefix_subid
 		exe := strings.Split(filename, "_")[0]
 		maplerid := strings.Split(filename, "_")[3]
@@ -93,19 +91,18 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		// TODO: map slow
 		// step 1 process file with map and store it to a new file 
 		intermediateFilename := "MapleIntermediate_" + prefix + "_" + maplerid
-		//Write2Shell(exepath)
-		//Write2Shell(mapleSource)
-		//Write2Shell(intermediateFilename)
 		cmd := exec.Command(exepath, mapleSource, intermediateFilename)
 		_, err = cmd.Output()
 		if err != nil {
-			panic(err)
+			Logger.Fatal(err)
 		}
+		Write2Shell("Start split files")
 		// step 2 split intermediate file based on keys
 		file, err := os.Open(intermediateFilename)
 		if err != nil {
-			panic(err)
+			Logger.Fatal(err)
 		}
+		defer file.Close()
 		buffer := make(map[string]string)	// [key]value
 		scanner := bufio.NewScanner(file)
 		for scanner.Scan() {
@@ -124,6 +121,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			if err != nil {
 				Logger.Fatal(err)
 			}
+			Write2Shell("Put: " + outputName)
 			client.PutFile(outputName, outputName)
 			if err := os.Remove(outputName); err != nil {
 				Logger.Fatal(err)
@@ -137,6 +135,7 @@ func HTTPlistenMaple(BaseUploadPath string) {
 			Logger.Fatal(err)
 		}
 		// at this time all maple results are on hdfs, no intermediate files are in datanodes
+		Write2Shell("Mapler Success")
 		w.Write([]byte("OK"))
 	}
 	http.HandleFunc("/mapleWorker", DownloadMaple)
@@ -248,7 +247,7 @@ func HTTPlistenJuice() {
 			return
 		}
 		id:= ids[0] 
-		Write2Shell(id)
+		Write2Shell("Juicer ID: " + id)
 
 		keyss, ok := req.URL.Query()["keys"]
 		if !ok {
@@ -266,7 +265,7 @@ func HTTPlistenJuice() {
 		
 		filenameList := []string{}
 		key2fileMap := make(map[string][]string) // we use this data structure to merge files
-		workerIDkeyList := strings.Split(keys,",")
+		workerIDkeyList := strings.Split(keys,"*")
 		workerIDkeyList = workerIDkeyList[:len(workerIDkeyList)-1]
 		for _, key := range workerIDkeyList{
 			filename := "mapleResult_" + prefix + "_" + key
@@ -277,7 +276,6 @@ func HTTPlistenJuice() {
 			} else {
 				key2fileMap[k] = append(key2fileMap[k], filename)
 			}
-			Write2Shell(filename)
 		}
 
 		// step 3. download all subfiles to \main
@@ -324,7 +322,6 @@ func HTTPlistenJuice() {
 		
 		exepath := ExePath + exe
 		for _, source := range sourceFileList {
-			Write2Shell(source)
 			key := strings.Split(source, "_")[2]
 			// source is in main
 			cmd := exec.Command(exepath, key, source, destFilename)
@@ -336,6 +333,7 @@ func HTTPlistenJuice() {
 			if err := os.Remove(source); err != nil {
 				Logger.Fatal(err)
 			}
+			Write2Shell("KEY FINISH:" +  source)
 		}
 
 		// step 5. send the file to master, can we send it in the body? yes
@@ -364,6 +362,7 @@ func HTTPlistenJuice() {
 		if err := os.Remove(destFilename); err != nil {
 			Logger.Fatal(err)
 		}
+		Write2Shell("Juicer Suceess")
 		return
 	}
 	http.HandleFunc("/juiceWorker", ProcessJuice)

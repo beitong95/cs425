@@ -196,7 +196,7 @@ var DatanodeHTTPServerPort = "1239" // local myport + 1
 var DatanodeHTTPServerUploadPort = "1240" //local myport + 2 
 const MasterGetTimeout = 300 // exit3 timeout 5 mins 
 const MasterPutTimeout = 300 // exit3 timeout 5 mins
-const MapleTimeout = 50
+const MapleTimeout = 100
 const JuiceTimeout = 300
 type Worker struct {
 	MapleID string
