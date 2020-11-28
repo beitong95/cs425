@@ -14,7 +14,7 @@ import (
 	"github.com/marcusolsson/tui-go"
 )
 
-var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para", "maple", "juice", "vote"}
+var commands = []string{"get", "put", "delete", "store", "ls", "exit", "help", "all2all", "gossip", "leave", "join", "id", "list", "para", "maple", "juice", "vote", "tree"}
 
 func getHelp() string {
 	return `help                            -> help inFormation
@@ -79,7 +79,10 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 		switch cmd {
 		case "vote":
 			//filename 1 is maple count filename2 is juice count
-			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "out.txt", "1", "juicecommand")
+			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "voteOut.txt", "1", "juicecommand")
+		case "tree":
+			//filename 1 is maple count filename2 is juice count
+			go client.MapleJuice("treeMaple", filename1, "tree", "treetype.txt", "maplecommand", "countJuice", filename2, "treeOut.txt", "1", "juicecommand")
 		case "all2all":
 			c <- CHANGE_TO_ALL2ALL
 		case "gossip":
@@ -179,6 +182,9 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 		switch cmd {
 		case "vote":
 			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "out.txt", "1", "juicecommand")
+		case "tree":
+			//filename 1 is maple count filename2 is juice count
+			go client.MapleJuice("treeMaple", filename1, "tree", "treetype.txt", "maplecommand", "countJuice", filename2, "treeOut.txt", "1", "juicecommand")
 		case "help":
 			fmt.Println(strings.Replace(getHelp(), "\t", "", -1))
 		case "all2all":
