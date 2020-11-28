@@ -974,7 +974,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	}
 	MV.Unlock()
 
-	//step3. shuffle TODO: add shuffle option
+	//step3. shuffle range
 	ShuffleRes := make(map[int][]string) // [juicer id][keys]
 	// get key slice
 	Keys := []string{}
@@ -983,10 +983,43 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	}
 	keyCount := len(Keys)
 	juicerIndex := 0
-	for i:=0; i< keyCount; i++ {
-		ShuffleRes[juicerIndex] = append(ShuffleRes[juicerIndex], Keys[i])
-		juicerIndex = (juicerIndex+1)%num
+	binsize := keyCount / num
+	//Write2Shell("key count = " + fmt.Sprint(keyCount))
+	//Write2Shell("juicer count = " + fmt.Sprint(num))
+	if binsize == 0 {
+		Write2Shell("reduce juicer count")
+		num = keyCount
+		// key count is smaller than juicer count, we cannot guarantee assign a key to each juicer
+		for i:=0; i< keyCount; i++ {
+			ShuffleRes[juicerIndex] = append(ShuffleRes[juicerIndex], Keys[i])
+			juicerIndex = (juicerIndex+1)%num
+		}
+	} else {
+		keyindex := 0
+		juicerIndex := 0
+		binIndex := 0
+		for {
+			ShuffleRes[juicerIndex] = append(ShuffleRes[juicerIndex], Keys[keyindex])
+			keyindex += 1
+			binIndex += 1
+			if keyindex == keyCount {
+				break
+			}
+			if binIndex == binsize && juicerIndex != num-1 {
+				binIndex = 0
+				juicerIndex += 1
+			}
+		}
 	}
+/**
+	for k, v := range ShuffleRes {
+		Write2Shell("Juicer: " + fmt.Sprint(k))
+		for _, vv := range v {
+			Write2Shell("Assigned key: " + vv)
+		}
+	}
+	**/
+	
 	/**
 	for key, _ := range KeyList {
 		res := HashShuffle(key, uint64(num))
@@ -1087,6 +1120,7 @@ func HandleJuice(w http.ResponseWriter, req *http.Request) {
 	defer finalRes.Close()
 	for _, realId := range realJuicerWorkers {
 		filename := "juiceResult2Master_" + prefix + "_" + realId 
+		//Write2Shell(filename)
 		inFile, err := os.Open(filename)
 		if err != nil {
 			Logger.Fatal(err)
@@ -1129,9 +1163,3 @@ func HashShuffle(key string, num uint64) int {
 	hash := xxhash.Sum64([]byte(key))
 	return int(hash % num)
 } 
-
-//sort and range 
-func RangeShuffle(KeyList map[string][]string) map[int][]string {
-	Write2Shell("TODO")
-	return nil
-}
