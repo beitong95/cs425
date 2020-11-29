@@ -12,7 +12,6 @@ import (
 	"os"
 	"io"
 	"strings"
-	"io/ioutil"
 	"strconv"
 )
 
@@ -99,35 +98,60 @@ func HTTPlistenMaple(BaseUploadPath string) {
 		}
 		Write2Shell("Start split files")
 		// step 2 split intermediate file based on keys
+		// get all keys
 		file, err := os.Open(intermediateFilename)
 		if err != nil {
 			Logger.Fatal(err)
 		}
-		defer file.Close()
-		buffer := make(map[string]string)	// [key]value
 		scanner := bufio.NewScanner(file)
+		allKeyList := make(map[string]string)
 		for scanner.Scan() {
 			text := scanner.Text()
 			key := strings.Fields(text)[0] 
-			buffer[key] = buffer[key] + string(text) + "\n"
+			if _, ok := allKeyList[key]; ok {
+				continue
+			} else {
+				allKeyList[key] = ""
+			}
 		}
 		if err := scanner.Err(); err != nil {
 			Logger.Fatal(err)
 		}
-		// dont need to change 
-		for i,s := range buffer{
-			//name mapleResult_prefix_maplerid_key
-			outputName := "mapleResult" + "_" + prefix + "_" + maplerid + "_" + i
-			err := ioutil.WriteFile(outputName, []byte(s), 0644)
-			if err != nil {
-				Logger.Fatal(err)
-			}
-			//Write2Shell("Put: " + outputName)
-			client.PutFile(outputName, outputName)
-			if err := os.Remove(outputName); err != nil {
-				Logger.Fatal(err)
-			}
+		file.Close()
 
+		filepointerMap := make(map[string]*os.File)
+		putfileList := []string{}
+		for k, _ := range allKeyList {
+			outputName := "mapleResult" + "_" + prefix + "_" + maplerid + "_" + k
+			putfileList = append(putfileList, outputName)
+			f, err := os.OpenFile(outputName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)	
+			if err != nil {
+				panic(err)
+			}
+			defer f.Close()
+			filepointerMap[k] = f
+		}
+
+		file, err = os.Open(intermediateFilename)
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		defer file.Close()
+		scanner = bufio.NewScanner(file)
+		for scanner.Scan() {
+			text := scanner.Text()
+			key := strings.Fields(text)[0] 
+			filepointerMap[key].WriteString(text + "\n")
+		}
+		if err := scanner.Err(); err != nil {
+			Logger.Fatal(err)
+		}
+
+		for _, putfilename := range putfileList {
+			client.PutFile(putfilename, putfilename)
+			if err := os.Remove(putfilename); err != nil {
+				Logger.Fatal(err)
+			}
 		}
 		if err := os.Remove(mapleSource); err != nil {
 			Logger.Fatal(err)

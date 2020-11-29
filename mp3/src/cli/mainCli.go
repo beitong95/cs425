@@ -82,7 +82,7 @@ func Cli(wg *sync.WaitGroup, c chan int) {
 			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "voteOut.txt", "1", "juicecommand")
 		case "vote_large":
 			//filename 1 is maple count filename2 is juice count
-			go client.MapleJuice("voteMaple", filename1, "vote", "votes_large.txt", "maplecommand", "countJuice", filename2, "voteOut.txt", "1", "juicecommand")
+			go client.MapleJuice("voteMaple", filename1, "vote", "votes_large.txt", "maplecommand", "countJuice", filename2, "vote_large_Out.txt", "1", "juicecommand")
 		case "tree":
 			//filename 1 is maple count filename2 is juice count
 			go client.MapleJuice("treeMaple", filename1, "tree", "treetype.txt", "maplecommand", "countJuice", filename2, "treeOut.txt", "1", "juicecommand")
@@ -187,7 +187,7 @@ func CliSimple(wg *sync.WaitGroup, c chan int) {
 			go client.MapleJuice("voteMaple", filename1, "vote", "votes.txt", "maplecommand", "countJuice", filename2, "out.txt", "1", "juicecommand")
 		case "vote_large":
 			//filename 1 is maple count filename2 is juice count
-			go client.MapleJuice("voteMaple", filename1, "vote", "votes_large.txt", "maplecommand", "countJuice", filename2, "voteOut.txt", "1", "juicecommand")
+			go client.MapleJuice("voteMaple", filename1, "vote", "votes_large.txt", "maplecommand", "countJuice", filename2, "vote_large_Out.txt", "1", "juicecommand")
 		case "tree":
 			//filename 1 is maple count filename2 is juice count
 			go client.MapleJuice("treeMaple", filename1, "tree", "treetype.txt", "maplecommand", "countJuice", filename2, "treeOut.txt", "1", "juicecommand")

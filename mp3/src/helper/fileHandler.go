@@ -9,6 +9,7 @@ import (
 	"strings"
 	"github.com/cespare/xxhash"
 	"math/rand"
+	"time"
 )
 
 func CreateFile() {
@@ -81,6 +82,75 @@ func List() []string {
 	}
 	return output
 }
+// range partition
+func FastPartition(filename string, partitionCount uint64, id string) ([]string, error) {
+	start := time.Now()
+	if partitionCount <= 0 {
+		panic("Paritioncount is 0")
+	}
+	file, err := os.Open(filename) 
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	// count linenumber
+	scanner := bufio.NewScanner(file)
+	counter := 0
+	for scanner.Scan() {
+		counter++
+	}
+	delta := time.Now().Sub(start).String()
+	//Write2Shell("count line time: " +  delta)
+	//Write2Shell("line count: " +  fmt.Sprint(counter))
+	if err := scanner.Err(); err != nil {
+		Logger.Fatal(err)
+	}
+	file.Close()
+
+	file, err = os.Open(filename) 
+	if err != nil {
+		Logger.Fatal(err)
+	}
+	defer file.Close()
+	partitionIndex := 0
+	partitionTarget := counter / int(partitionCount) 
+	bufferIndex := 0
+	scanner = bufio.NewScanner(file)
+	linecount := 0
+
+	res := []string{}
+	filepointerList := []*os.File{}
+	for i := 0; i < int(partitionCount); i++ {
+		filename := "PartitionRes_" + id + "_" + fmt.Sprint(i)
+		res = append(res, filename)
+		resfile, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)	
+		if err != nil {
+			Logger.Fatal(err)
+		}
+		defer resfile.Close()
+		filepointerList = append(filepointerList, resfile)
+	}
+
+	for scanner.Scan() {
+		linecount++
+		if linecount % 10000 == 0 {
+			//Write2Shell("line count: " + fmt.Sprint(linecount))
+		}
+		filepointerList[bufferIndex].WriteString(scanner.Text() + "\n")
+		partitionIndex++
+		if partitionIndex == partitionTarget && bufferIndex != int(partitionCount)-1{
+			bufferIndex += 1
+			partitionIndex = 0
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		Logger.Fatal(err)
+	}
+
+	delta = time.Now().Sub(start).String()
+	Write2Shell("partitoin time: " +  delta)
+	return res, nil
+
+}
 
 /**
 Name: HashPartition
@@ -92,6 +162,7 @@ Output: new filenames, error
 // answer: use key + value as the key
 // because all key value pairs may have the same key
 func HashPartition(filename string, partitionCount uint64, id string) ([]string, error) {
+	start := time.Now()
 	file, err := os.Open(filename) 
 	if err != nil {
 		Logger.Fatal(err)
@@ -101,7 +172,19 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 	buffer := make([]string, partitionCount)
 	
 	scanner := bufio.NewScanner(file)
+	counter := 0
 	for scanner.Scan() {
+		counter++
+	}
+	delta := time.Now().Sub(start).String()
+	Write2Shell("count line time: " +  delta)
+	Write2Shell("line count: " +  fmt.Sprint(counter))
+	
+	for scanner.Scan() {
+		counter++
+		if counter % 10000 == 0 {
+			Write2Shell("Current line: " + fmt.Sprint(counter))
+		}
 		text := scanner.Text() 
 		//Write2Shell(text)
 		hash := xxhash.Sum64([]byte(text + fmt.Sprint(rand.Intn(100))))
@@ -111,6 +194,8 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 		//Write2Shell(fmt.Sprintf("%v", partitionIndex))
 		buffer[partitionIndex] = buffer[partitionIndex] + text + "\n"
 	}
+	delta = time.Now().Sub(start).String()
+	Write2Shell("After scanner time: " +  delta)
 	
 	if err := scanner.Err(); err != nil {
 		Logger.Fatal(err)
@@ -127,6 +212,8 @@ func HashPartition(filename string, partitionCount uint64, id string) ([]string,
 			Logger.Fatal(err)
 		}
 	}
+	delta = time.Now().Sub(start).String()
+	Write2Shell("partitoin time: " +  delta)
 	return res, nil
 }
 

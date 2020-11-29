@@ -730,7 +730,8 @@ func HandleMaple(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// partitions []string{prefix_maplerId}
-	partitions, _ := helper.HashPartition(file,uint64(num), prefix) // partition the large file into num small files
+	//partitions, _ := helper.HashPartition(file,uint64(num), prefix) // partition the large file into num small files
+	partitions, _ := helper.FastPartition(file,uint64(num), prefix) // partition the large file into num small files
 	// record total maplers
 	MapleM.Lock()
 	MapleMap[prefix] = num
